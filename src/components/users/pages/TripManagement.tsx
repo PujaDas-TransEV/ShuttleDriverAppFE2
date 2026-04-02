@@ -1,465 +1,457 @@
-// import React, { useState } from 'react';
-// import { IonPage, IonContent, IonButton, IonModal } from '@ionic/react';
-// import NavbarSidebar from './Navbar';
-// import { TruckIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 
-// // Trip interface
-// interface Trip {
-//   id: number;
-//   busName: string;
-//   busNumber: string;
-//   from: string;
-//   to: string;
-//   time: string;
-//   bookedSeats: number;
-//   passengersScanned: number;
-//   status: 'scheduled' | 'ongoing' | 'completed';
-// }
-
-// const TripManagement: React.FC = () => {
-//   const [trips, setTrips] = useState<Trip[]>([
-//     {
-//       id: 1,
-//       busName: 'Volvo AC',
-//       busNumber: 'AC-101',
-//       from: 'Dhaka',
-//       to: 'Chittagong',
-//       time: '10:00 AM',
-//       bookedSeats: 3,
-//       passengersScanned: 0,
-//       status: 'scheduled',
-//     },
-//     {
-//       id: 2,
-//       busName: 'Non-AC Shuttle',
-//       busNumber: 'NAC-202',
-//       from: 'Dhaka',
-//       to: 'Sylhet',
-//       time: '12:00 PM',
-//       bookedSeats: 2,
-//       passengersScanned: 0,
-//       status: 'scheduled',
-//     },
-//   ]);
-
-//   const [showScanner, setShowScanner] = useState(false);
-//   const [currentTripId, setCurrentTripId] = useState<number | null>(null);
-
-//   // Start trip
-//   const startTrip = (id: number) => {
-//     setTrips(prev =>
-//       prev.map(t => (t.id === id ? { ...t, status: 'ongoing' } : t))
-//     );
-//   };
-
-//   // Simulate scanning a passenger
-//   const scanPassenger = (id: number) => {
-//     setTrips(prev =>
-//       prev.map(t =>
-//         t.id === id && t.passengersScanned < t.bookedSeats
-//           ? { ...t, passengersScanned: t.passengersScanned + 1 }
-//           : t
-//       )
-//     );
-//   };
-
-//   // End trip
-//   const endTrip = (id: number) => {
-//     setTrips(prev =>
-//       prev.map(t => (t.id === id ? { ...t, status: 'completed' } : t))
-//     );
-//   };
-
-//   return (
-//     <IonPage>
-//       <NavbarSidebar />
-//       <IonContent className="bg-white dark:bg-gray-900 text-black dark:text-white pt-16">
-//         <div className="max-w-4xl mx-auto p-5 space-y-6">
-//           <h1 className="text-3xl font-bold text-center mb-3">Trip Management</h1>
-//           <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
-//             Manage your trips, scan passengers, and complete your routes efficiently
-//           </p>
-
-//           {/* Trip List */}
-//           <div className="space-y-4">
-//             {trips.map(trip => (
-//               <div
-//                 key={trip.id}
-//                 className={`p-5 rounded-xl shadow flex flex-col md:flex-row justify-between items-start md:items-center transition ${
-//                   trip.status === 'scheduled'
-//                     ? 'bg-gray-100 dark:bg-gray-800'
-//                     : trip.status === 'ongoing'
-//                     ? 'bg-gray-200 dark:bg-gray-700'
-//                     : 'bg-gray-300 dark:bg-gray-600'
-//                 }`}
-//               >
-//                 <div className="flex items-center gap-4 mb-3 md:mb-0">
-//                   <TruckIcon className="w-8 h-8 text-gray-600 dark:text-gray-300" />
-//                   <div>
-//                     <h3 className="font-semibold text-lg">
-//                       {trip.busName} • {trip.busNumber}
-//                     </h3>
-//                     <p className="text-sm text-gray-500 dark:text-gray-400">
-//                       {trip.from} → {trip.to} • {trip.time}
-//                     </p>
-//                     {trip.status === 'ongoing' && (
-//                       <p className="text-sm text-green-500 mt-1">
-//                         Passengers scanned: {trip.passengersScanned}/{trip.bookedSeats}
-//                       </p>
-//                     )}
-//                   </div>
-//                 </div>
-
-//                 {/* Buttons */}
-//                 <div className="flex flex-col md:flex-row gap-2">
-//                   {trip.status === 'scheduled' && (
-//                     <IonButton
-//                       className="bg-black dark:bg-white text-white dark:text-black px-4 py-2 rounded-xl hover:scale-105 transition"
-//                       onClick={() => startTrip(trip.id)}
-//                     >
-//                       Start Trip
-//                     </IonButton>
-//                   )}
-
-//                   {trip.status === 'ongoing' && trip.passengersScanned < trip.bookedSeats && (
-//                     <IonButton
-//                       className="bg-blue-600 dark:bg-blue-400 text-white dark:text-black px-4 py-2 rounded-xl hover:scale-105 transition flex items-center gap-2"
-//                       onClick={() => { setCurrentTripId(trip.id); setShowScanner(true); }}
-//                     >
-//                       <QrCodeIcon className="w-5 h-5" /> Scan Passenger
-//                     </IonButton>
-//                   )}
-
-//                   {trip.status === 'ongoing' && trip.passengersScanned === trip.bookedSeats && (
-//                     <IonButton
-//                       className="bg-green-600 dark:bg-green-400 text-white dark:text-black px-4 py-2 rounded-xl hover:scale-105 transition"
-//                       onClick={() => endTrip(trip.id)}
-//                     >
-//                       End Trip
-//                     </IonButton>
-//                   )}
-
-//                   {trip.status === 'completed' && (
-//                     <span className="px-3 py-2 bg-gray-500 text-white rounded-xl text-sm font-semibold">
-//                       Completed
-//                     </span>
-//                   )}
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-
-//           {/* QR Scanner Modal */}
-//           <IonModal isOpen={showScanner} onDidDismiss={() => setShowScanner(false)}>
-//             <div className="p-6 h-full flex flex-col justify-center items-center bg-white dark:bg-gray-900">
-//               <h2 className="text-2xl font-bold mb-4">Scan Passenger</h2>
-//               <p className="mb-6 text-gray-500 dark:text-gray-400">
-//                 Simulating QR scanning for trip ID: {currentTripId}
-//               </p>
-//               <IonButton
-//                 className="bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-xl hover:scale-105 transition mb-4"
-//                 onClick={() => {
-//                   if (currentTripId) scanPassenger(currentTripId);
-//                 }}
-//               >
-//                 Scan Passenger
-//               </IonButton>
-//               <IonButton
-//                 className="bg-gray-400 dark:bg-gray-600 text-black dark:text-white px-6 py-3 rounded-xl hover:scale-105 transition"
-//                 onClick={() => setShowScanner(false)}
-//               >
-//                 Close
-//               </IonButton>
-//             </div>
-//           </IonModal>
-//         </div>
-//       </IonContent>
-//     </IonPage>
-//   );
-// };
-
-// export default TripManagement;
 
 // import React, { useState } from "react";
 // import {
 //   IonPage,
+//   IonHeader,
+//   IonToolbar,
+//   IonTitle,
 //   IonContent,
-//   IonModal,
-//   IonSelect,
-//   IonSelectOption,
 // } from "@ionic/react";
-// import NavbarSidebar from "./Navbar";
-// import { TruckIcon } from "@heroicons/react/24/outline";
-// import { QrReader } from "react-qr-reader";
+
 // import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 // import "leaflet/dist/leaflet.css";
+// import NavbarSidebar from "./Navbar";
 
-// // Bus Interface
-// interface Bus {
-//   id: number;
-//   name: string;
-//   busNumber: string;
-//   type: "AC" | "Non-AC";
-// }
+// // Sample route data with lat/lng for map
+// const routesData = [
+//   {
+//     route_id: 1,
+//     route_name: "Downtown to Airport",
+//     planned_start_at: "08:00 AM",
+//     planned_end_at: "09:30 AM",
+//     stops: [
+//       { name: "Main St", lat: 40.7128, lng: -74.006 },
+//       { name: "Central Mall", lat: 40.715, lng: -74.015 },
+//       { name: "Airport Terminal 1", lat: 40.730, lng: -74.020 },
+//     ],
+//   },
+//   {
+//     route_id: 2,
+//     route_name: "Suburb to City Center",
+//     planned_start_at: "09:00 AM",
+//     planned_end_at: "10:15 AM",
+//     stops: [
+//       { name: "Suburb Station", lat: 40.735, lng: -74.025 },
+//       { name: "Central Park", lat: 40.740, lng: -74.010 },
+//       { name: "City Center Plaza", lat: 40.745, lng: -74.005 },
+//     ],
+//   },
+// ];
 
-// // Passenger Interface
-// interface Passenger {
-//   id: number;
-//   name: string;
-//   paymentStatus: "Paid" | "Pending";
-//   location: string;
-//   tripStarted: boolean;
-//   tripCompleted: boolean;
-// }
-
-// // Trip Interface
-// interface Trip {
-//   id: number;
-//   bus: Bus;
-//   from: string;
-//   to: string;
-//   time: string;
-//   passengers: Passenger[];
-// }
-
-// const TripManagement: React.FC = () => {
-//   // Sample buses
-//   const buses: Bus[] = [
-//     { id: 1, name: "Volvo AC", busNumber: "AC101", type: "AC" },
-//     { id: 2, name: "Shuttle Non-AC", busNumber: "NA202", type: "Non-AC" },
-//   ];
-
-//   // Sample trips
-//   const [trips, setTrips] = useState<Trip[]>([
-//     {
-//       id: 1,
-//       bus: buses[0],
-//       from: "Dhaka",
-//       to: "Chittagong",
-//       time: "10:00 AM",
-//       passengers: [
-//         {
-//           id: 1,
-//           name: "Alice",
-//           paymentStatus: "Paid",
-//           location: "Dhaka",
-//           tripStarted: false,
-//           tripCompleted: false,
-//         },
-//         {
-//           id: 2,
-//           name: "Bob",
-//           paymentStatus: "Paid",
-//           location: "Dhaka",
-//           tripStarted: false,
-//           tripCompleted: false,
-//         },
-//       ],
-//     },
-//     {
-//       id: 2,
-//       bus: buses[1],
-//       from: "Dhaka",
-//       to: "Sylhet",
-//       time: "12:00 PM",
-//       passengers: [
-//         {
-//           id: 3,
-//           name: "Charlie",
-//           paymentStatus: "Paid",
-//           location: "Dhaka",
-//           tripStarted: false,
-//           tripCompleted: false,
-//         },
-//       ],
-//     },
-//   ]);
-
-//   const [selectedBusType, setSelectedBusType] = useState<"AC" | "Non-AC" | "All">("All");
-//   const [scannerOpen, setScannerOpen] = useState(false);
-//   const [currentPassengerId, setCurrentPassengerId] = useState<number | null>(null);
-//   const [currentTripId, setCurrentTripId] = useState<number | null>(null);
-
-//   // Start passenger trip
-//   const startPassengerTrip = (tripId: number, passengerId: number) => {
-//     setCurrentPassengerId(passengerId);
-//     setCurrentTripId(tripId);
-//     setScannerOpen(true);
-//   };
-
-//   // Scan passenger
-//   const scanPassenger = () => {
-//     if (currentTripId && currentPassengerId) {
-//       setTrips((prevTrips) =>
-//         prevTrips.map((trip) => {
-//           if (trip.id === currentTripId) {
-//             return {
-//               ...trip,
-//               passengers: trip.passengers.map((p) =>
-//                 p.id === currentPassengerId ? { ...p, tripStarted: true } : p
-//               ),
-//             };
-//           }
-//           return trip;
-//         })
-//       );
-//       setScannerOpen(false);
-//     }
-//   };
-
-//   // Complete passenger trip
-//   const completePassengerTrip = (tripId: number, passengerId: number) => {
-//     setTrips((prevTrips) =>
-//       prevTrips.map((trip) => {
-//         if (trip.id === tripId) {
-//           return {
-//             ...trip,
-//             passengers: trip.passengers.map((p) =>
-//               p.id === passengerId ? { ...p, tripCompleted: true } : p
-//             ),
-//           };
-//         }
-//         return trip;
-//       })
-//     );
-//   };
-
-//   // Filter trips by bus type
-//   const filteredTrips =
-//     selectedBusType === "All" ? trips : trips.filter((t) => t.bus.type === selectedBusType);
+// const DriverTripManagement = () => {
+//   const [selectedRoute, setSelectedRoute] = useState(null);
 
 //   return (
-//     <IonPage>
+//    <IonPage>
 //       <NavbarSidebar />
-//       <IonContent className="bg-white dark:bg-gray-900 text-black dark:text-white pt-16">
-//         <div className="max-w-5xl mx-auto p-5 space-y-6">
-//           <h1 className="text-3xl font-bold text-center mb-3">Trip & Passenger Management</h1>
-//           <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
-//             Track passengers, start trips, and complete trips efficiently
-//           </p>
 
-//           {/* Bus Filter */}
-//           <div className="flex justify-center mb-6">
-//             <IonSelect
-//               value={selectedBusType}
-//               onIonChange={(e) => setSelectedBusType(e.detail.value)}
-//               placeholder="Filter by Bus Type"
-//               className="bg-gray-100 dark:bg-gray-800 text-black dark:text-white rounded-xl px-4 py-2 w-48"
-//             >
-//               <IonSelectOption value="All">All</IonSelectOption>
-//               <IonSelectOption value="AC">AC</IonSelectOption>
-//               <IonSelectOption value="Non-AC">Non-AC</IonSelectOption>
-//             </IonSelect>
-//           </div>
+//       <IonContent className="bg-gray-50 dark:bg-gray-900 pt-16 text-gray-900 dark:text-white font-sans">
 
-//           {/* Trips */}
-//           <div className="space-y-4">
-//             {filteredTrips.map((trip) => (
-//               <div key={trip.id} className="p-5 bg-gray-100 dark:bg-gray-800 rounded-xl shadow space-y-4">
-//                 <div className="flex justify-between items-center">
-//                   <div>
-//                     <h2 className="font-semibold text-lg">{trip.bus.name} • {trip.bus.busNumber}</h2>
-//                     <p className="text-sm text-gray-500 dark:text-gray-400">{trip.from} → {trip.to} • {trip.time}</p>
-//                   </div>
-//                 </div>
-
-//                 {/* Passenger List */}
-//                 <div className="space-y-3">
-//                   {trip.passengers.map((passenger) => (
-//                     <div
-//                       key={passenger.id}
-//                       className={`p-3 rounded-xl flex justify-between items-center ${
-//                         passenger.tripCompleted ? "bg-gray-400 dark:bg-gray-600" : "bg-white dark:bg-gray-700"
-//                       }`}
-//                     >
-//                       <div>
-//                         <p className="font-semibold">{passenger.name}</p>
-//                         <p className="text-sm text-gray-500 dark:text-gray-400">
-//                           Payment: {passenger.paymentStatus} • Location: {passenger.location}
-//                         </p>
-//                       </div>
-//                       <div className="flex gap-2">
-//                         {!passenger.tripStarted && !passenger.tripCompleted && (
-//                           <button
-//                             style={{
-//                               backgroundColor: "#000",
-//                               color: "#fff",
-//                               padding: "8px 16px",
-//                               borderRadius: "8px",
-//                               border: "none",
-//                               cursor: "pointer",
-//                             }}
-//                             onClick={() => startPassengerTrip(trip.id, passenger.id)}
-//                           >
-//                             Start Trip
-//                           </button>
-//                         )}
-//                         {passenger.tripStarted && !passenger.tripCompleted && (
-//                           <button
-//                             style={{
-//                               backgroundColor: "#fff",
-//                               color: "#000",
-//                               padding: "8px 16px",
-//                               borderRadius: "8px",
-//                               border: "1px solid #000",
-//                               cursor: "pointer",
-//                             }}
-//                             onClick={() => completePassengerTrip(trip.id, passenger.id)}
-//                           >
-//                             Complete Trip
-//                           </button>
-//                         )}
-//                         {passenger.tripCompleted && (
-//                           <span className="px-3 py-1 rounded-full bg-gray-500 text-white text-sm">
-//                             Completed
-//                           </span>
-//                         )}
-//                       </div>
-//                     </div>
-//                   ))}
-//                 </div>
-//               </div>
+//       {/* Content */}
+     
+//         {/* Route Selection */}
+//         <div className="bg-white rounded shadow p-4 mt-20">
+//           <label className="block mb-2 text-gray-700 font-semibold text-lg">
+//             Select Route
+//           </label>
+//           <select
+//             className="w-full p-2 border border-gray-300 rounded bg-white text-gray-800 font-medium"
+//             value={selectedRoute ? selectedRoute.route_id : ""}
+//             onChange={(e) => {
+//               const route = routesData.find(
+//                 (r) => r.route_id === parseInt(e.target.value)
+//               );
+//               setSelectedRoute(route);
+//             }}
+//           >
+//             <option value="">Choose your route</option>
+//             {routesData.map((route) => (
+//               <option key={route.route_id} value={route.route_id}>
+//                 {route.route_name}
+//               </option>
 //             ))}
-//           </div>
+//           </select>
+//         </div>
 
-//           {/* Scanner Modal */}
-//           <IonModal isOpen={scannerOpen} onDidDismiss={() => setScannerOpen(false)}>
-//             <div className="p-6 h-full flex flex-col justify-center items-center bg-white dark:bg-gray-900">
-//               <h2 className="text-2xl font-bold mb-4">Scan Passenger</h2>
-//               <p className="mb-6 text-gray-500 dark:text-gray-400">Scan QR for passenger to start trip</p>
-
-//               {/* QR Scanner */}
-//               <div style={{ width: "100%", maxWidth: "400px" }}>
-//                 <QrReader
-//   onResult={(result, error) => {
-//     if (result) scanPassenger();
-//     if (error) console.error(error);
-//   }}
-//   constraints={{ facingMode: "environment" }}
-
-// />
+//         {/* Trip Details */}
+//         {selectedRoute && (
+//           <div className="bg-white rounded shadow p-4 space-y-4">
+//             {/* Planned Start/End */}
+//             <div className="flex justify-between text-gray-800 font-medium text-base">
+//               <div>
+//                 <span className="font-semibold">Start:</span>{" "}
+//                 {selectedRoute.planned_start_at}
 //               </div>
+//               <div>
+//                 <span className="font-semibold">End:</span>{" "}
+//                 {selectedRoute.planned_end_at}
+//               </div>
+//             </div>
 
+//             {/* Stops List */}
+//             <div>
+//               <h2 className="text-gray-700 font-semibold mb-2 text-lg">Stops</h2>
+//               <ul className="list-decimal list-inside space-y-1 text-gray-600">
+//                 {selectedRoute.stops.map((stop, index) => (
+//                   <li key={index} className="text-gray-800 font-medium">
+//                     {stop.name}
+//                   </li>
+//                 ))}
+//               </ul>
+//             </div>
+
+//             {/* Map Preview */}
+//             <div
+//               style={{ height: "300px", width: "100%" }}
+//               className="rounded overflow-hidden shadow mt-2"
+//             >
+//               <MapContainer
+//                 center={[
+//                   selectedRoute.stops[0].lat,
+//                   selectedRoute.stops[0].lng,
+//                 ]}
+//                 zoom={13}
+//                 style={{ height: "100%", width: "100%" }}
+//                 scrollWheelZoom={false}
+//               >
+//                 <TileLayer
+//                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+//                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+//                 />
+//                 {selectedRoute.stops.map((stop, index) => (
+//                   <Marker
+//                     key={index}
+//                     position={[stop.lat, stop.lng]}
+//                   >
+//                     <Popup>{stop.name}</Popup>
+//                   </Marker>
+//                 ))}
+//               </MapContainer>
+//             </div>
+
+//             {/* Action Buttons */}
+//             <div className="flex justify-between mt-4 space-x-4">
 //               <button
 //                 style={{
+//                   height: "45px",
+//                   width: "48%",
 //                   backgroundColor: "#000",
 //                   color: "#fff",
-//                   padding: "10px 20px",
-//                   marginTop: "16px",
-//                   borderRadius: "8px",
-//                   border: "none",
-//                   cursor: "pointer",
+//                   fontWeight: "bold",
 //                 }}
-//                 onClick={() => setScannerOpen(false)}
+//                 className="rounded hover:bg-gray-700 transition"
+//                 onClick={() => alert("Trip Started!")}
 //               >
-//                 Close
+//                 Start Trip
+//               </button>
+//               <button
+//                 style={{
+//                   height: "45px",
+//                   width: "48%",
+//                   backgroundColor: "#fff",
+//                   color: "#000",
+//                   fontWeight: "bold",
+//                   border: "1px solid #000",
+//                 }}
+//                 className="rounded hover:bg-gray-200 transition"
+//                 onClick={() => setSelectedRoute(null)}
+//               >
+//                 Cancel
 //               </button>
 //             </div>
-//           </IonModal>
-//         </div>
+//           </div>
+//         )}
 //       </IonContent>
 //     </IonPage>
 //   );
 // };
 
-// export default TripManagement;
+// export default DriverTripManagement;
+
+import React, { useState } from "react";
+import {
+  IonPage,
+  IonContent,
+} from "@ionic/react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import NavbarSidebar from "./Navbar";
+
+// Sample route data with lat/lng for map
+const routesData = [
+  {
+    route_id: 1,
+    route_name: "Downtown to Airport",
+    planned_start_at: "08:00 AM",
+    planned_end_at: "09:30 AM",
+    stops: [
+      { name: "Main St", lat: 40.7128, lng: -74.006 },
+      { name: "Central Mall", lat: 40.715, lng: -74.015 },
+      { name: "Airport Terminal 1", lat: 40.730, lng: -74.020 },
+    ],
+  },
+  {
+    route_id: 2,
+    route_name: "Suburb to City Center",
+    planned_start_at: "09:00 AM",
+    planned_end_at: "10:15 AM",
+    stops: [
+      { name: "Suburb Station", lat: 40.735, lng: -74.025 },
+      { name: "Central Park", lat: 40.740, lng: -74.010 },
+      { name: "City Center Plaza", lat: 40.745, lng: -74.005 },
+    ],
+  },
+];
+
+const DriverTripManagement = () => {
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newTrip, setNewTrip] = useState({
+    route_id: "",
+    start_at: "",
+    end_at: "",
+  });
+
+  const handleCreateTrip = () => {
+    // Here you can handle API call or state update
+    alert(
+      `Trip Created!\nRoute: ${
+        routesData.find(r => r.route_id === parseInt(newTrip.route_id))?.route_name
+      }\nStart: ${newTrip.start_at}\nEnd: ${newTrip.end_at}`
+    );
+    setIsModalOpen(false);
+    setNewTrip({ route_id: "", start_at: "", end_at: "" });
+  };
+
+  return (
+    <IonPage>
+      <NavbarSidebar />
+
+      <IonContent className="bg-gray-50 dark:bg-gray-900 pt-16 text-gray-900 dark:text-white font-sans p-4">
+
+        {/* Create Trip Button */}
+        <div className="mb-6 mt-20">
+         <button
+  style={{
+    backgroundColor: "#000", // black background
+    color: "#fff",           // white text
+    fontWeight: "bold",
+    height: "45px",          // custom height
+    width: "150px",          // custom width
+    borderRadius: "8px",     // rounded corners
+  }}
+  onClick={() => setIsModalOpen(true)}
+>
+  Create Trip
+</button>
+        </div>
+
+        {/* Route Selection */}
+        <div className="bg-white rounded shadow p-4">
+          <label className="block mb-2 text-gray-700 font-semibold text-lg">
+            Select Route
+          </label>
+          <select
+            className="w-full p-2 border border-gray-300 rounded bg-white text-gray-800 font-medium"
+            value={selectedRoute ? selectedRoute.route_id : ""}
+            onChange={(e) => {
+              const route = routesData.find(
+                (r) => r.route_id === parseInt(e.target.value)
+              );
+              setSelectedRoute(route);
+            }}
+          >
+            <option value="">Choose your route</option>
+            {routesData.map((route) => (
+              <option key={route.route_id} value={route.route_id}>
+                {route.route_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Trip Details */}
+        {selectedRoute && (
+          <div className="bg-white rounded shadow p-4 space-y-4 mt-4">
+            {/* Planned Start/End */}
+            <div className="flex justify-between text-gray-800 font-medium text-base">
+              <div>
+                <span className="font-semibold">Start:</span>{" "}
+                {selectedRoute.planned_start_at}
+              </div>
+              <div>
+                <span className="font-semibold">End:</span>{" "}
+                {selectedRoute.planned_end_at}
+              </div>
+            </div>
+
+            {/* Stops List */}
+            <div>
+              <h2 className="text-gray-700 font-semibold mb-2 text-lg">Stops</h2>
+              <ul className="list-decimal list-inside space-y-1 text-gray-600">
+                {selectedRoute.stops.map((stop, index) => (
+                  <li key={index} className="text-gray-800 font-medium">
+                    {stop.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Map Preview */}
+            <div
+              style={{ height: "300px", width: "100%" }}
+              className="rounded overflow-hidden shadow mt-2"
+            >
+              <MapContainer
+                center={[
+                  selectedRoute.stops[0].lat,
+                  selectedRoute.stops[0].lng,
+                ]}
+                zoom={13}
+                style={{ height: "100%", width: "100%" }}
+                scrollWheelZoom={false}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {selectedRoute.stops.map((stop, index) => (
+                  <Marker
+                    key={index}
+                    position={[stop.lat, stop.lng]}
+                  >
+                    <Popup>{stop.name}</Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between mt-4 space-x-4">
+              <button
+                style={{
+                  height: "45px",
+                  width: "48%",
+                  backgroundColor: "#000",
+                  color: "#fff",
+                  fontWeight: "bold",
+                }}
+                className="rounded hover:bg-gray-700 transition"
+                onClick={() => alert("Trip Started!")}
+              >
+                Start Trip
+              </button>
+              <button
+                style={{
+                  height: "45px",
+                  width: "48%",
+                  backgroundColor: "#fff",
+                  color: "#000",
+                  fontWeight: "bold",
+                  border: "1px solid #000",
+                }}
+                className="rounded hover:bg-gray-200 transition"
+                onClick={() => setSelectedRoute(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Create Trip Modal */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-lg w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+                Create New Trip
+              </h2>
+
+              {/* Route Dropdown */}
+              <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                Select Route
+              </label>
+              <select
+                className="w-full p-2 mb-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                value={newTrip.route_id}
+                onChange={(e) =>
+                  setNewTrip({ ...newTrip, route_id: e.target.value })
+                }
+              >
+                <option value="">Choose Route</option>
+                {routesData.map((route) => (
+                  <option key={route.route_id} value={route.route_id}>
+                    {route.route_name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Start Date/Time */}
+              <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                Planned Start
+              </label>
+              <input
+                type="datetime-local"
+                className="w-full p-2 mb-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                value={newTrip.start_at}
+                onChange={(e) =>
+                  setNewTrip({ ...newTrip, start_at: e.target.value })
+                }
+              />
+
+              {/* End Date/Time */}
+              <label className="block mb-2 text-gray-700 dark:text-gray-300 font-medium">
+                Planned End
+              </label>
+              <input
+                type="datetime-local"
+                className="w-full p-2 mb-4 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
+                value={newTrip.end_at}
+                onChange={(e) =>
+                  setNewTrip({ ...newTrip, end_at: e.target.value })
+                }
+              />
+
+              {/* Modal Buttons */}
+              <div className="flex justify-between mt-4 space-x-4">
+               <button
+  style={{
+    height: "45px",              // custom height
+    width: "100px",              // custom width (adjust as needed)
+    backgroundColor: "#00A000",  // green background
+    color: "#fff",               // white text
+    fontWeight: "bold",          // bold text
+    borderRadius: "8px",         // rounded corners
+    border: "none",              // remove default border
+    cursor: "pointer",           // pointer on hover
+  }}
+  onClick={handleCreateTrip}
+>
+  Create
+</button><button
+  style={{
+    height: "45px",             // custom height
+    width: "100px",             // custom width (adjust as needed)
+    backgroundColor: "#D00000", // red background
+    color: "#fff",              // white text
+    fontWeight: "bold",         // bold text
+    borderRadius: "8px",        // rounded corners
+    border: "none",             // remove default border
+    cursor: "pointer",          // pointer on hover
+  }}
+  onClick={() => setIsModalOpen(false)}
+>
+  Cancel
+</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </IonContent>
+    </IonPage>
+  );
+};
+
+export default DriverTripManagement;

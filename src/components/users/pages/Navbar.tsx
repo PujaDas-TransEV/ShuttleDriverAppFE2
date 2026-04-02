@@ -21,7 +21,8 @@ const NavbarSidebar: React.FC = () => {
 
   const menuItems = [
      { name: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
-    { name: 'Bus & Trip Management', icon: TruckIcon, path: '/bus-and-trip-management' },
+    { name: 'Vehicle Management', icon: TruckIcon, path: '/bus-and-trip-management' },
+     { name: 'Trip Management', icon: MapIcon, path: '/trip-management' },
     { name: 'Passenger Booking', icon: RectangleStackIcon, path: '/passenger-booking' },
     { name: 'Live Tracking', icon: MapIcon, path: '/live-tracking' },
     { name: 'Revenue & Payments', icon: CurrencyRupeeIcon, path: '/revenue-payments' },

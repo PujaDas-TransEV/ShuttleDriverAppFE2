@@ -17,7 +17,7 @@ import RevenuePayments from './components/users/pages/Revenue';
 import Notification from './components/users/pages/Notification';
 import Support from './components/users/pages/Support';
 import Kyc from './components/users/pages/KYC';
-// import TripManagemnet from './components/users/pages/TripManagement';
+import TripManagemnet from './components/users/pages/TripManagement';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -77,13 +77,13 @@ const App: React.FC = () => {
             <Route exact path="/notification">
               <Notification />
             </Route>
-            {/* <Route exact path="/trip-management">
+            <Route exact path="/trip-management">
               <TripManagemnet />
-            </Route> */}
+            </Route>
             <Route exact path="/support">
               <Support />
             </Route>
-            <Route exact path="/kyc">
+            <Route exact path="/kyc-verification">
               <Kyc />
             </Route>
 
