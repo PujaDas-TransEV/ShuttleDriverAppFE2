@@ -304,19 +304,20 @@ const VehicleRegistration: React.FC = () => {
     setVehicle({ ...vehicle, [name]: name === 'seat_count' ? Number(value) : value });
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: 'rear' | 'rc') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+ const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: 'rear' | 'rc') => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    if (type === 'rear') {
-      setRearPhoto(file);
-      setRearPreview(url);
-    } else {
-      setRcFile(file);
-      setRcPreview(url);
-    }
-  };
+  const url = URL.createObjectURL(file);
+
+  if (type === 'rear') {
+    setRearPhoto(file);
+    setRearPreview(url);
+  } else {
+    setRcFile(file);
+    setRcPreview(url);
+  }
+};
 
   const submitVehicle = async () => {
     setServerError(null);
@@ -334,6 +335,7 @@ const VehicleRegistration: React.FC = () => {
     setLoading(true);
 
     try {
+      // Step 1: PATCH request to update vehicle
       const formData = new FormData();
       formData.append("has_ac", vehicle.hasAc);
       formData.append("seat_count", String(vehicle.seat_count));
@@ -341,25 +343,39 @@ const VehicleRegistration: React.FC = () => {
       formData.append("vehicle_model", vehicle.vehicle_model);
       formData.append("vehicle_name", vehicle.vehicle_name);
       formData.append("registration_number", vehicle.registration_number);
-
       if (rearPhoto) formData.append("rear_photo", rearPhoto);
       if (rcFile) formData.append("rc_file", rcFile);
 
-      const res = await fetch(`${API_BASE}/driver/vehicle/register`, {
-        method: "POST",
+      const patchRes = await fetch(`${API_BASE}/driver/vehicle/register`, {
+        method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const data = await res.json();
+      const patchData = await patchRes.json();
 
-      if (res.ok) {
+      if (!patchRes.ok) {
+        setServerError(patchData.detail || "Vehicle update failed. Complete KYC first.");
+        return;
+      }
+
+      // Step 2: POST request to submit vehicle
+      const postRes = await fetch(`${API_BASE}/driver/vehicle/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ registration_number: vehicle.registration_number }),
+      });
+
+      const postData = await postRes.json();
+
+      if (postRes.ok) {
         setToastMsg("Vehicle registered successfully!");
-        setTimeout(() => {
-          history.push("/bus-and-trip-management"); // Redirect to bus and trip management page
-        }, 1500);
+        setTimeout(() => history.push("/bus-and-trip-management"), 1500);
       } else {
-        setServerError(data.detail || "Registration failed. Complete KYC first.");
+        setServerError(postData.detail || "Vehicle submission failed.");
       }
     } catch (err) {
       console.error(err);
@@ -374,7 +390,6 @@ const VehicleRegistration: React.FC = () => {
       <NavbarSidebar />
       <IonContent className="bg-gray-100 dark:bg-black pt-16">
         <div className="max-w-3xl mx-auto p-6 space-y-8">
-
           {/* Header */}
           <div className="text-center mt-10">
             <h1 className="text-3xl font-bold mb-2 text-black dark:text-white">Vehicle Registration</h1>
@@ -413,7 +428,7 @@ const VehicleRegistration: React.FC = () => {
               />
             </div>
 
-            {/* AC / Non‑AC */}
+            {/* Vehicle Type */}
             <div>
               <label className="block text-sm font-medium mb-1 text-black dark:text-white">Vehicle Type</label>
               <select
@@ -487,43 +502,31 @@ const VehicleRegistration: React.FC = () => {
             </div>
 
             {/* Rear Photo */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-black dark:text-white">Rear Photo</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">Rear Photo</label>
               <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, "rear")}
-                  className="text-sm text-gray-500 dark:text-gray-300"
-                />
-                <div className="w-20 h-20 border rounded-md overflow-hidden flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-                  {rearPreview ? (
-                    <img src={rearPreview} className="w-full h-full object-cover" alt="Rear preview" />
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">Preview</span>
-                  )}
-                </div>
+                <label className="w-24 h-24 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 flex items-center justify-center cursor-pointer hover:border-gray-400 transition">
+                  <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "rear")} className="hidden" />
+                  {rearPreview ? <img src={rearPreview} className="w-full h-full object-cover rounded-md" alt="Rear preview" /> :
+                    <span className="text-gray-400 dark:text-gray-500 text-xs text-center">Click to Upload</span>}
+                </label>
               </div>
             </div>
 
             {/* RC Document */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-black dark:text-white">RC Document</label>
+            <div className="space-y-2 mt-4">
+              <label className="block text-sm font-semibold text-gray-800 dark:text-gray-200">RC Document</label>
               <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  onChange={(e) => handleFileChange(e, "rc")}
-                  className="text-sm text-gray-500 dark:text-gray-300"
-                />
-                <div className="text-xs text-green-500 font-semibold">
-                  {rcPreview ? "File selected" : "No file selected"}
-                </div>
+                <label className="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 px-4 py-2 cursor-pointer hover:border-gray-400 transition flex items-center justify-between">
+                  <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "rc")} className="hidden" />
+                  <span className="text-gray-500 dark:text-gray-300 text-sm">{rcPreview ? "File selected" : "Click to Upload"}</span>
+                  {rcPreview && <span className="text-green-500 font-semibold text-sm">✔</span>}
+                </label>
               </div>
             </div>
 
-            {/* Submit */}
-            <div className="flex justify-center mt-4">
+            {/* Submit Button */}
+            <div className="flex justify-center mt-6">
               <IonButton
                 onClick={submitVehicle}
                 className="bg-black dark:bg-white text-white dark:text-black w-48 h-14 rounded-xl shadow-lg hover:scale-105 transition"

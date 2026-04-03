@@ -440,7 +440,7 @@ const ProfileSetup: React.FC = () => {
                   value={profile.name}
                   onChange={handleChange}
                   placeholder="Enter your full name"
-                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 dark:bg-white"
                 />
               </div>
             </div>
@@ -455,7 +455,7 @@ const ProfileSetup: React.FC = () => {
                   value={profile.phone}
                   onChange={handleChange}
                   placeholder="Enter your phone number"
-                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 dark:bg-white"
                 />
               </div>
             </div>
