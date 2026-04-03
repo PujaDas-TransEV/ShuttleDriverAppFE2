@@ -395,86 +395,104 @@ const ProfileSetup: React.FC = () => {
   return (
     <IonPage>
       <NavbarSidebar />
-      <IonContent className="bg-white dark:bg-gray-900 text-black dark:text-white pt-16">
-        <div className="max-w-3xl mx-auto p-5 mt-10">
-          <h1 className="text-3xl font-bold mb-2 mt-6">Driver Profile Setup</h1>
-          <p className="text-gray-500 dark:text-gray-300 mb-6">
-            Fill in your details to complete your Uber Shuttle driver profile.
-          </p>
+    <IonContent className="bg-gray-100 dark:bg-gray-900 text-black dark:text-white pt-16">
+  <div className="max-w-3xl mx-auto p-5 mt-20">
+    {/* Card Container */}
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-10 border border-gray-200 dark:border-gray-700">
+      
+      <h1 className="text-3xl font-bold mb-2 text-center">Driver Profile Setup</h1>
+      <p className="text-gray-500 dark:text-gray-300 mb-6 text-center">
+        Fill in your details to complete your Uber Shuttle driver profile.
+      </p>
 
-          {/* Profile Image */}
-          <div className="flex flex-col items-center mb-6 relative">
-            <div
-              className="w-32 h-32 rounded-full overflow-hidden border-2 border-gray-300 dark:border-gray-600 cursor-pointer relative"
-              onClick={() => document.getElementById('profileUpload')?.click()}
-            >
-              {profile.profileFileId ? (
-                <ProtectedImage
-                  fileId={profile.profileFileId}
-                  token={token}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <UserCircleIcon className="w-full h-full text-gray-400 dark:text-gray-600" />
-              )}
-            </div>
+      {/* Profile Image */}
+      <div className="flex flex-col items-center mb-6 relative">
+        <div
+          className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-300 dark:border-gray-600 cursor-pointer shadow-lg hover:scale-105 transition-transform"
+          onClick={() => document.getElementById('profileUpload')?.click()}
+        >
+          {profile.profileFileId ? (
+            <ProtectedImage
+              fileId={profile.profileFileId}
+              token={token}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <UserCircleIcon className="w-full h-full text-gray-400 dark:text-gray-600" />
+          )}
+        </div>
+        <input
+          type="file"
+          accept="image/*"
+          id="profileUpload"
+          onChange={handleImageChange}
+          className="hidden"
+        />
+      </div>
+
+      {/* Form */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Full Name</label>
+          <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shadow-sm focus-within:ring-2 focus-within:ring-black dark:focus-within:ring-white transition">
+            <UserCircleIcon className="w-6 h-6 text-gray-400 dark:text-gray-300 ml-2" />
             <input
-              type="file"
-              accept="image/*"
-              id="profileUpload"
-              onChange={handleImageChange}
-              className="hidden"
+              type="text"
+              name="name"
+              value={profile.name}
+              onChange={handleChange}
+              placeholder="Enter your full name"
+              className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
-
-          {/* Form */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Full Name</label>
-              <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                <UserCircleIcon className="w-6 h-6 text-gray-400 dark:text-gray-500 ml-2" />
-                <input
-                  type="text"
-                  name="name"
-                  value={profile.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 dark:bg-white"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Phone Number</label>
-              <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                <PhoneIcon className="w-6 h-6 text-gray-400 dark:text-gray-500 ml-2" />
-                <input
-                  type="tel"
-                  name="phone"
-                  value={profile.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your phone number"
-                  className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 dark:bg-white"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="mt-6 flex justify-center">
-            <IonButton onClick={saveProfile}>{isCreated ? 'Update Profile' : 'Create Profile'}</IonButton>
-          </div>
-
-          <IonLoading isOpen={loading} message="Saving profile..." />
-          <IonToast
-            isOpen={!!toastMsg}
-            message={toastMsg}
-            duration={2500}
-            onDidDismiss={() => setToastMsg('')}
-          />
         </div>
-      </IonContent>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <div className="flex items-center border rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shadow-sm focus-within:ring-2 focus-within:ring-black dark:focus-within:ring-white transition">
+            <PhoneIcon className="w-6 h-6 text-gray-400 dark:text-gray-300 ml-2" />
+            <input
+              type="tel"
+              name="phone"
+              value={profile.phone}
+              onChange={handleChange}
+              placeholder="Enter your phone number"
+              className="w-full p-2 bg-transparent outline-none text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="mt-8 flex justify-center">
+        <IonButton
+          onClick={saveProfile}
+          style={{
+            width: '200px',
+            height: '50px',
+            backgroundColor: 'black',
+            color: 'white',
+            fontWeight: 'bold',
+            borderRadius: '12px'
+          }}
+        >
+          {isCreated ? 'Update Profile' : 'Create Profile'}
+        </IonButton>
+      </div>
+
+      {/* Loading & Toast */}
+      <IonLoading isOpen={loading} message="Saving profile..." />
+      <IonToast
+        isOpen={!!toastMsg}
+        message={toastMsg}
+        duration={2500}
+        onDidDismiss={() => setToastMsg('')}
+      />
+    </div>
+  </div>
+</IonContent>
+      
     </IonPage>
   );
 };

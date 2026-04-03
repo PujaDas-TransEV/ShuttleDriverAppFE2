@@ -18,6 +18,7 @@ import Notification from './components/users/pages/Notification';
 import Support from './components/users/pages/Support';
 import Kyc from './components/users/pages/KYC';
 import TripManagemnet from './components/users/pages/TripManagement';
+import CreateTrip from './components/users/pages/CreateTrip';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -82,6 +83,9 @@ const App: React.FC = () => {
             </Route>
             <Route exact path="/support">
               <Support />
+            </Route>
+            <Route exact path="/create-trip">
+              <CreateTrip />
             </Route>
             <Route exact path="/kyc-verification">
               <Kyc />

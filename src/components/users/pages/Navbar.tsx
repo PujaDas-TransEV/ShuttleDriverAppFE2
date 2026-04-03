@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   Bars3Icon,
@@ -14,54 +14,86 @@ import {
   HomeIcon
 } from '@heroicons/react/24/outline';
 
+const API_BASE = "https://be.shuttleapp.transev.site";
+
 const NavbarSidebar: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const history = useHistory();
 
+  const [driverName, setDriverName] = useState<string>("Driver");
+  const [driverImage, setDriverImage] = useState<string | null>(null);
+
+  const token = localStorage.getItem("access_token");
+
+  // 🔹 Fetch driver profile once
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/driver-profile/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (data.full_name) setDriverName(data.full_name);
+        if (data.profile_picture_path)
+          setDriverImage(data.profile_picture_path);
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [token]);
+
   const menuItems = [
-     { name: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
+    { name: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
     { name: 'Vehicle Management', icon: TruckIcon, path: '/bus-and-trip-management' },
-     { name: 'Trip Management', icon: MapIcon, path: '/trip-management' },
-    { name: 'Passenger Booking', icon: RectangleStackIcon, path: '/passenger-booking' },
+    { name: 'Trip Management', icon: MapIcon, path: '/trip-management' },
+    { name: 'Booking', icon: RectangleStackIcon, path: '/passenger-booking' },
     { name: 'Live Tracking', icon: MapIcon, path: '/live-tracking' },
     { name: 'Revenue & Payments', icon: CurrencyRupeeIcon, path: '/revenue-payments' },
     { name: 'Notifications', icon: BellIcon, path: '/notification' },
     { name: 'Settings', icon: Cog6ToothIcon, path: '/settings' },
     { name: 'Support', icon: QuestionMarkCircleIcon, path: '/support' },
-     { name: 'Profile', icon: UserCircleIcon, path: '/profile-setup' },
+    { name: 'Profile', icon: UserCircleIcon, path: '/profile-setup' },
   ];
 
   return (
     <>
       {/* NAVBAR */}
       <div className="fixed top-0 left-0 right-0 h-16 bg-black z-50 flex items-center justify-between px-4 shadow-lg">
+
         <div className="flex items-center space-x-3">
           <button onClick={() => setSidebarOpen(true)}>
             <Bars3Icon className="w-6 h-6 text-white" />
           </button>
 
+          {/* Driver Profile Image */}
           <img
-            src="https://images.unsplash.com/photo-1603415526960-f8f5f0a1f1b3?auto=format&fit=crop&w=64&q=80"
+            src={
+              driverImage
+                ? driverImage
+                : "https://i.ibb.co/4pDNDk1/default-profile.png"
+            }
             alt="Profile"
-            className="w-9 h-9 rounded-full border border-gray-600"
+            className="w-9 h-9 rounded-full border border-gray-600 object-cover"
           />
 
-          <span className="font-medium text-white">John Doe</span>
+          <span className="font-medium text-white">{driverName}</span>
         </div>
 
-        <div className="text-lg md:text-xl font-bold tracking-wide text-white">
+        {/* <div className="text-lg md:text-xl font-bold tracking-wide text-white">
           Shuttle Driver
-        </div>
+        </div> */}
 
         <button
-      className="relative"
-      onClick={() => history.push('/notification')} // navigate to notifications page
-    >
-      <BellIcon className="w-6 h-6 text-white" />
-      {/* Red dot for unread notifications */}
-      <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-    </button>
+          className="relative"
+          onClick={() => history.push('/notification')}
+        >
+          <BellIcon className="w-6 h-6 text-white" />
+          <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+        </button>
       </div>
 
       {/* OVERLAY */}
@@ -80,9 +112,17 @@ const NavbarSidebar: React.FC = () => {
       >
         {/* PROFILE */}
         <div className="p-5 border-b border-gray-800 flex items-center space-x-3">
-          <UserCircleIcon className="w-11 h-11 text-white" />
+          <img
+            src={
+              driverImage
+                ? driverImage
+                : "https://i.ibb.co/4pDNDk1/default-profile.png"
+            }
+            alt="Profile Pic"
+            className="w-11 h-11 rounded-full object-cover"
+          />
           <div>
-            <p className="font-semibold text-white text-lg">John Doe</p>
+            <p className="font-semibold text-white text-lg">{driverName}</p>
             <p className="text-sm text-gray-400">Driver / Owner</p>
           </div>
         </div>
@@ -119,8 +159,7 @@ const NavbarSidebar: React.FC = () => {
               history.push('/login');
               setSidebarOpen(false);
             }}
-            className="w-full flex items-center justify-center py-3 rounded-xl 
-                       bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition"
+            className="w-full flex items-center justify-center py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold transition"
           >
             <ArrowRightOnRectangleIcon className="w-5 h-5 mr-2" />
             Logout
@@ -132,4 +171,3 @@ const NavbarSidebar: React.FC = () => {
 };
 
 export default NavbarSidebar;
-

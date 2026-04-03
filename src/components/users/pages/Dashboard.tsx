@@ -1,3 +1,4 @@
+
 // import React, { useState, useEffect } from 'react';
 // import { IonPage, IonContent } from '@ionic/react';
 // import { useHistory } from 'react-router-dom';
@@ -14,11 +15,11 @@
 //   ExclamationTriangleIcon
 // } from '@heroicons/react/24/outline';
 
-// import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+// import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 // import L from 'leaflet';
 // import 'leaflet/dist/leaflet.css';
 
-// // ES Modules Leaflet marker fix
+// // Fix Leaflet default marker icons
 // import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 // import markerIcon from 'leaflet/dist/images/marker-icon.png';
 // import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -30,9 +31,21 @@
 //   shadowUrl: markerShadow,
 // });
 
+// // Component to smoothly pan the map
+// const LiveLocationUpdater = ({ position }: { position: [number, number] }) => {
+//   const map = useMap();
+//   useEffect(() => {
+//     if (position) {
+//       map.setView(position, map.getZoom(), { animate: true });
+//     }
+//   }, [position, map]);
+//   return null;
+// };
+
 // const Dashboard: React.FC = () => {
 //   const history = useHistory();
 //   const [profileCompleted, setProfileCompleted] = useState(false);
+//   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
 
 //   // Detect dark mode
 //   const [isDark, setIsDark] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -46,7 +59,21 @@
 //     return () => window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
 //   }, []);
 
-//   const position: [number, number] = [22.5726, 88.3639]; // Kolkata
+//   // Get driver current location
+//   useEffect(() => {
+//     if (navigator.geolocation) {
+//       const updatePosition = () => {
+//         navigator.geolocation.getCurrentPosition(
+//           (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
+//           (err) => console.error('GPS error:', err),
+//           { enableHighAccuracy: true }
+//         );
+//       };
+//       updatePosition(); // initial fetch
+//       const interval = setInterval(updatePosition, 120000); // update every 2 min
+//       return () => clearInterval(interval);
+//     }
+//   }, []);
 
 //   const setupCards = [
 //     { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
@@ -61,9 +88,7 @@
 //     { icon: <ClockIcon className="w-5 h-5 text-orange-400" />, label: 'Active Trips', value: '3' },
 //   ];
 
-  
-
-//  const quickActions = [
+//   const quickActions = [
 //     { label: '🚍 Start Trip', path: '/start-trip', color: 'bg-black' },
 //     { label: '📍 Setup Route', path: '/setup-route', color: 'bg-gray-800' },
 //     { label: '👥 Passenger List', path: '/passenger-list', color: 'bg-gray-700' },
@@ -75,7 +100,6 @@
 //       <NavbarSidebar />
 //       <IonContent className={`${isDark ? 'bg-gray-900' : 'bg-white'} pt-16`}>
 //         <div className="p-5">
-
 //           {/* HEADER */}
 //           <div className="mb-6">
 //             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-black'}`}>Driver Dashboard</h1>
@@ -119,17 +143,24 @@
 //             ))}
 //           </div>
 
-//           {/* MAP */}
+//           {/* LIVE DRIVER MAP */}
 //           <div className="mb-6 rounded-xl overflow-hidden border border-gray-700" style={{ height: '300px', width: '100%' }}>
-//             <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
-//               <TileLayer
-//                 attribution="&copy; OpenStreetMap contributors"
-//                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-//               />
-//               <Marker position={position}>
-//                 <Popup>Your Bus 🚍 is here</Popup>
-//               </Marker>
-//             </MapContainer>
+//             {driverPos ? (
+//               <MapContainer center={driverPos} zoom={15} style={{ height: '100%', width: '100%' }}>
+//                 <TileLayer
+//                   attribution="&copy; OpenStreetMap contributors"
+//                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+//                 />
+//                 <LiveLocationUpdater position={driverPos} />
+//                 <Marker position={driverPos}>
+//                   <Popup>Your current location 🚍</Popup>
+//                 </Marker>
+//               </MapContainer>
+//             ) : (
+//               <div className="flex justify-center items-center h-full text-gray-500 dark:text-gray-400 text-lg">
+//                 Getting your location...
+//               </div>
+//             )}
 //           </div>
 
 //           {/* QUICK ACTIONS */}
@@ -144,7 +175,6 @@
 //               </button>
 //             ))}
 //           </div>
-
 //         </div>
 //       </IonContent>
 //     </IonPage>
@@ -173,7 +203,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix Leaflet default marker icons
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -185,7 +214,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Component to smoothly pan the map
 const LiveLocationUpdater = ({ position }: { position: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
@@ -196,24 +224,41 @@ const LiveLocationUpdater = ({ position }: { position: [number, number] }) => {
   return null;
 };
 
+const API_BASE = "https://be.shuttleapp.transev.site";
+
 const Dashboard: React.FC = () => {
   const history = useHistory();
-  const [profileCompleted, setProfileCompleted] = useState(false);
-  const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
+  const token = localStorage.getItem('access_token');
 
-  // Detect dark mode
+  const [driverVerified, setDriverVerified] = useState(false);
+  const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
   const [isDark, setIsDark] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+  // Fetch verification status
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user?.profileCompleted) setProfileCompleted(true);
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/driver-profile/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setDriverVerified(data.verification_status === "verified");
+      } catch (err) {
+        console.error(err);
+        setDriverVerified(false);
+      }
+    };
+    fetchProfile();
+  }, [token]);
 
+  // Dark mode listener
+  useEffect(() => {
     const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', listener);
     return () => window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
   }, []);
 
-  // Get driver current location
+  // Get driver location
   useEffect(() => {
     if (navigator.geolocation) {
       const updatePosition = () => {
@@ -223,17 +268,26 @@ const Dashboard: React.FC = () => {
           { enableHighAccuracy: true }
         );
       };
-      updatePosition(); // initial fetch
-      const interval = setInterval(updatePosition, 120000); // update every 2 min
+      updatePosition();
+      const interval = setInterval(updatePosition, 120000);
       return () => clearInterval(interval);
     }
   }, []);
 
-  const setupCards = [
-    { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
-    { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' },
-    { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'KYC Verification', path: '/kyc-verification' },
-  ];
+  // Setup buttons logic based on verification status
+  const setupCards = driverVerified
+    ? [
+        { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'View Profile', path: '/profile-setup' },
+    
+        { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'View KYC Details', path: '/kyc-verification' },
+           { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Add Vehicle', path: '/vehicle-registration' }
+      ]
+    : [
+        { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
+     
+        { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'KYC Verification', path: '/kyc-verification' },
+           { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' }
+      ];
 
   const stats = [
     { icon: <MapIcon className="w-5 h-5 text-blue-400" />, label: 'Trips', value: '5' },
@@ -262,29 +316,27 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* ALERT */}
-          {!profileCompleted && (
+          {/* ALERT - only show if not verified */}
+          {!driverVerified && (
             <div className={`mb-6 p-3 rounded-xl flex items-center border ${isDark ? 'bg-yellow-800/20 border-yellow-400 text-white' : 'bg-yellow-100 border-yellow-500 text-black'}`}>
               <ExclamationTriangleIcon className="w-5 h-5 mr-2 text-yellow-400" />
               Complete Profile, Vehicle & KYC to start trips
             </div>
           )}
 
-          {/* SETUP CARDS */}
-          {!profileCompleted && (
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {setupCards.map((card, i) => (
-                <div
-                  key={i}
-                  onClick={() => history.push(card.path)}
-                  className={`p-3 rounded-xl text-center cursor-pointer transition hover:scale-105 ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}
-                >
-                  {card.icon}
-                  <p className="text-xs">{card.title}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* SETUP BUTTONS - always visible */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {setupCards.map((card, i) => (
+              <div
+                key={i}
+                onClick={() => history.push(card.path)}
+                className={`p-3 rounded-xl text-center cursor-pointer transition hover:scale-105 ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}
+              >
+                {card.icon}
+                <p className="text-xs">{card.title}</p>
+              </div>
+            ))}
+          </div>
 
           {/* STATS */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -336,4 +388,3 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
-

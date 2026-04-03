@@ -1,224 +1,319 @@
-
-
-import React, { useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { IonPage, IonContent, IonLoading } from "@ionic/react";
+import NavbarSidebar from "./Navbar";
 import {
-  Bars3Icon,
-  BellIcon,
- CheckIcon,
-  XMarkIcon
-} from '@heroicons/react/24/outline';
-import NavbarSidebar from './Navbar';
-import { IonPage } from '@ionic/react';
+  ClockIcon,
+  TruckIcon,
+  IdentificationIcon,
+  UserGroupIcon,
+  CurrencyRupeeIcon,
+  MapIcon,
+  TicketIcon,
+} from "@heroicons/react/24/outline";
 
-interface Bus {
-  id: number;
-  name: string;
-  busNumber: string;
-  seats: number;
-}
+const API_BASE = "https://be.shuttleapp.transev.site";
 
-interface Trip {
-  id: number;
-  busId: number;
-  from: string;
-  to: string;
-  time: string;
-  fare: number;
-}
+const BookingDetails: React.FC = () => {
+  const token = localStorage.getItem("access_token");
 
-interface Booking {
-  id: number;
-  tripId: number;
-  passengerName: string;
-  seats: number[];
-  status: 'pending' | 'accepted' | 'rejected';
-  fare?: number;
-}
+  const [loading, setLoading] = useState(false);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRouteId, setSelectedRouteId] = useState<string>("");
+  const [routeDetails, setRouteDetails] = useState<any>(null);
+  const [selectedTripId, setSelectedTripId] = useState<string>("");
+  const [bookingDetails, setBookingDetails] = useState<any>(null);
+  const [vehicleData, setVehicleData] = useState<any>(null);
 
-const DriverBookingDashboard: React.FC = () => {
-  const history = useHistory();
-  const [buses] = useState<Bus[]>([
-    { id: 1, name: 'City Shuttle', busNumber: 'AB-1234', seats: 12 },
-  ]);
+  // Fetch all routes
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/driver/routes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setRoutes(data || []);
+        if (data && data.length > 0) setSelectedRouteId(data[0].route_id);
+      } catch (err) {
+        console.error("Error fetching routes:", err);
+      }
+    };
+    fetchRoutes();
+  }, [token]);
 
-  const [trips] = useState<Trip[]>([
-    { id: 1, busId: 1, from: 'Downtown', to: 'Airport', time: '08:30', fare: 150 },
-  ]);
+  // Fetch vehicle first
+  useEffect(() => {
+    const fetchVehicle = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/driver/vehicle/my-vehicle`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setVehicleData(data);
+      } catch (err) {
+        console.error("Error fetching vehicle:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVehicle();
+  }, [token]);
 
-  const [bookings, setBookings] = useState<Booking[]>([
-    { id: 1, tripId: 1, passengerName: 'John Doe', seats: [1, 2], status: 'pending', fare: 300 },
-    { id: 2, tripId: 1, passengerName: 'Jane Smith', seats: [3], status: 'pending', fare: 150 },
-  ]);
+  // Fetch trips for selected route
+  useEffect(() => {
+    if (!selectedRouteId) return;
+    const fetchRouteDetails = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/driver/routes/${selectedRouteId}/trips/details`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setRouteDetails(data);
+        if (data.trips && data.trips.length > 0) {
+          setSelectedTripId(data.trips[0].trip_id);
+        } else {
+          setSelectedTripId("");
+          setBookingDetails(null);
+        }
+      } catch (err) {
+        console.error("Error fetching route details:", err);
+        setRouteDetails(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRouteDetails();
+  }, [selectedRouteId, token]);
 
-  const handleBooking = (id: number, action: 'accept' | 'reject') => {
-    setBookings(prev =>
-      prev.map(b => (b.id === id ? { ...b, status: action === 'accept' ? 'accepted' : 'rejected' } : b))
-    );
-  };
+  // Fetch booking details **after vehicle is loaded**
+  useEffect(() => {
+    if (!selectedTripId || !vehicleData) return;
+    const fetchBookingDetails = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/driver/trips/${selectedTripId}/booking-details`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setBookingDetails(data);
+      } catch (err) {
+        console.error("Error fetching booking details:", err);
+        setBookingDetails(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBookingDetails();
+  }, [selectedTripId, vehicleData, token]);
 
-  const renderSeats = (tripId: number, totalSeats: number) => {
-    const bookedSeats = bookings
-      .filter(b => b.tripId === tripId && b.status === 'accepted')
-      .flatMap(b => b.seats);
+  const availableSeats = vehicleData?.seat_count ?? 10; // default 10 if not provided
+  const bookingCount = bookingDetails?.booking_count ?? 0;
+  const seatsLeft = availableSeats - bookingCount;
+  const bookings = bookingDetails?.bookings ?? [];
 
-    const seatsArray = Array.from({ length: totalSeats }, (_, i) => i + 1);
+  const formatDateTime = (dt: string) =>
+    dt
+      ? new Date(dt).toLocaleString("en-IN", {
+          hour12: true,
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "--";
 
-    return (
-      <div className="grid grid-cols-4 gap-3 mt-2">
-        {seatsArray.map(seat => (
-          <div
-            key={seat}
-            className={`flex items-center justify-center h-16 w-16 rounded-xl shadow-md cursor-pointer transition-transform duration-200 transform hover:scale-105
-              ${bookedSeats.includes(seat) ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white'}
-            `}
-          >
-            {seat}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const formatDate = (dt: string) =>
+    dt ? new Date(dt).toLocaleDateString("en-IN", { dateStyle: "medium" }) : "--";
 
   return (
     <IonPage>
       <NavbarSidebar />
+      <IonContent className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white pt-16 pb-8">
+        <div className="max-w-5xl mx-auto px-6 mt-20">
+          <h1 className="text-3xl font-extrabold mb-6 text-gray-800 dark:text-white">
+            🚍 Booking Details
+          </h1>
 
-      {/* MAIN SCROLLABLE CONTENT */}
-      <div className="flex-1 min-h-screen bg-white dark:bg-gray-900 text-black dark:text-white pt-16 px-6 md:px-10 overflow-y-auto">
-        {/* TOP NAVBAR */}
-        <div className="fixed top-0 left-0 right-0 h-16 bg-black z-40 flex items-center justify-between px-6 shadow-lg">
-          <div className="flex items-center space-x-4">
-            <button>
-              <Bars3Icon className="w-6 h-6 text-white" />
-            </button>
-            <span className="font-bold text-white text-xl">Shuttle Driver</span>
+          <IonLoading isOpen={loading} message="Loading..." />
+
+          {/* Route Selector */}
+          <div className="mb-6">
+            <label className="block mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">
+              Select Route
+            </label>
+            <select
+              className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-600"
+              value={selectedRouteId}
+              onChange={(e) => setSelectedRouteId(e.target.value)}
+            >
+              {routes.map((r) => (
+                <option key={r.route_id} value={r.route_id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="flex items-center space-x-4">
-            <BellIcon className="w-6 h-6 text-white relative" />
-          </div>
-        </div>
 
-        {/* HEADER */}
-        <div className="mt-10 text-center">
-          <h1 className="text-3xl font-bold mb-2">Passenger Bookings & Seat Map</h1>
-          <p className="text-gray-500 dark:text-gray-300">Manage trips, accept bookings, and view booked seats</p>
-        </div>
+          {/* Trip Selector */}
+          {routeDetails?.trips?.length > 0 ? (
+            <div className="mb-6">
+              <label className="block mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">
+                Select Trip
+              </label>
+              <select
+                className="w-full p-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-400 dark:focus:ring-purple-600"
+                value={selectedTripId}
+                onChange={(e) => setSelectedTripId(e.target.value)}
+              >
+                {routeDetails.trips.map((t: any) => (
+                  <option key={t.trip_id} value={t.trip_id}>
+                    {formatDateTime(t.planned_start)} - {formatDateTime(t.planned_end)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="mb-6 text-center font-semibold text-gray-500 dark:text-gray-400">
+              ⚠️ No trips created for this route.
+            </div>
+          )}
 
-        {/* TRIPS & BOOKINGS */}
-        <div className="space-y-8 mt-8 pb-10">
-          {trips.map(trip => {
-            const bus = buses.find(b => b.id === trip.busId);
-            const tripBookings = bookings.filter(b => b.tripId === trip.id);
+          {/* Booking Details Card */}
+          {bookingDetails && (
+            <>
+              <div className="bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    {bookingDetails.route?.name || "--"}
+                  </h2>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {formatDate(bookingDetails.planned_start)}
+                  </span>
+                </div>
 
-            return (
-              <div key={trip.id} className="bg-gray-100 dark:bg-gray-800 p-6 rounded-2xl shadow-xl space-y-5">
-                {/* Trip Info */}
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="font-semibold text-lg">{bus?.name} ({bus?.busNumber})</h2>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{trip.from} → {trip.to} | {trip.time} | Fare per seat: ₹{trip.fare}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700 dark:text-gray-300 text-sm md:text-base">
+                  <div className="flex items-center gap-2">
+                    <ClockIcon className="w-6 h-6 text-blue-500" />
+                    {formatDateTime(bookingDetails.planned_start)} - {formatDateTime(bookingDetails.planned_end)}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <TruckIcon className="w-6 h-6 text-green-500" />
+                    {vehicleData?.vehicle_name || "--"} ({vehicleData?.registration_number || "--"})
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <IdentificationIcon className="w-6 h-6 text-yellow-500" />
+                    Driver: {bookingDetails.driver?.email || "--"}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <UserGroupIcon className="w-6 h-6 text-purple-500" />
+                    Seats Booked: {bookingCount} / {availableSeats}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <CurrencyRupeeIcon className="w-6 h-6 text-pink-500" />
+                    Total Fare: ₹{bookingDetails.total_fare?.toFixed(2) || "0.00"}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <CurrencyRupeeIcon className="w-6 h-6 text-indigo-500" />
+                    Total Paid: ₹{bookingDetails.total_fare_paid?.toFixed(2) || "0.00"}
                   </div>
                 </div>
-
-                {/* Seat Map */}
-                <div>
-                  <h3 className="font-semibold mb-2">Seats</h3>
-                  {bus && renderSeats(trip.id, bus.seats)}
-                </div>
-
-                {/* Booking Requests */}
-                <div className="space-y-3 mt-4">
-                  <h3 className="font-semibold">Passenger Requests</h3>
-                  {tripBookings.length === 0 ? (
-                    <p className="text-gray-500 dark:text-gray-400">No bookings yet.</p>
-                  ) : (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {tripBookings.map(b => (
-                        <div key={b.id} className="p-4 bg-white dark:bg-gray-700 rounded-2xl shadow flex flex-col md:flex-row md:justify-between md:items-center gap-3">
-                          <div>
-                            <p className="font-medium text-lg">{b.passengerName}</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              Seats: {b.seats.join(', ')} | Fare: ₹{b.fare} | Status: 
-                              <span className={
-                                b.status === 'accepted' ? 'text-green-500 font-semibold ml-1' : 
-                                b.status === 'rejected' ? 'text-red-500 font-semibold ml-1' : 
-                                'text-yellow-500 font-semibold ml-1'
-                              }>
-                                {b.status}
-                              </span>
-                            </p>
-                          </div>
-
-                          {b.status === 'pending' && (
-                            <div className="flex gap-4 mt-2 md:mt-0">
-                              {/* Accept Button */}
-                            <div style={{ display: 'flex', gap: '16px', marginTop: '8px', flexWrap: 'wrap' }}>
-  {/* Accept Button */}
-  <button
-    onClick={() => handleBooking(b.id, 'accept')}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      minWidth: '120px',
-      padding: '12px 24px',
-      borderRadius: '9999px',
-      backgroundColor: '#22c55e', // green
-      color: '#ffffff',
-      fontWeight: 600,
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease-in-out',
-    }}
-    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#16a34a')}
-    onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#22c55e')}
-  >
-    <CheckIcon style={{ width: '24px', height: '24px' }} />
-    Accept
-  </button>
-
-  {/* Reject Button */}
-  <button
-    onClick={() => handleBooking(b.id, 'reject')}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: '8px',
-      minWidth: '120px',
-      padding: '12px 24px',
-      borderRadius: '9999px',
-      backgroundColor: '#ef4444', // red
-      color: '#ffffff',
-      fontWeight: 600,
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease-in-out',
-    }}
-    onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#dc2626')}
-    onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#ef4444')}
-  >
-    <XMarkIcon style={{ width: '24px', height: '24px' }} />
-    Reject
-  </button>
-</div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
-            );
-          })}
+
+              {/* Seat Availability */}
+              <div
+                className={`p-4 rounded-lg mb-6 text-center font-semibold text-lg ${
+                  seatsLeft <= 0
+                    ? "bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200"
+                    : "bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200"
+                }`}
+              >
+                {seatsLeft <= 0
+                  ? "🚫 No seats available — booking closed"
+                  : `🎟 Seats available: ${seatsLeft} remaining`}
+              </div>
+
+              {/* Bookings List */}
+              <div className="space-y-4">
+   {bookings.length === 0 ? (
+    <div className="text-center text-gray-500 dark:text-gray-400 font-medium">
+      ⚠️ No bookings have been made for this trip.
+    </div>
+  ) : (
+    bookings.map((b: any, idx: number) => (
+      <div
+        key={idx}
+        className="bg-linear-to-r from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700"
+      >
+        {/* Passenger Name */}
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-lg font-semibold text-gray-900 dark:text-white">
+            👤 Passenger: {b.name || "--"}
+          </span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Booking ID: {b.booking_id || "--"}
+          </span>
+        </div>
+
+        {/* Pickup / Drop-off */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <MapIcon className="w-5 h-5 text-blue-400" />
+            Pickup: {b.take_in || "--"}
+          </div>
+          <div className="flex items-center gap-2">
+            <MapIcon className="w-5 h-5 text-red-400" />
+            Drop-off: {b.drop_off || "--"}
+          </div>
+        </div>
+
+        {/* Estimated Times */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-blue-500" />
+            Estimated Pickup: {b.estimated_pickup_time ? new Date(b.estimated_pickup_time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "--"}
+          </div>
+          <div className="flex items-center gap-2">
+            <ClockIcon className="w-5 h-5 text-purple-500" />
+            Estimated Drop-off: {b.estimated_drop_off_time ? new Date(b.estimated_drop_off_time).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "--"}
+          </div>
+        </div>
+
+        {/* Fare and Status */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 items-center text-gray-700 dark:text-gray-300">
+          <div className="flex items-center gap-2">
+            <CurrencyRupeeIcon className="w-5 h-5 text-green-500" />
+            Fare: ₹{b.fare ?? "--"}
+          </div>
+          <div className="flex items-center gap-2">
+            <CurrencyRupeeIcon className="w-5 h-5 text-indigo-500" />
+            Paid: ₹{b.fare_paid ?? "--"}
+          </div>
+          <div className={`flex items-center gap-2 font-semibold ${
+            b.fare_paid === b.fare
+              ? "text-green-700 dark:text-green-300"
+              : "text-red-700 dark:text-red-300"
+          }`}>
+            <TicketIcon className="w-5 h-5" />
+            {b.fare_paid === b.fare ? "✅ Paid" : "❌ Pending"}
+          </div>
         </div>
       </div>
+    ))
+  )}
+</div>
+            </>
+          )}
+        </div>
+      </IonContent>
     </IonPage>
   );
 };
 
-export default DriverBookingDashboard;
-
+export default BookingDetails;
