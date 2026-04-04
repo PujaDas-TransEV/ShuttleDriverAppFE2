@@ -19,6 +19,7 @@ import Support from './components/users/pages/Support';
 import Kyc from './components/users/pages/KYC';
 import TripManagemnet from './components/users/pages/TripManagement';
 import CreateTrip from './components/users/pages/CreateTrip';
+import CurrentTrips from './components/users/pages/CurrentTrips';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -86,6 +87,9 @@ const App: React.FC = () => {
             </Route>
             <Route exact path="/create-trip">
               <CreateTrip />
+            </Route>
+            <Route exact path="/current-trips">
+              <CurrentTrips />
             </Route>
             <Route exact path="/kyc-verification">
               <Kyc />
