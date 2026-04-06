@@ -554,23 +554,13 @@ const DriverLiveTracking: React.FC = () => {
                     <div className="space-y-2">
                       {routeDetails.stops.map((s: any, i: number) => (
                         <div key={i} className="p-2 bg-gray-100 rounded-lg text-sm">
-                          {i + 1}. {s.stop_name}
+                          {i + 1}. {s.name}
                         </div>
                       ))}
                     </div>
 
-                    <h3 className="font-semibold mt-4 mb-2">Trips</h3>
-                    <div className="space-y-1 max-h-28 overflow-y-auto">
-                      {trips.map((t, idx) => (
-                        <div
-                          key={idx}
-                          className="p-2 bg-gray-200 rounded-lg text-sm flex justify-between"
-                        >
-                          <span>{t.passenger_name}</span>
-                          <span className="font-semibold">{t.status}</span>
-                        </div>
-                      ))}
-                    </div>
+                  
+                 
                   </div>
                 )}
               </div>

@@ -1,4 +1,3 @@
-
 // import React, { useState, useEffect } from 'react';
 // import { IonPage, IonContent } from '@ionic/react';
 // import { useHistory } from 'react-router-dom';
@@ -19,7 +18,6 @@
 // import L from 'leaflet';
 // import 'leaflet/dist/leaflet.css';
 
-// // Fix Leaflet default marker icons
 // import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 // import markerIcon from 'leaflet/dist/images/marker-icon.png';
 // import markerShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -31,7 +29,6 @@
 //   shadowUrl: markerShadow,
 // });
 
-// // Component to smoothly pan the map
 // const LiveLocationUpdater = ({ position }: { position: [number, number] }) => {
 //   const map = useMap();
 //   useEffect(() => {
@@ -42,24 +39,41 @@
 //   return null;
 // };
 
+// const API_BASE = "https://be.shuttleapp.transev.site";
+
 // const Dashboard: React.FC = () => {
 //   const history = useHistory();
-//   const [profileCompleted, setProfileCompleted] = useState(false);
-//   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
+//   const token = localStorage.getItem('access_token');
 
-//   // Detect dark mode
+//   const [driverVerified, setDriverVerified] = useState(false);
+//   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
 //   const [isDark, setIsDark] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+//   // Fetch verification status
 //   useEffect(() => {
-//     const user = JSON.parse(localStorage.getItem('user') || '{}');
-//     if (user?.profileCompleted) setProfileCompleted(true);
+//     const fetchProfile = async () => {
+//       try {
+//         const res = await fetch(`${API_BASE}/driver-profile/me`, {
+//           headers: { Authorization: `Bearer ${token}` },
+//         });
+//         const data = await res.json();
+//         setDriverVerified(data.verification_status === "verified");
+//       } catch (err) {
+//         console.error(err);
+//         setDriverVerified(false);
+//       }
+//     };
+//     fetchProfile();
+//   }, [token]);
 
+//   // Dark mode listener
+//   useEffect(() => {
 //     const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
 //     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', listener);
 //     return () => window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
 //   }, []);
 
-//   // Get driver current location
+//   // Get driver location
 //   useEffect(() => {
 //     if (navigator.geolocation) {
 //       const updatePosition = () => {
@@ -69,17 +83,26 @@
 //           { enableHighAccuracy: true }
 //         );
 //       };
-//       updatePosition(); // initial fetch
-//       const interval = setInterval(updatePosition, 120000); // update every 2 min
+//       updatePosition();
+//       const interval = setInterval(updatePosition, 120000);
 //       return () => clearInterval(interval);
 //     }
 //   }, []);
 
-//   const setupCards = [
-//     { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
-//     { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' },
-//     { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'KYC Verification', path: '/kyc-verification' },
-//   ];
+//   // Setup buttons logic based on verification status
+//   const setupCards = driverVerified
+//     ? [
+//         { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'View Profile', path: '/profile-setup' },
+    
+//         { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'View KYC Details', path: '/kyc-verification' },
+//            { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Add Vehicle', path: '/vehicle-registration' }
+//       ]
+//     : [
+//         { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
+     
+//         { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'KYC Verification', path: '/kyc-verification' },
+//            { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' }
+//       ];
 
 //   const stats = [
 //     { icon: <MapIcon className="w-5 h-5 text-blue-400" />, label: 'Trips', value: '5' },
@@ -108,29 +131,27 @@
 //             </p>
 //           </div>
 
-//           {/* ALERT */}
-//           {!profileCompleted && (
+//           {/* ALERT - only show if not verified */}
+//           {!driverVerified && (
 //             <div className={`mb-6 p-3 rounded-xl flex items-center border ${isDark ? 'bg-yellow-800/20 border-yellow-400 text-white' : 'bg-yellow-100 border-yellow-500 text-black'}`}>
 //               <ExclamationTriangleIcon className="w-5 h-5 mr-2 text-yellow-400" />
 //               Complete Profile, Vehicle & KYC to start trips
 //             </div>
 //           )}
 
-//           {/* SETUP CARDS */}
-//           {!profileCompleted && (
-//             <div className="grid grid-cols-3 gap-3 mb-6">
-//               {setupCards.map((card, i) => (
-//                 <div
-//                   key={i}
-//                   onClick={() => history.push(card.path)}
-//                   className={`p-3 rounded-xl text-center cursor-pointer transition hover:scale-105 ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}
-//                 >
-//                   {card.icon}
-//                   <p className="text-xs">{card.title}</p>
-//                 </div>
-//               ))}
-//             </div>
-//           )}
+//           {/* SETUP BUTTONS - always visible */}
+//           <div className="grid grid-cols-3 gap-3 mb-6">
+//             {setupCards.map((card, i) => (
+//               <div
+//                 key={i}
+//                 onClick={() => history.push(card.path)}
+//                 className={`p-3 rounded-xl text-center cursor-pointer transition hover:scale-105 ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}
+//               >
+//                 {card.icon}
+//                 <p className="text-xs">{card.title}</p>
+//               </div>
+//             ))}
+//           </div>
 
 //           {/* STATS */}
 //           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -217,9 +238,7 @@ L.Icon.Default.mergeOptions({
 const LiveLocationUpdater = ({ position }: { position: [number, number] }) => {
   const map = useMap();
   useEffect(() => {
-    if (position) {
-      map.setView(position, map.getZoom(), { animate: true });
-    }
+    if (position) map.setView(position, map.getZoom(), { animate: true });
   }, [position, map]);
   return null;
 };
@@ -233,6 +252,8 @@ const Dashboard: React.FC = () => {
   const [driverVerified, setDriverVerified] = useState(false);
   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
   const [isDark, setIsDark] = useState(window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const [driverStats, setDriverStats] = useState<any>(null); // Store API response
 
   // Fetch verification status
   useEffect(() => {
@@ -249,6 +270,22 @@ const Dashboard: React.FC = () => {
       }
     };
     fetchProfile();
+  }, [token]);
+
+  // Fetch driver stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/driver/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setDriverStats(data);
+      } catch (err) {
+        console.error("Error fetching stats:", err);
+      }
+    };
+    fetchStats();
   }, [token]);
 
   // Dark mode listener
@@ -278,23 +315,22 @@ const Dashboard: React.FC = () => {
   const setupCards = driverVerified
     ? [
         { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'View Profile', path: '/profile-setup' },
-    
         { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'View KYC Details', path: '/kyc-verification' },
-           { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Add Vehicle', path: '/vehicle-registration' }
+        { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Add Vehicle', path: '/vehicle-registration' }
       ]
     : [
         { icon: <UserCircleIcon className="w-8 h-8 mb-2 text-blue-400" />, title: 'Profile Setup', path: '/profile-setup' },
-     
         { icon: <IdentificationIcon className="w-8 h-8 mb-2 text-purple-400" />, title: 'KYC Verification', path: '/kyc-verification' },
-           { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' }
+        { icon: <TruckIcon className="w-8 h-8 mb-2 text-green-400" />, title: 'Vehicle Registration', path: '/vehicle-registration' }
       ];
 
-  const stats = [
-    { icon: <MapIcon className="w-5 h-5 text-blue-400" />, label: 'Trips', value: '5' },
-    { icon: <CurrencyRupeeIcon className="w-5 h-5 text-green-400" />, label: 'Earnings', value: '₹12,500' },
-    { icon: <UsersIcon className="w-5 h-5 text-purple-400" />, label: 'Passengers', value: '48' },
-    { icon: <ClockIcon className="w-5 h-5 text-orange-400" />, label: 'Active Trips', value: '3' },
-  ];
+  // Map driverStats to dashboard cards
+  const stats = driverStats ? [
+    { icon: <MapIcon className="w-5 h-5 text-blue-400" />, label: 'Total Trips', value: driverStats.total_trips },
+    { icon: <ClockIcon className="w-5 h-5 text-orange-400" />, label: 'Completed Trips', value: driverStats.completed_trips },
+    { icon: <ExclamationTriangleIcon className="w-5 h-5 text-red-400" />, label: 'Cancelled Trips', value: driverStats.cancelled_trips },
+    { icon: <CurrencyRupeeIcon className="w-5 h-5 text-green-400" />, label: 'Total Earnings', value: driverStats.trips.reduce((sum: number, t: any) => sum + t.earning, 0) },
+  ] : [];
 
   const quickActions = [
     { label: '🚍 Start Trip', path: '/start-trip', color: 'bg-black' },
@@ -308,7 +344,6 @@ const Dashboard: React.FC = () => {
       <NavbarSidebar />
       <IonContent className={`${isDark ? 'bg-gray-900' : 'bg-white'} pt-16`}>
         <div className="p-5">
-          {/* HEADER */}
           <div className="mb-6">
             <h1 className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-black'}`}>Driver Dashboard</h1>
             <p className={`${isDark ? 'text-gray-500' : 'text-gray-600'} text-m`}>
@@ -316,7 +351,6 @@ const Dashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* ALERT - only show if not verified */}
           {!driverVerified && (
             <div className={`mb-6 p-3 rounded-xl flex items-center border ${isDark ? 'bg-yellow-800/20 border-yellow-400 text-white' : 'bg-yellow-100 border-yellow-500 text-black'}`}>
               <ExclamationTriangleIcon className="w-5 h-5 mr-2 text-yellow-400" />
@@ -324,7 +358,6 @@ const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* SETUP BUTTONS - always visible */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {setupCards.map((card, i) => (
               <div
@@ -339,17 +372,18 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* STATS */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            {stats.map((s, i) => (
-              <div key={i} className={`p-3 rounded-xl text-center transition ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}>
-                <div className="flex justify-center mb-1">{s.icon}</div>
-                <p className="text-xs text-gray-400">{s.label}</p>
-                <p className="font-bold">{s.value}</p>
-              </div>
-            ))}
-          </div>
+          {driverStats && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              {stats.map((s, i) => (
+                <div key={i} className={`p-3 rounded-xl text-center transition ${isDark ? 'bg-gray-800 text-white' : 'bg-gray-100 text-black'}`}>
+                  <div className="flex justify-center mb-1">{s.icon}</div>
+                  <p className="text-xs text-gray-400">{s.label}</p>
+                  <p className="font-bold">{s.value}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
-          {/* LIVE DRIVER MAP */}
           <div className="mb-6 rounded-xl overflow-hidden border border-gray-700" style={{ height: '300px', width: '100%' }}>
             {driverPos ? (
               <MapContainer center={driverPos} zoom={15} style={{ height: '100%', width: '100%' }}>
@@ -369,7 +403,6 @@ const Dashboard: React.FC = () => {
             )}
           </div>
 
-          {/* QUICK ACTIONS */}
           <div className="grid grid-cols-2 gap-3">
             {quickActions.map((a, i) => (
               <button
