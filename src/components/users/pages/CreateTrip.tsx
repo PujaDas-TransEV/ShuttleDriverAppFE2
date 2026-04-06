@@ -209,7 +209,7 @@ import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import NavbarSidebar from "./Navbar";
 import { useHistory } from "react-router-dom";
-
+// import { useNavigate } from "react-router-dom";
 const API_BASE = "https://be.shuttleapp.transev.site";
 
 const CreateTripPage = () => {
@@ -256,53 +256,107 @@ const CreateTripPage = () => {
     return date.toISOString();
   };
 
-  // Create trip
+
+  // const handleCreateTrip = async () => {
+  //   if (!newTrip.route_name || !newTrip.planned_start_at || !newTrip.planned_end_at) {
+  //     alert("Please select route and set start/end times");
+  //     return;
+  //   }
+  //   setLoading(true);
+  //   try {
+  //     // Convert planned times to UTC
+  //     const plannedStartUTC = convertToUTC(newTrip.planned_start_at);
+  //     const plannedEndUTC = convertToUTC(newTrip.planned_end_at);
+
+  //     // Convert stop times to UTC (keep the date from plannedStart)
+  //     const stopTimesUTC: Record<string, string> = {};
+  //     Object.entries(newTrip.stop_times).forEach(([stop, time]) => {
+  //       if (time) {
+  //         const date = new Date(newTrip.planned_start_at);
+  //         const [hours, minutes] = time.split(":").map(Number);
+  //         date.setHours(hours, minutes, 0, 0);
+  //         stopTimesUTC[stop] = date.toISOString();
+  //       }
+  //     });
+
+  //     const fd = new FormData();
+  //     fd.append("route_name", newTrip.route_name);
+  //     fd.append("planned_start_at", plannedStartUTC);
+  //     fd.append("planned_end_at", plannedEndUTC);
+  //     fd.append("stop_times", JSON.stringify(stopTimesUTC));
+
+  //     const res = await fetch(`${API_BASE}/driver/scheduled-trips/create`, {
+  //       method: "POST",
+  //       headers: { Authorization: `Bearer ${token}` },
+  //       body: fd,
+  //     });
+
+  //     const data = await res.json();
+  //     if (!res.ok) throw new Error(data.detail || "Failed to create trip");
+
+  //     alert("Trip Created Successfully!");
+  //     history.push(`/trip-management`);
+  //   } catch (err) {
+  //     console.error(err);
+  //     alert("Trip creation failed");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
   const handleCreateTrip = async () => {
-    if (!newTrip.route_name || !newTrip.planned_start_at || !newTrip.planned_end_at) {
-      alert("Please select route and set start/end times");
-      return;
+  if (!newTrip.route_name || !newTrip.planned_start_at || !newTrip.planned_end_at) {
+    alert("Please select route and set start/end times");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Convert planned times to UTC
+    const plannedStartUTC = convertToUTC(newTrip.planned_start_at);
+    const plannedEndUTC = convertToUTC(newTrip.planned_end_at);
+
+    // Convert stop times to UTC (keep the date from plannedStart)
+    const stopTimesUTC: Record<string, string> = {};
+    Object.entries(newTrip.stop_times).forEach(([stop, time]) => {
+      if (time) {
+        const date = new Date(newTrip.planned_start_at);
+        const [hours, minutes] = time.split(":").map(Number);
+        date.setHours(hours, minutes, 0, 0);
+        stopTimesUTC[stop] = date.toISOString();
+      }
+    });
+
+    const fd = new FormData();
+    fd.append("route_name", newTrip.route_name);
+    fd.append("planned_start_at", plannedStartUTC);
+    fd.append("planned_end_at", plannedEndUTC);
+    fd.append("stop_times", JSON.stringify(stopTimesUTC));
+
+    const res = await fetch(`${API_BASE}/driver/scheduled-trips/create`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      // Show backend error message directly
+      const errorMsg = data?.detail || JSON.stringify(data) || "Failed to create trip";
+      throw new Error(errorMsg);
     }
-    setLoading(true);
-    try {
-      // Convert planned times to UTC
-      const plannedStartUTC = convertToUTC(newTrip.planned_start_at);
-      const plannedEndUTC = convertToUTC(newTrip.planned_end_at);
 
-      // Convert stop times to UTC (keep the date from plannedStart)
-      const stopTimesUTC: Record<string, string> = {};
-      Object.entries(newTrip.stop_times).forEach(([stop, time]) => {
-        if (time) {
-          const date = new Date(newTrip.planned_start_at);
-          const [hours, minutes] = time.split(":").map(Number);
-          date.setHours(hours, minutes, 0, 0);
-          stopTimesUTC[stop] = date.toISOString();
-        }
-      });
-
-      const fd = new FormData();
-      fd.append("route_name", newTrip.route_name);
-      fd.append("planned_start_at", plannedStartUTC);
-      fd.append("planned_end_at", plannedEndUTC);
-      fd.append("stop_times", JSON.stringify(stopTimesUTC));
-
-      const res = await fetch(`${API_BASE}/driver/scheduled-trips/create`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Failed to create trip");
-
-      alert("Trip Created Successfully!");
-      history.push(`/trip-management`);
-    } catch (err) {
-      console.error(err);
-      alert("Trip creation failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    alert("Trip Created Successfully!");
+    history.push(`/trip-management`);
+  } catch (err: any) {
+    console.error(err);
+    // Display backend error message to user
+    alert(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <IonPage>

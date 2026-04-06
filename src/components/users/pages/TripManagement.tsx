@@ -1,446 +1,3 @@
-// import React, { useState, useEffect } from "react";
-// import { IonPage, IonContent, IonLoading } from "@ionic/react";
-// import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
-// import "leaflet/dist/leaflet.css";
-// import NavbarSidebar from "./Navbar";
-// import { useHistory } from "react-router-dom";
-
-// const API_BASE = "https://be.shuttleapp.transev.site";
-
-// const DriverTripManagement = () => {
-//   const history = useHistory();
-//   const token = localStorage.getItem("access_token");
-
-//   const [routes, setRoutes] = useState<any[]>([]);
-//   const [routeDetails, setRouteDetails] = useState<any>(null);
-//   const [trips, setTrips] = useState<any[]>([]);
-//   const [loading, setLoading] = useState(false);
-//   const [driverVerified, setDriverVerified] = useState(false);
-
-//   // 🔹 Fetch Driver Profile
-//   useEffect(() => {
-//     const fetchProfile = async () => {
-//       try {
-//         const res = await fetch(`${API_BASE}/driver-profile/me`, {
-//           headers: { Authorization: `Bearer ${token}` },
-//         });
-//         const data = await res.json();
-//         if (data.verification_status === "verified") {
-//           setDriverVerified(true);
-//         } else {
-//           setDriverVerified(false);
-//         }
-//       } catch (err) {
-//         console.error(err);
-//         setDriverVerified(false);
-//       }
-//     };
-//     fetchProfile();
-//   }, [token]);
-
-//   // 🔹 Fetch Routes
-//   useEffect(() => {
-//     fetch(`${API_BASE}/driver/routes`, {
-//       headers: { Authorization: `Bearer ${token}` },
-//     })
-//       .then((res) => res.json())
-//       .then(setRoutes)
-//       .catch(console.error);
-//   }, [token]);
-
-//   // 🔹 Fetch Route Details
-//   const fetchRouteDetails = async (routeId: string) => {
-//     if (!routeId) {
-//       setRouteDetails(null);
-//       setTrips([]);
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const res = await fetch(`${API_BASE}/driver/routes/${routeId}/trips/details`, {
-//         headers: { Authorization: `Bearer ${token}` },
-//       });
-//       const data = await res.json();
-//       setRouteDetails(data.route || null);
-
-//       // Sort trips by status
-//       const sorted = (data.trips || []).sort((a: any, b: any) => {
-//         const order: Record<string, number> = { scheduled: 1, in_progress: 2, completed: 3 };
-//         const aOrder = order[a.status as keyof typeof order] ?? 0;
-//         const bOrder = order[b.status as keyof typeof order] ?? 0;
-//         return aOrder - bOrder;
-//       });
-
-//       setTrips(sorted);
-//     } catch (err) {
-//       console.error(err);
-//     }
-//     setLoading(false);
-//   };
-
-//   // 🔹 Start Trip
-//   const handleStartTrip = async (tripId: string) => {
-//     if (!tripId || !routeDetails) return;
-//     setLoading(true);
-//     try {
-//       await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/start`, {
-//         method: "POST",
-//         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-//         body: JSON.stringify({ actual_start_at: new Date().toISOString() }),
-//       });
-//       fetchRouteDetails(routeDetails.id);
-//     } catch (err) {
-//       console.error(err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // 🔹 End Trip
-//   const handleEndTrip = async (tripId: string) => {
-//     if (!tripId || !routeDetails) return;
-//     setLoading(true);
-//     try {
-//       await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/end`, {
-//         method: "POST",
-//         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-//         body: JSON.stringify({ actual_end_at: new Date().toISOString() }),
-//       });
-//       fetchRouteDetails(routeDetails.id);
-//     } catch (err) {
-//       console.error(err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-
-//   // 🔹 Handle Create Trip Navigation
-//   const handleCreateTrip = () => {
-//     if (driverVerified) {
-//       history.push("/create-trip");
-//     } else {
-//       alert("Your account is not verified. You cannot create trips.");
-//     }
-//   };
-// const formatTime = (time: string | null) => {
-//     if (!time) return "--:--";
-//     return new Date(time).toLocaleTimeString("en-IN", {
-//       hour: "2-digit",
-//       minute: "2-digit",
-//       hour12: true,
-//     });
-//   };
-//   // 🔹 Cancel Trip (UPDATED API)
-// const handleCancelTrip = async (tripId: string) => {
-//   if (!tripId) return;
-
-//   if (!window.confirm("Are you sure you want to cancel this trip?")) return;
-
-//   setLoading(true);
-//   try {
-//     const res = await fetch(`${API_BASE}/driver/trips/${tripId}/cancel`, {
-//       method: "POST",
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         "Content-Type": "application/json",
-//       },
-//     });
-
-//     if (!res.ok) throw new Error("Cancel failed");
-
-//     // 🔄 Refresh data
-//     if (routeDetails?.id) {
-//       fetchRouteDetails(routeDetails.id);
-//     }
-
-//   } catch (err) {
-//     console.error(err);
-//     alert("❌ Failed to cancel trip");
-//   } finally {
-//     setLoading(false);
-//   }
-// };
-//   //  const selectedTrip = trips[0];
-//   const selectedTrip = trips?.[0] || null;
-//   return (
-//     <IonPage>
-//       <NavbarSidebar />
-//       <IonContent className="bg-gray-100 dark:bg-black p-4 pt-20">
-//         <IonLoading isOpen={loading} message="Loading..." />
-
-//         {/* 🔹 Top bar */}
-//         <div className="flex justify-between items-center mb-5 mt-20">
-//           <h2 className="text-xl font-bold text-black dark:text-white">
-//             Trip Management
-//           </h2>
-
-//           <button
-//             onClick={handleCreateTrip}
-//             style={{
-//               height: "45px",
-//               width: "140px",
-//               background: "black",
-//               color: "white",
-//               borderRadius: "10px",
-//             }}
-//           >
-//             + Create Trip
-//           </button>
-//         </div>
-
-//         {/* 🔹 Route Selector */}
-//         <select
-//           className="w-full p-3 rounded-lg border mb-4 dark:bg-gray-800"
-//           onChange={(e) => fetchRouteDetails(e.target.value)}
-//         >
-//           <option value="">Select Route</option>
-//           {routes.map((r) => (
-//             <option key={r.route_id} value={r.route_id}>
-//               {r.name}
-//             </option>
-//           ))}
-//         </select>
-
-    
-//                {/* ✅ BEAUTIFUL ROUTE STOPS */}
-//         {routeDetails?.stops && selectedTrip && (
-//   <div className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow mb-5">
-//     <h2 className="font-bold text-lg mb-4 dark:text-white">
-//       {routeDetails.name} Stops
-//     </h2>
-
-//     {/* 🔹 Stops Timeline */}
-//     <div className="border-l-2 border-gray-300 dark:border-gray-700 pl-4 space-y-6">
-//       {routeDetails.stops.map((stop: any, i: number) => {
-//         const tripStop = selectedTrip.stops.find(
-//           (s: any) => s.stop_id === stop.stop_id
-//         );
-
-//         return (
-//           <div key={stop.stop_id} className="relative">
-//             {/* Dot */}
-//             <div className="absolute -left-6 top-2 w-3 h-3 bg-black dark:bg-white rounded-full"></div>
-
-//             <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-              
-//               {/* Stop Name */}
-//               <h3 className="font-semibold text-black dark:text-white text-base">
-//                 {i + 1}. {stop.stop_name}
-//               </h3>
-
-//               {/* Time */}
-//               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-//                 🕒 Planned: {formatTime(tripStop?.planned_arrival_time)}
-//               </div>
-
-//               {/* Actual Times */}
-//               <div className="text-xs text-gray-400 mt-1">
-//                 Arrival: {formatTime(tripStop?.actual_arrival_time)} | 
-//                 Departure: {formatTime(tripStop?.actual_departure_time)}
-//               </div>
-
-//               {/* Fares */}
-//               {tripStop?.fares?.length > 0 && (
-//                 <div className="mt-3 flex flex-wrap gap-2">
-//                   {tripStop.fares.map((f: any) => (
-//                     <span
-//                       key={f.to_stop_id}
-//                       className="bg-black dark:bg-white text-white dark:text-black text-xs px-3 py-1 rounded-full shadow-sm"
-//                     >
-//                       {f.to_stop_name} ₹{f.amount}
-//                     </span>
-//                   ))}
-//                 </div>
-//               )}
-//             </div>
-//           </div>
-//         );
-//       })}
-//     </div>
-                   
-//             {/* 🔹 Map */}
-//             {routeDetails.stops.length > 0 && (
-//               <MapContainer
-//                 center={[22.57, 88.36]}
-//                 zoom={12}
-//                 style={{ height: 260 }}
-//                 className="rounded-lg mt-4"
-//               >
-//                 <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-//                 {routeDetails.stops.map((s: any, i: number) => (
-//                   <Marker
-//                     key={i}
-//                     position={[
-//                       s.latitude ? s.latitude : 22.57 + i * 0.01,
-//                       s.longitude ? s.longitude : 88.36 + i * 0.01,
-//                     ]}
-//                   >
-//                     <Popup>
-//                       {s.stop_name} <br /> Fare: {s.fare ? `₹${s.fare}` : "--"}
-//                     </Popup>
-//                   </Marker>
-//                 ))}
-//                 <Polyline
-//                   positions={routeDetails.stops.map((s: any, i: number) => [
-//                     s.latitude ? s.latitude : 22.57 + i * 0.01,
-//                     s.longitude ? s.longitude : 88.36 + i * 0.01,
-//                   ])}
-//                   color="blue"
-//                 />
-//               </MapContainer>
-//             )}
-//           </div>
-//         )}
-
-//         {/* 🔹 Trips */}
-//         {trips.length === 0 && routeDetails && (
-//           <div className="text-center py-10 text-gray-500 dark:text-gray-400">
-//             No trips created yet for this route.
-//           </div>
-//         )}
-
-//         {trips.map((trip) => (
-//           <div
-//             key={trip.trip_id}
-//             className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow mb-4 border border-gray-200 dark:border-gray-700"
-//           >
-//             <div className="flex justify-between mb-3 items-center">
-//               <h3 className="font-bold text-black dark:text-white">
-//                 Trip ID: {trip.trip_id}
-//               </h3>
-//               <span className="text-sm text-gray-500 dark:text-gray-400">
-//                 {new Date(trip.planned_start).toLocaleDateString()}
-//               </span>
-//             </div>
-
-          
-//             <div className="flex justify-between items-center text-sm mb-3 font-medium">
-//   <div className="flex flex-col">
-//     <span className="text-gray-500 dark:text-gray-400 text-xs">Planned Start</span>
-//     <span className="text-black dark:text-white font-semibold">
-//       📅 {new Date(trip.planned_start).toLocaleDateString("en-IN")}  
-//       {" "}
-//       🕒 {new Date(trip.planned_start).toLocaleTimeString("en-IN", {
-//         hour: "2-digit",
-//         minute: "2-digit",
-//         hour12: true,
-//       })}
-//     </span>
-//   </div>
-
-//   <div className="flex flex-col text-right">
-//     <span className="text-gray-500 dark:text-gray-400 text-xs">Planned End</span>
-//     <span className="text-black dark:text-white font-semibold">
-//       📅 {new Date(trip.planned_end).toLocaleDateString("en-IN")}  
-//       {" "}
-//       🕒 {new Date(trip.planned_end).toLocaleTimeString("en-IN", {
-//         hour: "2-digit",
-//         minute: "2-digit",
-//         hour12: true,
-//       })}
-//     </span>
-//   </div>
-// </div>
-
-//             {/* Actual */}
-//             <div className="flex justify-between text-xs text-gray-500 mb-3">
-//               <span>
-//                 🟢 Actual Start:{" "}
-//                 {trip.actual_start
-//                   ? new Date(trip.actual_start).toLocaleTimeString()
-//                   : "--"}
-//               </span>
-//               <span>
-//                 🔴 Actual End:{" "}
-//                 {trip.actual_end
-//                   ? new Date(trip.actual_end).toLocaleTimeString()
-//                   : "--"}
-//               </span>
-//             </div>
-
-         
-//            <div className="flex justify-end mb-3">
-//   <span
-//     className={`px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide shadow-sm
-//     ${trip.status === "scheduled" && "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"}
-//     ${trip.status === "in_progress" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"}
-//     ${trip.status === "completed" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"}
-//     ${trip.status === "cancelled" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"}
-//     `}
-//   >
-//     {trip.status === "scheduled" && "🟡 Scheduled"}
-//     {trip.status === "in_progress" && "🚍 In Progress"}
-//     {trip.status === "completed" && "✅ Completed"}
-//     {trip.status === "cancelled" && "❌ Cancelled"}
-//   </span>
-// </div>
-
-// {/* 🔹 Cancel Reason */}
-// {trip.status === "cancelled" && (
-//   <div className="text-sm text-red-500 dark:text-red-400 text-right bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-//     <strong>Reason:</strong> {trip.cancel_reason || "No reason provided"}
-//   </div>
-// )}
-
-//             {/* Buttons */}
-//             {trip.status === "scheduled" && (
-//               <div className="flex space-x-2">
-//                 <button
-//                   onClick={() => handleStartTrip(trip.trip_id)}
-//                   className="flex-1 h-12 bg-black text-white rounded-lg"
-//                 >
-//                   Start Trip
-//                 </button>
-            
-//                 <button
-//   onClick={() => handleCancelTrip(trip.trip_id)}
-//   className="flex-1 h-12 bg-red-600 text-white rounded-lg"
-//   disabled={loading}
-// >
-//   {loading ? "Cancelling..." : "Cancel Trip"}
-// </button>
-//               </div>
-//             )}
-//             {trip.status === "in_progress" && (
-//               <button
-//                 onClick={() => handleEndTrip(trip.trip_id)}
-//                 style={{
-//                   height: "48px",
-//                   width: "100%",
-//                   background: "red",
-//                   color: "white",
-//                   borderRadius: "8px",
-//                 }}
-//               >
-//                 End Trip
-//               </button>
-//             )}
-//             {trip.status === "completed" && (
-//               <div
-//                 style={{
-//                   height: "48px",
-//                   display: "flex",
-//                   alignItems: "center",
-//                   justifyContent: "center",
-//                   background: "#d1fae5",
-//                   color: "green",
-//                   borderRadius: "8px",
-//                   fontWeight: "bold",
-//                 }}
-//               >
-//                 ✅ Completed
-//               </div>
-//             )}
-//           </div>
-//         ))}
-//       </IonContent>
-//     </IonPage>
-//   );
-// };
-
-// export default DriverTripManagement;
 
 import React, { useState, useEffect } from "react";
 import { IonPage, IonContent, IonLoading } from "@ionic/react";
@@ -448,11 +5,14 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet"
 import "leaflet/dist/leaflet.css";
 import NavbarSidebar from "./Navbar";
 import { useHistory } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
+
+
 
 const API_BASE = "https://be.shuttleapp.transev.site";
 
 const DriverTripManagement = () => {
-  const history = useHistory();
+  // const history = useHistory();
   const token = localStorage.getItem("access_token");
 
   const [routes, setRoutes] = useState<any[]>([]);
@@ -463,7 +23,9 @@ const DriverTripManagement = () => {
 const [showCancelModal, setShowCancelModal] = useState(false);
 const [cancelReason, setCancelReason] = useState("");
 const [cancelTripId, setCancelTripId] = useState<string | null>(null);
-
+ const [trip, setTrip] = useState<any>(null);
+  const [route, setRoute] = useState<any>(null);
+const history = useHistory();
   // 🔹 Fetch Driver Profile
   useEffect(() => {
     const fetchProfile = async () => {
@@ -526,103 +88,266 @@ const [cancelTripId, setCancelTripId] = useState<string | null>(null);
     setLoading(false);
   };
 
-  // 🔹 Start Trip
-  // const handleStartTrip = async (tripId: string) => {
-  //   if (!tripId || !routeDetails) return;
-  //   setLoading(true);
-  //   try {
-  //     await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/start`, {
-  //       method: "POST",
-  //       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-  //       body: JSON.stringify({ actual_start_at: new Date().toISOString() }),
-  //     });
-  //     fetchRouteDetails(routeDetails.id);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+const fetchTripDetails = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/driver/trips/current`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (data?.detail?.error === "no_active_trip") {
+        setTrip(null);
+        setRoute(null);
+        return;
+      }
+
+      const currentTrip = data?.trip;
+
+      if (!currentTrip) {
+        setTrip(null);
+        setRoute(null);
+        return;
+      }
+
+      // Pick first trip that is scheduled or in_progress
+      const detailsRes = await fetch(
+        `${API_BASE}/driver/routes/${currentTrip.route_id}/trips/details`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const detailsData = await detailsRes.json();
+
+      const activeTrip = detailsData.trips.find(
+        (t: any) => t.status === "scheduled" || t.status === "in_progress"
+      );
+
+      setTrip(activeTrip || null);
+      setRoute(detailsData.route || null);
+    } catch (err: any) {
+      console.error(err);
+      alert("❌ Failed to fetch trip details: " + (err.message || "Unknown error"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTripDetails();
+  }, []);
   const handleStartTrip = async (tripId: string) => {
-  if (!tripId || !routeDetails) return;
+  if (!tripId) return;
 
   setLoading(true);
+
   try {
-    const res = await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/start`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ actual_start_at: new Date().toISOString() }),
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        }
+      );
     });
 
-    // Check if API returned an error
+    // 🔥 FULL GEO DEBUG
+    console.log("📍 FULL POSITION OBJECT:", position);
+
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+    const timestamp = position.timestamp;
+
+    // ✅ Important logs
+    console.log("📍 Latitude:", latitude);
+    console.log("📍 Longitude:", longitude);
+    console.log("🎯 Accuracy (meters):", accuracy);
+    console.log("⏱ Timestamp:", new Date(timestamp).toISOString());
+
+    // 👉 Optional: clean one-line log
+    console.log(
+      `📍 FINAL LOCATION → Lat: ${latitude}, Lng: ${longitude}, Accuracy: ${accuracy}m`
+    );
+
+    // ✅ Prepare FormData
+    const formData = new FormData();
+    formData.append("lat", latitude.toString());
+    formData.append("lng", longitude.toString());
+
+    const res = await fetch(
+      `${API_BASE}/driver/scheduled-trips/${tripId}/start`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      }
+    );
+
+    const data = await res.json();
+
     if (!res.ok) {
-      const errorData = await res.json();
-      // Show the error message from API
-      alert(errorData.detail || "Failed to start trip");
-      return;
+      console.error("❌ Backend Error:", data);
+
+      if (data?.distance_m && data?.allowed_radius_m) {
+        throw new Error(
+          `Too far 🚫 Distance: ${data.distance_m}m | Allowed: ${data.allowed_radius_m}m`
+        );
+      }
+
+      throw new Error(data.detail || data.error || "Failed to start trip");
     }
 
-    // Success: refresh route/trips data
-    fetchRouteDetails(routeDetails.id);
+    console.log("✅ Trip Started:", data);
+
+    alert(
+      `✅ Trip Started!\nDistance: ${data.distance_m}m\nAllowed: ${data.allowed_radius_m}m`
+    );
+
+    fetchTripDetails();
+
   } catch (err: any) {
     console.error(err);
-    alert("❌ Something went wrong while starting the trip");
+    alert("❌ Failed:\n" + (err.message || "Unknown error"));
   } finally {
     setLoading(false);
   }
 };
 
-  // 🔹 End Trip
-  // const handleEndTrip = async (tripId: string) => {
-  //   if (!tripId || !routeDetails) return;
-  //   setLoading(true);
-  //   try {
-  //     await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/end`, {
-  //       method: "POST",
-  //       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-  //       body: JSON.stringify({ actual_end_at: new Date().toISOString() }),
-  //     });
-  //     fetchRouteDetails(routeDetails.id);
-  //   } catch (err) {
-  //     console.error(err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 const handleEndTrip = async (tripId: string) => {
-  if (!tripId || !routeDetails) return;
-
+  if (!tripId) return;
   setLoading(true);
+
   try {
+    // Helper to get current location
+    const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation not supported on this device"));
+        } else {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (err) => reject(err),
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+      });
+    };
+
+    // Get device location
+    const { lat, lng } = await getCurrentLocation();
+    console.log("Current location:", lat, lng);
+
+    // Prepare multipart form data
+    const formData = new FormData();
+    formData.append("actual_end_at", new Date().toISOString());
+    formData.append("lat", lat.toString());
+    formData.append("lng", lng.toString());
+
+    // Send POST request
     const res = await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/end`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
+        // DO NOT set Content-Type for FormData
       },
-      body: JSON.stringify({ actual_end_at: new Date().toISOString() }),
+      body: formData,
     });
 
-    // Check for API errors
     if (!res.ok) {
-      const errorData = await res.json();
-      alert(errorData.detail || "Failed to end trip");
-      return;
+      const errData = await res.json();
+      throw new Error(errData.detail || "Failed to end trip");
     }
 
-    // Success: refresh route/trips data
-    fetchRouteDetails(routeDetails.id);
+    alert("✅ Trip ended successfully!");
+    fetchTripDetails();
   } catch (err: any) {
     console.error(err);
-    alert("❌ Something went wrong while ending the trip");
+    alert("❌ Failed to end trip: " + (err.message || "Unknown error"));
   } finally {
     setLoading(false);
   }
 };
+  const openEmergencyStopModal = (tripId: string) => {
+    setEmergencyTripId(tripId);
+    setEmergencyReason("");
+    setShowEmergencyModal(true);
+  };
 
+ 
+const submitEmergencyStop = async () => {
+  if (!emergencyTripId || !emergencyReason) {
+    alert("Please provide a reason for emergency stop!");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Get user location
+    const getLocation = (): Promise<{ lat: number; lng: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation not supported in this device"));
+        } else {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              });
+            },
+            (err) => reject(err),
+            { enableHighAccuracy: true }
+          );
+        }
+      });
+    };
+
+    const { lat, lng } = await getLocation();
+
+    // Prepare FormData payload
+    const formData = new FormData();
+    formData.append("reason", emergencyReason);
+    formData.append("lat", lat.toString());
+    formData.append("lng", lng.toString());
+    formData.append("actual_end_at", new Date().toISOString());
+
+    const res = await fetch(
+      `${API_BASE}/driver/scheduled-trips/${emergencyTripId}/emergency-end`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // Don't set Content-Type! Browser sets it automatically for FormData
+        },
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.detail?.[0]?.msg || "Emergency stop failed");
+    }
+
+    alert("✅ Trip stopped successfully!");
+    setShowEmergencyModal(false);
+    fetchTripDetails();
+  } catch (err: any) {
+    console.error(err);
+    alert(`❌ Failed to perform emergency stop: ${err.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
   // 🔹 Handle Create Trip Navigation
   const handleCreateTrip = () => {
     if (driverVerified) {
@@ -696,48 +421,8 @@ const [emergencyTripId, setEmergencyTripId] = useState<string | null>(null);
 const [emergencyReason, setEmergencyReason] = useState("");
 
 // Open modal
-const openEmergencyStopModal = (tripId: string) => {
-  setEmergencyTripId(tripId);
-  setEmergencyReason("");
-  setShowEmergencyModal(true);
-};
 
 
-const submitEmergencyStop = async () => {
-  if (!emergencyTripId || !emergencyReason) return;
-  setLoading(true);
-
-  try {
-    const formData = new FormData();
-    formData.append("reason", emergencyReason);
-    formData.append("actual_end_at", new Date().toISOString());
-
-    const res = await fetch(
-      `${API_BASE}/driver/scheduled-trips/${emergencyTripId}/emergency-end`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          // Note: Do NOT set 'Content-Type' manually for multipart/form-data
-        },
-        body: formData,
-      }
-    );
-
-    if (!res.ok) throw new Error("Emergency stop failed");
-
-    alert("Trip stopped successfully!");
-    setShowEmergencyModal(false);
-    setEmergencyReason("");
-
-    if (routeDetails?.id) fetchRouteDetails(routeDetails.id);
-  } catch (err) {
-    console.error(err);
-    alert("❌ Failed to perform emergency stop");
-  } finally {
-    setLoading(false);
-  }
-};
   return (
     <IonPage>
       <NavbarSidebar />
@@ -765,24 +450,24 @@ const submitEmergencyStop = async () => {
         </div>
 
         {/* 🔹 Route Selector */}
-        {/* <select
-          className="w-full p-3 rounded-lg border mb-4 dark:bg-gray-800"
-          onChange={(e) => fetchRouteDetails(e.target.value)}
-        >
-          <option value="">Select Route</option>
-          {routes.map((r) => (
-            <option key={r.route_id} value={r.route_id}>
-              {r.name}
-            </option>
-          ))}
-        </select> */}
-    <select
-  className="w-full p-4 rounded-xl border mb-6 bg-white dark:bg-black border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 text-base font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
+<select
+  className="w-full p-4 rounded-xl border mb-6 
+             bg-white dark:bg-gray-800 
+             border-gray-300 dark:border-gray-700 
+             text-gray-900 dark:text-gray-100 
+             text-base font-medium 
+             focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
   onChange={(e) => fetchRouteDetails(e.target.value)}
 >
-  <option value="">🚏 Select Route</option>
+  <option value="" className="text-gray-500 dark:text-gray-100">
+    🚏 Select Route
+  </option>
   {routes.map((r) => (
-    <option key={r.route_id} value={r.route_id}>
+    <option
+      key={r.route_id}
+      value={r.route_id}
+      className="text-gray-900 dark:text-gray-100"
+    >
       {r.name}
     </option>
   ))}
@@ -839,7 +524,7 @@ const submitEmergencyStop = async () => {
               
               {/* Stop Name */}
               <h3 className="font-semibold text-black dark:text-white text-base">
-                {i + 1}. {stop.stop_name}
+                {i + 1}. {stop.name}
               </h3>
 
               {/* Time */}

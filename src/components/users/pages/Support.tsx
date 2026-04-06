@@ -138,28 +138,38 @@ const HelpSupport: React.FC = () => {
           </div>
 
           {/* Create Ticket */}
-          <div
-            style={{
-              marginBottom: "28px",
-              padding: "22px",
-              borderRadius: "18px",
-              backgroundColor: isDark ? "#1e293b" : "#fff",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "18px",
-                fontWeight: "700",
-                marginBottom: "18px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <QuestionMarkCircleIcon style={{ width: "22px", height: "22px" }} />
-              Create New Support Ticket
-            </h2>
+        <div
+  style={{
+    marginBottom: "28px",
+    padding: "22px",
+    borderRadius: "18px",
+    backgroundColor: isDark ? "#1e293b" : "#ffffff", // dark vs light background
+    boxShadow: isDark
+      ? "0 6px 18px rgba(0,0,0,0.3)" // slightly stronger shadow in dark mode
+      : "0 6px 18px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2
+    style={{
+      fontSize: "18px",
+      fontWeight: 700,
+      marginBottom: "18px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      color: isDark ? "#f3f4f6" : "#111827", // white-ish text in dark mode, dark gray in light
+    }}
+  >
+    <QuestionMarkCircleIcon
+      style={{
+        width: "22px",
+        height: "22px",
+        color: isDark ? "#f3f4f6" : "#111827", // icon color matches text
+      }}
+    />
+    Create New Support Ticket
+  </h2>
+
 
             <input
               type="text"
@@ -198,39 +208,53 @@ const HelpSupport: React.FC = () => {
               }}
             />
 
-            <div style={{ marginBottom: "14px" }}>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  cursor: "pointer",
-                  padding: "12px 16px",
-                  borderRadius: "12px",
-                  backgroundColor: isDark ? "#0f172a" : "#f9fafb",
-                  border: "1px solid #d1d5db",
-                  fontSize: "14px",
-                }}
-              >
-                <PaperClipIcon style={{ width: "20px", height: "20px" }} />
-                Attach File
-                <input
-                  type="file"
-                  onChange={(e) =>
-                    setNewTicket({
-                      ...newTicket,
-                      attachment: e.target.files ? e.target.files[0] : null,
-                    })
-                  }
-                  style={{ display: "none" }}
-                />
-              </label>
-              {newTicket.attachment && (
-                <p style={{ marginTop: "6px", fontSize: "13px", color: isDark ? "#9ca3af" : "#374151" }}>
-                  Attached: {newTicket.attachment.name}
-                </p>
-              )}
-            </div>
+           <div style={{ marginBottom: "14px" }}>
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      cursor: "pointer",
+      padding: "12px 16px",
+      borderRadius: "12px",
+      backgroundColor: isDark ? "#0f172a" : "#f9fafb", // dark/light background
+      border: `1px solid ${isDark ? "#334155" : "#d1d5db"}`, // subtle border for dark mode
+      fontSize: "14px",
+      color: isDark ? "#f3f4f6" : "#111827", // dark mode text white-ish, light mode dark gray
+    }}
+  >
+    <PaperClipIcon
+      style={{
+        width: "20px",
+        height: "20px",
+        color: isDark ? "#f3f4f6" : "#111827", // icon color matches text
+      }}
+    />
+    Attach File
+    <input
+      type="file"
+      onChange={(e) =>
+        setNewTicket({
+          ...newTicket,
+          attachment: e.target.files ? e.target.files[0] : null,
+        })
+      }
+      style={{ display: "none" }}
+    />
+  </label>
+
+  {newTicket.attachment && (
+    <p
+      style={{
+        marginTop: "6px",
+        fontSize: "13px",
+        color: isDark ? "#9ca3af" : "#374151", // light gray in dark mode, darker gray in light
+      }}
+    >
+      Attached: {newTicket.attachment.name}
+    </p>
+  )}
+</div>
 
             <button
               onClick={createTicket}
@@ -292,7 +316,7 @@ const HelpSupport: React.FC = () => {
         </div>
 
         {/* Subject */}
-     {/* Subject */}
+    
 <p
   className={`font-semibold text-base mb-2 ${
     isDark ? "text-indigo-400" : "text-indigo-600"
@@ -344,27 +368,35 @@ const HelpSupport: React.FC = () => {
 </div>
      
           {/* Contact Support */}
-          <div
-            style={{
-              padding: "20px",
-              borderRadius: "18px",
-              backgroundColor: isDark ? "#1e293b" : "#fff",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "18px",
-                fontWeight: "700",
-                marginBottom: "10px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <ChatBubbleLeftRightIcon style={{ width: "22px", height: "22px" }} />
-              Contact Support
-            </h2>
+      <div
+  style={{
+    padding: "20px",
+    borderRadius: "18px",
+    backgroundColor: isDark ? "#1e293b" : "#fff",
+    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+  }}
+>
+  <h2
+    style={{
+      fontSize: "18px",
+      fontWeight: 700,
+      marginBottom: "10px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      color: isDark ? "#f3f4f6" : "#111827", // dark mode text white-ish, light mode dark gray
+    }}
+  >
+    <ChatBubbleLeftRightIcon
+      style={{
+        width: "22px",
+        height: "22px",
+        color: isDark ? "#f3f4f6" : "#111827", // icon matches text
+      }}
+    />
+    Contact Support
+  </h2>
+
 
             <p style={{ fontSize: "13px", color: isDark ? "#9ca3af" : "#6b7280", lineHeight: "1.6" }}>
               📧 Email: <span style={{ color: "#3b82f6", fontWeight: 600 }}>support@shuttleapp.com</span>
