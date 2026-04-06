@@ -2775,9 +2775,9 @@ const CurrentTrip: React.FC = () => {
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-3 flex-1">
               {isError ? (
-                <FiAlertCircle className="text-red-600 dark:text-red-400 text-2xl mt-1 flex-shrink-0" />
+                <FiAlertCircle className="text-red-600 dark:text-red-400 text-2xl mt-1 shrink-0" />
               ) : (
-                <FiCheckCircle className="text-green-600 dark:text-green-400 text-2xl mt-1 flex-shrink-0" />
+                <FiCheckCircle className="text-green-600 dark:text-green-400 text-2xl mt-1 shrink-0" />
               )}
               <div className="flex-1">
                 <h3 className={`font-bold text-lg ${
