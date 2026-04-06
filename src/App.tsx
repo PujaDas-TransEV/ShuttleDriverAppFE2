@@ -17,7 +17,9 @@ import RevenuePayments from './components/users/pages/Revenue';
 import Notification from './components/users/pages/Notification';
 import Support from './components/users/pages/Support';
 import Kyc from './components/users/pages/KYC';
-// import TripManagemnet from './components/users/pages/TripManagement';
+import TripManagemnet from './components/users/pages/TripManagement';
+import CreateTrip from './components/users/pages/CreateTrip';
+import CurrentTrips from './components/users/pages/CurrentTrips';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -77,13 +79,19 @@ const App: React.FC = () => {
             <Route exact path="/notification">
               <Notification />
             </Route>
-            {/* <Route exact path="/trip-management">
+            <Route exact path="/trip-management">
               <TripManagemnet />
-            </Route> */}
+            </Route>
             <Route exact path="/support">
               <Support />
             </Route>
-            <Route exact path="/kyc">
+            <Route exact path="/create-trip">
+              <CreateTrip />
+            </Route>
+            <Route exact path="/current-trips">
+              <CurrentTrips />
+            </Route>
+            <Route exact path="/kyc-verification">
               <Kyc />
             </Route>
 
@@ -99,3 +107,76 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+// import React from 'react';
+// import { IonApp, IonRouterOutlet, setupIonicReact } from '@ionic/react';
+// import { IonReactRouter } from '@ionic/react-router';
+// import { Routes, Route, Navigate } from 'react-router-dom';
+
+// /* Pages */
+// import Signup from './components/Authentication/Signup';
+// import Login from './components/Authentication/Login';
+// import Dashboard from './components/users/pages/Dashboard';
+// import Profile from './components/Authentication/Profile';
+// import VehicleRegistration from './components/users/pages/VehicleRegistration';
+// import BusandTripManagement from './components/users/pages/BusManagement';
+// import PassengerBooking from './components/users/pages/PassengerBooking';
+// import LiveTracking from './components/users/pages/LiveTracking';
+// import RevenuePayments from './components/users/pages/Revenue';
+// import Notification from './components/users/pages/Notification';
+// import Support from './components/users/pages/Support';
+// import Kyc from './components/users/pages/KYC';
+// import TripManagement from './components/users/pages/TripManagement';
+// import CreateTrip from './components/users/pages/CreateTrip';
+// import CurrentTrips from './components/users/pages/CurrentTrips';
+
+// /* Core CSS */
+// import '@ionic/react/css/core.css';
+// import '@ionic/react/css/normalize.css';
+// import '@ionic/react/css/structure.css';
+// import '@ionic/react/css/typography.css';
+// import '@ionic/react/css/padding.css';
+// import '@ionic/react/css/float-elements.css';
+// import '@ionic/react/css/text-alignment.css';
+// import '@ionic/react/css/text-transformation.css';
+// import '@ionic/react/css/flex-utils.css';
+// import '@ionic/react/css/display.css';
+// import './theme/variables.css';
+
+// setupIonicReact();
+
+// const App: React.FC = () => {
+//   return (
+//     <IonApp>
+//       <IonReactRouter>
+//         <IonRouterOutlet>
+//           <Routes>
+//             {/* Authentication */}
+//             <Route path="/" element={<Signup />} />
+//             <Route path="/login" element={<Login />} />
+
+//             {/* Dashboard & User Pages */}
+//             <Route path="/dashboard" element={<Dashboard />} />
+//             <Route path="/profile-setup" element={<Profile />} />
+//             <Route path="/vehicle-registration" element={<VehicleRegistration />} />
+//             <Route path="/bus-and-trip-management" element={<BusandTripManagement />} />
+//             <Route path="/passenger-booking" element={<PassengerBooking />} />
+//             <Route path="/live-tracking" element={<LiveTracking />} />
+//             <Route path="/revenue-payments" element={<RevenuePayments />} />
+//             <Route path="/notification" element={<Notification />} />
+//             <Route path="/trip-management" element={<TripManagement />} />
+//             <Route path="/support" element={<Support />} />
+//             <Route path="/create-trip" element={<CreateTrip />} />
+//             <Route path="/current-trips" element={<CurrentTrips />} />
+//             <Route path="/kyc-verification" element={<Kyc />} />
+
+//             {/* Catch All */}
+//             <Route path="*" element={<Navigate to="/" replace />} />
+//           </Routes>
+//         </IonRouterOutlet>
+//       </IonReactRouter>
+//     </IonApp>
+//   );
+// };
+
+// export default App;

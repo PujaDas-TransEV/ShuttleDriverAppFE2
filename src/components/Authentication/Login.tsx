@@ -250,7 +250,7 @@ const Login: React.FC = () => {
 
       // ✅ Redirect to dashboard or profile page
       setTimeout(() => {
-        history.push('/profile-setup'); // change this to your desired page
+        history.push('/dashboard'); // change this to your desired page
       }, 1000);
 
     } catch (error: any) {
