@@ -27,6 +27,7 @@
     "@zxing/browser": "^0.1.5",
     "axios": "^1.13.5",
     "chart.js": "^4.5.1",
+    "html5-qrcode": "^2.3.8",
     "ionicons": "^7.4.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.577.0",

@@ -843,9 +843,9 @@
 // };
 
 // export default QRScannerComponent;
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaQrcode, FaCheckCircle, FaExclamationTriangle, FaTimes, FaSpinner } from 'react-icons/fa';
-import { QrReader } from 'react-qr-reader';
+import { Html5Qrcode } from 'html5-qrcode';
 
 interface QRScannerComponentProps {
   onClose: () => void;
@@ -858,7 +858,9 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
   const [scannedData, setScannedData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isScannerReady, setIsScannerReady] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const isMountedRef = useRef(true);
 
   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
     return new Promise((resolve, reject) => {
@@ -911,45 +913,138 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
       setScannedData(data);
       if (onScanSuccess) onScanSuccess(data);
 
+      // Stop scanner after successful scan
+      if (scannerRef.current) {
+        try {
+          await scannerRef.current.stop();
+          await scannerRef.current.clear();
+        } catch (err) {
+          console.error("Error stopping scanner:", err);
+        }
+      }
+
+      // Auto close after 2 seconds
       setTimeout(() => {
-        onClose();
+        if (isMountedRef.current) {
+          onClose();
+        }
       }, 2000);
       
     } catch (err: any) {
       console.error("Process scan error:", err);
       setError(err.message || "Scan failed");
       
+      // Clear error after 3 seconds
       setTimeout(() => {
-        setError(null);
-        setIsProcessing(false);
+        if (isMountedRef.current) {
+          setError(null);
+          setIsProcessing(false);
+        }
       }, 3000);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleScan = (result: any) => {
-    if (result && !isProcessing && !scannedData) {
-      const scannedText = result?.text;
-      if (scannedText) {
-        console.log("✅ QR Code detected:", scannedText);
-        processScan(scannedText);
+  const startScanner = async () => {
+    try {
+      // Make sure the element exists
+      const element = document.getElementById("qr-reader");
+      if (!element) {
+        console.error("QR reader element not found");
+        setError("Scanner element not found");
+        return;
+      }
+
+      const scanner = new Html5Qrcode("qr-reader");
+      scannerRef.current = scanner;
+      
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
+
+      await scanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          console.log("✅ QR Code detected:", decodedText);
+          if (!isProcessing && !scannedData && scannerRef.current) {
+            // Stop scanner immediately when QR is detected
+            const currentScanner = scannerRef.current;
+            if (currentScanner) {
+              currentScanner.stop().then(() => {
+                console.log("Scanner stopped after detection");
+              }).catch((err) => {
+                console.error("Error stopping scanner:", err);
+              });
+            }
+            processScan(decodedText);
+          }
+        },
+        (errorMessage) => {
+          // Silent ignore - this is normal when no QR is in frame
+          if (errorMessage && !errorMessage.includes("NotFoundException")) {
+            console.log("Scanning...", errorMessage);
+          }
+        }
+      );
+      
+      setIsScannerReady(true);
+      console.log("✅ Scanner started successfully");
+      
+    } catch (err: any) {
+      console.error("Failed to start scanner:", err);
+      setError("Could not start camera. Please check permissions and ensure you're on HTTPS/localhost.");
+    }
+  };
+
+  const stopAndClearScanner = async () => {
+    if (scannerRef.current) {
+      const scanner = scannerRef.current;
+      scannerRef.current = null;
+      
+      try {
+        await scanner.stop();
+        await scanner.clear();
+        console.log("Scanner stopped and cleared successfully");
+      } catch (err) {
+        console.error("Error stopping/clearing scanner:", err);
       }
     }
   };
 
-  const handleError = (err: any) => {
-    console.error("Camera error:", err);
-    if (err?.message) {
-      setCameraError(err.message);
-    }
-  };
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      if (isMountedRef.current) {
+        startScanner();
+      }
+    }, 500);
+    
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer);
+      stopAndClearScanner();
+    };
+  }, []);
 
-  const retryScanner = () => {
+  const retryScanner = async () => {
     setError(null);
-    setCameraError(null);
     setScannedData(null);
     setIsProcessing(false);
+    setIsScannerReady(false);
+    
+    await stopAndClearScanner();
+    
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        startScanner();
+      }
+    }, 500);
   };
 
   return (
@@ -967,7 +1062,10 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
             </div>
           </div>
           <button 
-            onClick={onClose} 
+            onClick={async () => {
+              await stopAndClearScanner();
+              onClose();
+            }} 
             className="text-white/80 hover:text-white transition-all hover:bg-white/10 rounded-full p-2"
             disabled={isProcessing}
           >
@@ -977,17 +1075,15 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
 
         {/* Content */}
         <div className="p-6">
-          {/* Camera Error Message */}
-          {cameraError && (
+          {/* Error Message */}
+          {error && (
             <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
               <div className="flex items-start gap-3">
                 <div className="bg-red-100 p-2 rounded-full shrink-0">
                   <FaExclamationTriangle className="text-red-500 text-sm" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-red-700 text-sm font-medium">
-                    Camera access error. Please check permissions.
-                  </p>
+                  <p className="text-red-700 text-sm font-medium whitespace-pre-line">{error}</p>
                   <button 
                     onClick={retryScanner} 
                     className="mt-2 text-red-600 text-xs font-semibold hover:text-red-700"
@@ -999,36 +1095,12 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
             </div>
           )}
 
-          {/* API Error Message */}
-          {error && !cameraError && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
-              <div className="flex items-start gap-3">
-                <div className="bg-red-100 p-2 rounded-full shrink-0">
-                  <FaExclamationTriangle className="text-red-500 text-sm" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-red-700 text-sm font-medium">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Scanner */}
+          {/* Scanner Container */}
           <div className="relative rounded-2xl overflow-hidden shadow-xl bg-black" style={{ minHeight: '400px' }}>
-            {!cameraError && (
-              <QrReader
-                onResult={handleScan}
-                constraints={{
-                  facingMode: 'environment',
-                }}
-                containerStyle={{ width: '100%', padding: 0 }}
-                videoStyle={{ width: '100%', height: 'auto', objectFit: 'cover' }}
-                scanDelay={500}
-              />
-            )}
+            <div id="qr-reader" className="w-full"></div>
 
             {/* Scanner Frame Overlay */}
-            {!cameraError && !scannedData && !isProcessing && (
+            {!error && !scannedData && !isProcessing && isScannerReady && (
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-black/50">
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
@@ -1042,9 +1114,9 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
               </div>
             )}
 
-            {/* Loading overlay */}
-            {!cameraError && !scannedData && !isProcessing && (
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            {/* Loading Overlay */}
+            {!error && !scannedData && !isProcessing && !isScannerReady && (
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                 <div className="text-center">
                   <FaSpinner className="text-white text-4xl animate-spin mx-auto mb-3" />
                   <p className="text-white text-sm">Starting camera...</p>
@@ -1052,7 +1124,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
               </div>
             )}
 
-            {/* Processing overlay */}
+            {/* Processing Overlay */}
             {isProcessing && (
               <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
                 <div className="text-center">
@@ -1065,7 +1137,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
 
           {/* Success Message */}
           {scannedData && !error && (
-            <div className="mt-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5">
+            <div className="mt-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
               <div className="flex items-center gap-3 mb-3">
                 <div className="bg-green-100 p-2 rounded-full">
                   <FaCheckCircle className="text-green-600 text-xl" />
@@ -1089,7 +1161,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
           )}
 
           {/* Instructions */}
-          {!cameraError && !scannedData && !isProcessing && (
+          {!error && !scannedData && !isProcessing && isScannerReady && (
             <div className="mt-4 text-center">
               <p className="text-gray-500 text-xs">
                 Align the QR code within the green frame to scan
@@ -1111,8 +1183,13 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        @keyframes slideUp {
+          from { transform: translateY(20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
         .animate-scanLine { animation: scanLine 2s linear infinite; }
         .animate-spin { animation: spin 1s linear infinite; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
       `}</style>
     </div>
   );
