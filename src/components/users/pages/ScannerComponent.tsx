@@ -927,7 +927,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
         if (isMountedRef.current) {
           onClose();
         }
-      }, 2000);
+      }, 15000);
       
     } catch (err: any) {
       console.error("Process scan error:", err);
@@ -970,15 +970,15 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
         }
 
         // Create new scanner with specific element ID
-        const scanner = new Html5Qrcode("qr-reader-container");
-        scannerRef.current = scanner;
-        
-        const config = {
-          fps: 15,
-          qrbox: { width: 300, height: 300 },
-          aspectRatio: 1.0,
-          disableFlip: false,
-        };
+      // Create new scanner with specific element ID
+const scanner = new Html5Qrcode("qr-reader-container");
+scannerRef.current = scanner;
+const config = {
+  fps: 10,
+  // qrbox: { width: 420, height: 420 },
+  aspectRatio: 1.0,
+  disableFlip: false,
+};
         
         console.log("Starting scanner with config:", config);
         
