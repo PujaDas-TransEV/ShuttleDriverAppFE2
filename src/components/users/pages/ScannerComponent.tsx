@@ -513,6 +513,336 @@
 
 // export default QRScannerComponent;
 
+// import React, { useState, useEffect, useRef, useCallback } from 'react';
+// import { FaQrcode, FaCheckCircle, FaExclamationTriangle, FaTimes, FaCamera, FaSpinner } from 'react-icons/fa';
+// import { BrowserMultiFormatReader } from '@zxing/browser';
+
+// interface QRScannerComponentProps {
+//   onClose: () => void;
+//   onScanSuccess?: (data: any) => void;
+//   tripId?: string;
+//   token?: string;
+// }
+
+// const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScanSuccess, tripId, token }) => {
+//   const [scannedData, setScannedData] = useState<any>(null);
+//   const [error, setError] = useState<string | null>(null);
+//   const [scanning, setScanning] = useState(true);
+//   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+//   const [isProcessing, setIsProcessing] = useState(false);
+//   const [isCameraReady, setIsCameraReady] = useState(false);
+
+//   const videoRef = useRef<HTMLVideoElement | null>(null);
+//   const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
+//   const streamRef = useRef<MediaStream | null>(null);
+//   const isMountedRef = useRef(true);
+
+//   const isCameraContextAllowed = (): boolean => {
+//     return (
+//       window.isSecureContext ||
+//       window.location.hostname === 'localhost' ||
+//       window.location.hostname === '127.0.0.1' ||
+//       window.location.hostname === '192.168.0.106:8100'
+//     );
+//   };
+
+//   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
+//     return new Promise((resolve, reject) => {
+//       if (!navigator.geolocation) {
+//         reject(new Error("Geolocation not supported"));
+//       } else {
+//         navigator.geolocation.getCurrentPosition(
+//           (position) => resolve({ lat: position.coords.latitude, lng: position.coords.longitude }),
+//           (err) => reject(err),
+//           { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+//         );
+//       }
+//     });
+//   };
+
+//   const processScan = async (qrToken: string) => {
+//     if (!tripId || !token) {
+//       setError("Trip or authentication information missing");
+//       return;
+//     }
+
+//     setIsProcessing(true);
+//     setScanning(false);
+
+//     try {
+//       const { lat, lng } = await getCurrentLocation();
+//       const requestBody = { qr_token: qrToken, lat, lng };
+
+//       const response = await fetch(`https://be.shuttleapp.transev.site/driver/scan/${tripId}/scan`, {
+//         method: "POST",
+//         headers: {
+//           "Authorization": `Bearer ${token}`,
+//           "Content-Type": "application/json",
+//         },
+//         body: JSON.stringify(requestBody),
+//       });
+
+//       const data = await response.json();
+//       if (!response.ok) throw new Error(data.detail || data.message || "Scan failed");
+
+//       setScannedData(data);
+//       if (onScanSuccess) onScanSuccess(data);
+
+//       setTimeout(() => onClose(), 3000);
+//     } catch (err: any) {
+//       console.error("Process scan error:", err);
+//       setError(err.message || "Scan failed");
+//       setScanning(true);
+//     } finally {
+//       setIsProcessing(false);
+//     }
+//   };
+
+//   const initCamera = useCallback(async () => {
+//     if (!videoRef.current || !isMountedRef.current) return;
+
+//     if (!isCameraContextAllowed()) {
+//       setError("⚠️ Camera access requires HTTPS or localhost.");
+//       setCameraPermission(false);
+//       return;
+//     }
+
+//     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+//       setError("❌ Camera API is unavailable in this page context.");
+//       setCameraPermission(false);
+//       return;
+//     }
+
+//     try {
+//       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+//       const constraints = {
+//         video: {
+//           facingMode: isMobile ? 'environment' : 'user',
+//           width: { ideal: 1280 },
+//           height: { ideal: 720 },
+//         },
+//       };
+
+//       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+//       streamRef.current = stream;
+
+//       if (videoRef.current) {
+//         videoRef.current.srcObject = stream;
+//         videoRef.current.setAttribute('playsinline', 'true');
+//         await videoRef.current.play().catch(e => console.log("Play error:", e));
+//         setIsCameraReady(true);
+//         setCameraPermission(true);
+//       }
+//     } catch (err: any) {
+//       console.error("Camera error:", err);
+//       setCameraPermission(false);
+//       if (err.name === 'NotAllowedError') {
+//         setError("📷 Camera permission denied. Please allow access.");
+//       } else if (err.name === 'NotFoundError') {
+//         setError("No camera found on this device.");
+//       } else {
+//         setError(`Camera error: ${err.message || 'Unknown error'}`);
+//       }
+//     }
+//   }, []);
+
+//  // ---------------- Stop Scanner / Camera ----------------
+// const stopScanner = useCallback(() => {
+//   if (streamRef.current) {
+//     streamRef.current.getTracks().forEach(track => track.stop());
+//     streamRef.current = null;
+//   }
+//   if (videoRef.current) videoRef.current.srcObject = null;
+//   scannerRef.current = null;
+//   setIsCameraReady(false);
+// }, []);
+
+// // ---------------- Start Scanner ----------------
+// const startScanner = useCallback(() => {
+//   if (!videoRef.current || !isMountedRef.current || scannerRef.current) return;
+
+//   try {
+//     const reader = new BrowserMultiFormatReader();
+//     scannerRef.current = reader;
+
+//     reader.decodeFromVideoElement(videoRef.current, (result, err) => {
+//       if (!isMountedRef.current) return;
+
+//       if (result && scanning && !isProcessing) {
+//         console.log("QR Code detected:", result.getText());
+//         stopScanner(); // ✅ now safe, declared before
+//         processScan(result.getText());
+//       }
+
+//       if (err && !result && err.name !== "NotFoundException" && err.name !== "ChecksumException") {
+//         console.error("Scanner error:", err);
+//       }
+//     });
+//   } catch (err: any) {
+//     console.error("Scanner init error:", err);
+//     if (isMountedRef.current) setError(err.message || "Scanner initialization failed");
+//     scannerRef.current = null;
+//   }
+// }, [scanning, isProcessing, processScan, stopScanner]);
+// useEffect(() => {
+//   isMountedRef.current = true;
+//   return () => {
+//     isMountedRef.current = false;
+//     stopScanner();
+//   };
+// }, [stopScanner]);
+//   useEffect(() => {
+//     const timer = setTimeout(() => initCamera(), 500);
+//     return () => clearTimeout(timer);
+//   }, [initCamera]);
+
+//   useEffect(() => {
+//     if (isCameraReady && scanning && !isProcessing && !error && !scannerRef.current) {
+//       const timer = setTimeout(startScanner, 300);
+//       return () => clearTimeout(timer);
+//     }
+//   }, [isCameraReady, scanning, isProcessing, error, startScanner]);
+
+//   const retryScanner = () => {
+//     setError(null);
+//     setCameraPermission(null);
+//     setScanning(true);
+//     setIsCameraReady(false);
+//     setScannedData(null);
+//     setIsProcessing(false);
+//     stopScanner();
+//     setTimeout(() => {
+//       if (isMountedRef.current) initCamera();
+//     }, 500);
+//   };
+
+//   const handleClose = () => {
+//     stopScanner();
+//     onClose();
+//   };
+
+//   return (
+//     <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-9999 p-4 animate-fadeIn">
+//       <div className="bg-linear-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden animate-slideUp">
+//         {/* Header */}
+//         <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
+//           <div className="flex items-center gap-3">
+//             <div className="bg-white/20 p-2 rounded-xl">
+//               <FaQrcode className="text-white text-2xl" />
+//             </div>
+//             <div>
+//               <h2 className="text-xl font-bold text-white">Scan QR Code</h2>
+//               <p className="text-blue-100 text-xs">Position QR code within the frame</p>
+//             </div>
+//           </div>
+//           <button onClick={handleClose} className="text-white/80 hover:text-white transition-all hover:bg-white/10 rounded-full p-2">
+//             <FaTimes className="text-xl" />
+//           </button>
+//         </div>
+
+//         {/* Content */}
+//         <div className="p-6">
+//           {/* Error Message */}
+//           {error && (
+//             <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
+//               <div className="flex items-start gap-3">
+//                 <div className="bg-red-100 p-2 rounded-full shrink-0">
+//                   <FaExclamationTriangle className="text-red-500 text-sm" />
+//                 </div>
+//                 <div className="flex-1">
+//                   <p className="text-red-700 text-sm font-medium whitespace-pre-line">{error}</p>
+//                   <button onClick={retryScanner} className="mt-2 text-red-600 text-xs font-semibold hover:text-red-700">
+//                     Try Again →
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+
+//           {/* Scanner */}
+//           {!error && (
+//             <div className="relative rounded-2xl overflow-hidden shadow-xl bg-black">
+//               <video ref={videoRef} className="w-full h-[400px] object-cover" playsInline muted />
+
+//               {cameraPermission === null && (
+//                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+//                   <div className="text-center">
+//                     <FaSpinner className="text-white text-4xl animate-spin mx-auto mb-3" />
+//                     <p className="text-white text-sm">Requesting camera access...</p>
+//                   </div>
+//                 </div>
+//               )}
+
+//               {cameraPermission === false && !scanning && (
+//                 <div className="absolute inset-0 bg-black/90 flex items-center justify-center">
+//                   <div className="text-center p-6">
+//                     <FaCamera className="text-gray-400 text-5xl mx-auto mb-3" />
+//                     <p className="text-white text-sm mb-2">Camera access required</p>
+//                     <p className="text-gray-400 text-xs mb-4">Please allow camera access to scan QR codes</p>
+//                     <button onClick={retryScanner} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-all">
+//                       Grant Permission
+//                     </button>
+//                   </div>
+//                 </div>
+//               )}
+
+//               {scanning && cameraPermission && !isProcessing && isCameraReady && (
+//                 <div className="absolute inset-0 pointer-events-none">
+//                   <div className="absolute inset-0 bg-black/50">
+//                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-transparent">
+//                       <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-green-500 rounded-tl-2xl"></div>
+//                       <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-green-500 rounded-tr-2xl"></div>
+//                       <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-green-500 rounded-bl-2xl"></div>
+//                       <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-green-500 rounded-br-2xl"></div>
+//                     </div>
+//                   </div>
+//                   <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
+//                 </div>
+//               )}
+
+//               {isProcessing && (
+//                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+//                   <div className="text-center">
+//                     <FaSpinner className="text-white text-4xl animate-spin mx-auto mb-3" />
+//                     <p className="text-white text-sm font-medium">Processing QR Code...</p>
+//                   </div>
+//                 </div>
+//               )}
+//             </div>
+//           )}
+
+//           {/* Success */}
+//           {scannedData && !error && (
+//             <div className="mt-5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
+//               <div className="flex items-center gap-3 mb-3">
+//                 <div className="bg-green-100 p-2 rounded-full">
+//                   <FaCheckCircle className="text-green-600 text-xl" />
+//                 </div>
+//                 <div>
+//                   <h3 className="font-bold text-green-800">Scan Successful!</h3>
+//                   <p className="text-green-600 text-xs">Passenger verified</p>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       <style>{`
+//         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+//         @keyframes slideUp { from { transform: translateY(50px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+//         @keyframes scanLine { 0% { top: 0%; } 100% { top: 100%; } }
+//         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+//         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+//         .animate-slideUp { animation: slideUp 0.3s ease-out; }
+//         .animate-scanLine { animation: scanLine 2s linear infinite; }
+//         .animate-spin { animation: spin 1s linear infinite; }
+//       `}</style>
+//     </div>
+//   );
+// };
+
+// export default QRScannerComponent;
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaQrcode, FaCheckCircle, FaExclamationTriangle, FaTimes, FaCamera, FaSpinner } from 'react-icons/fa';
 import { BrowserMultiFormatReader } from '@zxing/browser';
@@ -536,13 +866,14 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
   const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const isMountedRef = useRef(true);
+  const scanningLockRef = useRef(false);
 
   const isCameraContextAllowed = (): boolean => {
     return (
       window.isSecureContext ||
       window.location.hostname === 'localhost' ||
       window.location.hostname === '127.0.0.1' ||
-      window.location.hostname === '192.168.0.106:8100'
+      window.location.hostname === '192.168.0.106'
     );
   };
 
@@ -560,14 +891,49 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     });
   };
 
-  const processScan = async (qrToken: string) => {
+  // Fixed stopScanner without reset()
+  const stopScanner = useCallback(() => {
+    if (scannerRef.current) {
+      try {
+        // BrowserMultiFormatReader doesn't have reset method
+        // Just set to null and let garbage collector handle it
+        scannerRef.current = null;
+      } catch (err) {
+        console.error("Error stopping scanner:", err);
+      }
+    }
+    
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => {
+        if (track.readyState === 'live') {
+          track.stop();
+        }
+      });
+      streamRef.current = null;
+    }
+    
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    
+    setIsCameraReady(false);
+    scanningLockRef.current = false;
+  }, []);
+
+  const processScan = useCallback(async (qrToken: string) => {
     if (!tripId || !token) {
       setError("Trip or authentication information missing");
       return;
     }
 
+    if (scanningLockRef.current) return;
+    scanningLockRef.current = true;
+    
     setIsProcessing(true);
     setScanning(false);
+    
+    // Stop scanner immediately when processing
+    stopScanner();
 
     try {
       const { lat, lng } = await getCurrentLocation();
@@ -583,20 +949,73 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || data.message || "Scan failed");
+      
+      if (!response.ok) {
+        throw new Error(data.detail || data.message || "Scan failed");
+      }
 
       setScannedData(data);
       if (onScanSuccess) onScanSuccess(data);
 
-      setTimeout(() => onClose(), 3000);
+      // Auto close after 2 seconds on success
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          onClose();
+        }
+      }, 2000);
+      
     } catch (err: any) {
       console.error("Process scan error:", err);
       setError(err.message || "Scan failed");
       setScanning(true);
+      setIsProcessing(false);
+      scanningLockRef.current = false;
+      
+      // Restart scanner after error
+      setTimeout(() => {
+        if (isMountedRef.current && !scannedData) {
+          startScannerAfterDelay();
+        }
+      }, 2000);
     } finally {
       setIsProcessing(false);
     }
-  };
+  }, [tripId, token, onScanSuccess, onClose, stopScanner, scannedData]);
+
+  const startScannerAfterDelay = useCallback(() => {
+    if (!isMountedRef.current) return;
+    if (!videoRef.current || !isCameraReady || !scanning || isProcessing) return;
+    if (scannerRef.current) return;
+    
+    setTimeout(() => {
+      if (isMountedRef.current && videoRef.current && isCameraReady && scanning && !isProcessing && !scannerRef.current) {
+        try {
+          const reader = new BrowserMultiFormatReader();
+          scannerRef.current = reader;
+          
+          reader.decodeFromVideoElement(videoRef.current, (result, err) => {
+            if (!isMountedRef.current) return;
+            
+            if (result && scanning && !isProcessing && !scanningLockRef.current) {
+              console.log("QR Code detected:", result.getText());
+              processScan(result.getText());
+            }
+            
+            // Silently ignore NotFoundException (this is normal when no QR is in frame)
+            if (err && !result && err.name !== "NotFoundException" && err.name !== "ChecksumException") {
+              console.warn("Scanner error:", err.name);
+            }
+          });
+        } catch (err: any) {
+          console.error("Scanner init error:", err);
+          if (isMountedRef.current && err.name !== "NotFoundException") {
+            setError(err.message || "Scanner initialization failed");
+          }
+          scannerRef.current = null;
+        }
+      }
+    }, 100);
+  }, [isCameraReady, scanning, isProcessing, processScan]);
 
   const initCamera = useCallback(async () => {
     if (!videoRef.current || !isMountedRef.current) return;
@@ -614,6 +1033,12 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     }
 
     try {
+      // Stop any existing streams first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const constraints = {
         video: {
@@ -626,10 +1051,22 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
-      if (videoRef.current) {
+      if (videoRef.current && isMountedRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play().catch(e => console.log("Play error:", e));
+        
+        // Wait for video to be ready
+        await new Promise((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current?.play();
+              resolve(true);
+            };
+          } else {
+            resolve(true);
+          }
+        });
+        
         setIsCameraReady(true);
         setCameraPermission(true);
       }
@@ -646,62 +1083,24 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     }
   }, []);
 
- // ---------------- Stop Scanner / Camera ----------------
-const stopScanner = useCallback(() => {
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
-  }
-  if (videoRef.current) videoRef.current.srcObject = null;
-  scannerRef.current = null;
-  setIsCameraReady(false);
-}, []);
-
-// ---------------- Start Scanner ----------------
-const startScanner = useCallback(() => {
-  if (!videoRef.current || !isMountedRef.current || scannerRef.current) return;
-
-  try {
-    const reader = new BrowserMultiFormatReader();
-    scannerRef.current = reader;
-
-    reader.decodeFromVideoElement(videoRef.current, (result, err) => {
-      if (!isMountedRef.current) return;
-
-      if (result && scanning && !isProcessing) {
-        console.log("QR Code detected:", result.getText());
-        stopScanner(); // ✅ now safe, declared before
-        processScan(result.getText());
-      }
-
-      if (err && !result && err.name !== "NotFoundException" && err.name !== "ChecksumException") {
-        console.error("Scanner error:", err);
-      }
-    });
-  } catch (err: any) {
-    console.error("Scanner init error:", err);
-    if (isMountedRef.current) setError(err.message || "Scanner initialization failed");
-    scannerRef.current = null;
-  }
-}, [scanning, isProcessing, processScan, stopScanner]);
-useEffect(() => {
-  isMountedRef.current = true;
-  return () => {
-    isMountedRef.current = false;
-    stopScanner();
-  };
-}, [stopScanner]);
-  useEffect(() => {
-    const timer = setTimeout(() => initCamera(), 500);
-    return () => clearTimeout(timer);
-  }, [initCamera]);
-
+  // Start scanner when camera is ready
   useEffect(() => {
     if (isCameraReady && scanning && !isProcessing && !error && !scannerRef.current) {
-      const timer = setTimeout(startScanner, 300);
-      return () => clearTimeout(timer);
+      startScannerAfterDelay();
     }
-  }, [isCameraReady, scanning, isProcessing, error, startScanner]);
+  }, [isCameraReady, scanning, isProcessing, error, startScannerAfterDelay]);
+
+  // Initialize camera on mount
+  useEffect(() => {
+    isMountedRef.current = true;
+    const timer = setTimeout(() => initCamera(), 500);
+    
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(timer);
+      stopScanner();
+    };
+  }, [initCamera, stopScanner]);
 
   const retryScanner = () => {
     setError(null);
@@ -710,7 +1109,9 @@ useEffect(() => {
     setIsCameraReady(false);
     setScannedData(null);
     setIsProcessing(false);
+    scanningLockRef.current = false;
     stopScanner();
+    
     setTimeout(() => {
       if (isMountedRef.current) initCamera();
     }, 500);
@@ -722,10 +1123,10 @@ useEffect(() => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-9999 p-4 animate-fadeIn">
-      <div className="bg-linear-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden animate-slideUp">
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-fadeIn">
+      <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden animate-slideUp">
         {/* Header */}
-        <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-xl">
               <FaQrcode className="text-white text-2xl" />
@@ -762,7 +1163,13 @@ useEffect(() => {
           {/* Scanner */}
           {!error && (
             <div className="relative rounded-2xl overflow-hidden shadow-xl bg-black">
-              <video ref={videoRef} className="w-full h-[400px] object-cover" playsInline muted />
+              <video 
+                ref={videoRef} 
+                className="w-full h-[400px] object-cover" 
+                playsInline 
+                muted 
+                autoPlay
+              />
 
               {cameraPermission === null && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
@@ -786,17 +1193,17 @@ useEffect(() => {
                 </div>
               )}
 
-              {scanning && cameraPermission && !isProcessing && isCameraReady && (
+              {scanning && cameraPermission && !isProcessing && isCameraReady && !error && (
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute inset-0 bg-black/50">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-transparent">
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
                       <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-green-500 rounded-tl-2xl"></div>
                       <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-green-500 rounded-tr-2xl"></div>
                       <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-green-500 rounded-bl-2xl"></div>
                       <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-green-500 rounded-br-2xl"></div>
                     </div>
                   </div>
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
                 </div>
               )}
 
@@ -804,39 +1211,65 @@ useEffect(() => {
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                   <div className="text-center">
                     <FaSpinner className="text-white text-4xl animate-spin mx-auto mb-3" />
-                    <p className="text-white text-sm font-medium">Processing QR Code...</p>
+                    <p className="text-white text-sm font-medium">Verifying passenger...</p>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* Success */}
+          {/* Success Message */}
           {scannedData && !error && (
-            <div className="mt-5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
+            <div className="mt-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
               <div className="flex items-center gap-3 mb-3">
                 <div className="bg-green-100 p-2 rounded-full">
                   <FaCheckCircle className="text-green-600 text-xl" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-green-800">Scan Successful!</h3>
-                  <p className="text-green-600 text-xs">Passenger verified</p>
+                  <h3 className="font-bold text-green-800">Passenger Verified!</h3>
+                  <p className="text-green-600 text-xs">QR code validated successfully</p>
                 </div>
               </div>
+              {scannedData.passenger && (
+                <div className="mt-2 pt-2 border-t border-green-200">
+                  <p className="text-sm text-green-700">
+                    <span className="font-semibold">Passenger:</span> {scannedData.passenger.name || "N/A"}
+                  </p>
+                  <p className="text-sm text-green-700">
+                    <span className="font-semibold">Booking ID:</span> {scannedData.booking_id || "N/A"}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Instructions */}
+          {!error && !scannedData && !isProcessing && cameraPermission && (
+            <div className="mt-4 text-center">
+              <p className="text-gray-500 text-xs">
+                Align the QR code within the frame to scan
+              </p>
             </div>
           )}
         </div>
       </div>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(50px); opacity:0 } to { transform: translateY(0); opacity:1 } }
-        @keyframes scanLine { 0% { top: 0%; } 100% { top: 100%; } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { 
+          from { opacity: 0; } 
+          to { opacity: 1; } 
+        }
+        @keyframes slideUp { 
+          from { transform: translateY(50px); opacity: 0; } 
+          to { transform: translateY(0); opacity: 1; } 
+        }
+        @keyframes scanLine { 
+          0% { top: 0%; } 
+          100% { top: 100%; } 
+        }
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
         .animate-scanLine { animation: scanLine 2s linear infinite; }
-        .animate-spin { animation: spin 1s linear infinite; }
       `}</style>
     </div>
   );

@@ -2998,14 +2998,22 @@ const CurrentTrip: React.FC = () => {
         <ScanResultCard />
         
         {/* QR Scanner Modal */}
-        {showScanner && trip && (
+        {/* {showScanner && trip && (
           <QRScannerComponent
             onClose={() => setShowScanner(false)}
             onScanSuccess={handleScanSuccess}
             tripId={trip.trip_id}
             token={token}
           />
-        )}
+        )} */}
+         {showScanner && trip && (
+        <QRScannerComponent
+          onClose={() => setShowScanner(false)}
+          onScanSuccess={handleScanSuccess}
+          tripId={trip.trip_id}
+          token={token}
+        />
+      )}
         
         {/* Cancel Modal */}
         {showCancelModal && (
