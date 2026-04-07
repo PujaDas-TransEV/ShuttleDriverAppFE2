@@ -858,8 +858,10 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
   const [scannedData, setScannedData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isScannerReady, setIsScannerReady] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isMountedRef = useRef(true);
+  const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
     return new Promise((resolve, reject) => {
@@ -887,11 +889,23 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     console.log("🔄 Processing QR Code:", qrToken);
 
     try {
+      // Get current location
       const { lat, lng } = await getCurrentLocation();
-      
       console.log("📍 Current Location:", { lat, lng });
 
-      const requestBody = { qr_token: qrToken, lat, lng };
+      // Extract token from QR if it's JSON format
+      let finalToken = qrToken;
+      try {
+        const parsed = JSON.parse(qrToken);
+        if (parsed.token) finalToken = parsed.token;
+        else if (parsed.qr_token) finalToken = parsed.qr_token;
+        else if (parsed.booking_id) finalToken = parsed.booking_id;
+      } catch (e) {
+        // Not JSON, use as is
+        finalToken = qrToken;
+      }
+
+      const requestBody = { qr_token: finalToken, lat, lng };
 
       const response = await fetch(`https://be.shuttleapp.transev.site/driver/scan/${tripId}/scan`, {
         method: "POST",
@@ -917,26 +931,29 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
         try {
           await scannerRef.current.stop();
           await scannerRef.current.clear();
+          console.log("Scanner stopped after successful scan");
         } catch (err) {
           console.error("Error stopping scanner:", err);
         }
       }
 
-      // Auto close after 2 seconds
+      // Auto close after 3 seconds on success
       setTimeout(() => {
         if (isMountedRef.current) {
           onClose();
         }
-      }, 15000);
+      }, 3000);
       
     } catch (err: any) {
       console.error("Process scan error:", err);
-      setError(err.message || "Scan failed");
+      setError(err.message || "Scan failed. Please try again.");
       
-      setTimeout(() => {
-        if (isMountedRef.current) {
+      // Restart scanner after error
+      setTimeout(async () => {
+        if (isMountedRef.current && !scannedData) {
           setError(null);
           setIsProcessing(false);
+          await restartScanner();
         }
       }, 3000);
     } finally {
@@ -959,74 +976,106 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     }
   };
 
+  const restartScanner = async () => {
+    await stopAndClearScanner();
+    setIsScannerReady(false);
+    
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        startScanner();
+      }
+    }, 500);
+  };
+
+  const startScanner = async () => {
+    try {
+      // Clear any existing scanner
+      if (scannerRef.current) {
+        await stopAndClearScanner();
+      }
+
+      // Check if element exists
+      const element = document.getElementById("qr-reader-container");
+      if (!element) {
+        throw new Error("Scanner container not found");
+      }
+
+      // Create new scanner
+      const scanner = new Html5Qrcode("qr-reader-container");
+      scannerRef.current = scanner;
+      
+      const config = {
+        fps: 10,
+        qrbox: { width: 300, height: 300 },
+        aspectRatio: 1.0,
+        disableFlip: false,
+      };
+      
+      console.log("Starting scanner with config:", config);
+      
+      await scanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          console.log("🎯 QR Code detected:", decodedText);
+          
+          // Clear any existing timeout
+          if (scanTimeoutRef.current) {
+            clearTimeout(scanTimeoutRef.current);
+          }
+          
+          // Process scan immediately
+          if (!isProcessing && !scannedData && scannerRef.current) {
+            // Stop scanner immediately when QR is detected
+            const currentScanner = scannerRef.current;
+            if (currentScanner) {
+              currentScanner.stop().then(() => {
+                console.log("Scanner stopped after detection");
+              }).catch((err: Error) => {
+                console.error("Error stopping scanner:", err);
+              });
+            }
+            processScan(decodedText);
+          }
+        },
+        (errorMessage) => {
+          // Only log serious errors, ignore NotFoundException
+          if (errorMessage && 
+              !errorMessage.includes("NotFoundException") && 
+              !errorMessage.includes("No MultiFormat Readers") &&
+              !errorMessage.includes("Unable to query device")) {
+            console.warn("Scanner warning:", errorMessage);
+          }
+        }
+      );
+      
+      setIsScannerReady(true);
+      console.log("✅ Scanner started successfully - Ready to scan!");
+      
+    } catch (err: any) {
+      console.error("Failed to start scanner:", err);
+      setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
+      setIsScannerReady(false);
+    }
+  };
+
   useEffect(() => {
     isMountedRef.current = true;
     
-    const startScanner = async () => {
-      try {
-        // Clear any existing scanner
-        if (scannerRef.current) {
-          await stopAndClearScanner();
-        }
-
-        // Create new scanner with specific element ID
-      // Create new scanner with specific element ID
-const scanner = new Html5Qrcode("qr-reader-container");
-scannerRef.current = scanner;
-const config = {
-  fps: 10,
-  // qrbox: { width: 420, height: 420 },
-  aspectRatio: 1.0,
-  disableFlip: false,
-};
-        
-        console.log("Starting scanner with config:", config);
-        
-        await scanner.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText) => {
-            console.log("🎯 QR Code detected:", decodedText);
-            if (!isProcessing && !scannedData && scannerRef.current) {
-              // Stop scanner immediately when QR is detected
-              const currentScanner = scannerRef.current;
-              if (currentScanner) {
-                currentScanner.stop().then(() => {
-                  console.log("Scanner stopped after detection");
-                }).catch((err: Error) => {
-                  console.error("Error stopping scanner:", err);
-                });
-              }
-              processScan(decodedText);
-            }
-          },
-          (errorMessage) => {
-            // Only log serious errors
-            if (errorMessage && 
-                !errorMessage.includes("NotFoundException") && 
-                !errorMessage.includes("No MultiFormat Readers")) {
-              console.warn("Scanner warning:", errorMessage);
-            }
-          }
-        );
-        
-        console.log("✅ Scanner started successfully - Ready to scan!");
-        
-      } catch (err: any) {
-        console.error("Failed to start scanner:", err);
-        setError("Camera error: " + (err.message || "Could not start camera. Please check permissions."));
-      }
-    };
-    
     // Small delay to ensure DOM is ready
     const timer = setTimeout(() => {
-      startScanner();
-    }, 1000);
+      if (isMountedRef.current) {
+        startScanner();
+      }
+    }, 500);
     
     return () => {
       isMountedRef.current = false;
       clearTimeout(timer);
-      // Use async IIFE to handle cleanup
+      if (scanTimeoutRef.current) {
+        clearTimeout(scanTimeoutRef.current);
+      }
+      // Cleanup scanner
       (async () => {
         if (scannerRef.current) {
           const scanner = scannerRef.current;
@@ -1047,14 +1096,7 @@ const config = {
     setError(null);
     setScannedData(null);
     setIsProcessing(false);
-    
-    await stopAndClearScanner();
-    
-    setTimeout(() => {
-      if (isMountedRef.current) {
-        window.location.reload(); // Simple reload to restart scanner
-      }
-    }, 500);
+    await restartScanner();
   };
 
   return (
@@ -1087,7 +1129,7 @@ const config = {
         <div className="p-6">
           {/* Error Message */}
           {error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
+            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-xl animate-slideUp">
               <div className="flex items-start gap-3">
                 <div className="bg-red-100 p-2 rounded-full shrink-0">
                   <FaExclamationTriangle className="text-red-500 text-sm" />
@@ -1096,7 +1138,7 @@ const config = {
                   <p className="text-red-700 text-sm font-medium whitespace-pre-line">{error}</p>
                   <button 
                     onClick={retryScanner} 
-                    className="mt-2 text-red-600 text-xs font-semibold hover:text-red-700"
+                    className="mt-2 text-red-600 text-xs font-semibold hover:text-red-700 transition-colors"
                   >
                     Try Again →
                   </button>
@@ -1113,26 +1155,38 @@ const config = {
             ></div>
 
             {/* Scanner Frame Overlay */}
-            {!error && !scannedData && !isProcessing && (
+            {!error && !scannedData && !isProcessing && isScannerReady && (
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-0 bg-black/50">
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64">
+                    {/* Corner borders */}
                     <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-green-500 rounded-tl-2xl"></div>
                     <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-green-500 rounded-tr-2xl"></div>
                     <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-green-500 rounded-bl-2xl"></div>
                     <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-green-500 rounded-br-2xl"></div>
                   </div>
                 </div>
+                {/* Scanning line animation */}
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
               </div>
             )}
 
             {/* Processing Overlay */}
             {isProcessing && (
-              <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10 backdrop-blur-sm">
                 <div className="text-center">
                   <FaSpinner className="text-white text-4xl animate-spin mx-auto mb-3" />
                   <p className="text-white text-sm font-medium">Verifying passenger...</p>
+                </div>
+              </div>
+            )}
+
+            {/* Scanner Initializing */}
+            {!isScannerReady && !error && !scannedData && (
+              <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                <div className="text-center">
+                  <FaSpinner className="text-white text-3xl animate-spin mx-auto mb-2" />
+                  <p className="text-white text-sm">Initializing camera...</p>
                 </div>
               </div>
             )}
@@ -1151,20 +1205,25 @@ const config = {
                 </div>
               </div>
               {scannedData.passenger && (
-                <div className="mt-2 pt-2 border-t border-green-200">
+                <div className="mt-2 pt-2 border-t border-green-200 space-y-1">
                   <p className="text-sm text-green-700">
                     <span className="font-semibold">Passenger:</span> {scannedData.passenger.name || "N/A"}
                   </p>
                   <p className="text-sm text-green-700">
                     <span className="font-semibold">Booking ID:</span> {scannedData.booking_id || "N/A"}
                   </p>
+                  {scannedData.seat_number && (
+                    <p className="text-sm text-green-700">
+                      <span className="font-semibold">Seat:</span> {scannedData.seat_number}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
           )}
 
           {/* Instructions */}
-          {!error && !scannedData && !isProcessing && (
+          {!error && !scannedData && !isProcessing && isScannerReady && (
             <div className="mt-4 text-center">
               <p className="text-gray-500 text-xs">
                 Align the QR code within the green frame to scan
@@ -1190,9 +1249,28 @@ const config = {
           from { transform: translateY(20px); opacity: 0; }
           to { transform: translateY(0); opacity: 1; }
         }
-        .animate-scanLine { animation: scanLine 2s linear infinite; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        .animate-scanLine { 
+          animation: scanLine 2s linear infinite; 
+        }
+        .animate-spin { 
+          animation: spin 1s linear infinite; 
+        }
+        .animate-slideUp { 
+          animation: slideUp 0.3s ease-out; 
+        }
+        
+        /* Custom styles for QR scanner */
+        #qr-reader-container {
+          position: relative;
+        }
+        #qr-reader-container video {
+          width: 100%;
+          height: auto;
+          object-fit: cover;
+        }
+        #qr-reader-container region {
+          border: 2px solid #10b981 !important;
+        }
       `}</style>
     </div>
   );
