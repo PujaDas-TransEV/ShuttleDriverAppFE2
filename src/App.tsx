@@ -20,6 +20,8 @@ import Kyc from './components/users/pages/KYC';
 import TripManagemnet from './components/users/pages/TripManagement';
 import CreateTrip from './components/users/pages/CreateTrip';
 import CurrentTrips from './components/users/pages/CurrentTrips';
+import Analytics from './components/users/pages/Analytics';
+import LandingPage from './components/users/pages/LandingPage';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -42,8 +44,11 @@ const App: React.FC = () => {
         <IonRouterOutlet>
           <Switch>
             {/* Always show Signup/Login */}
-            <Route exact path="/">
+            <Route exact path="/signup">
               <Signup />
+            </Route>
+             <Route exact path="/">
+              <LandingPage />
             </Route>
 
             <Route exact path="/login">
@@ -93,6 +98,9 @@ const App: React.FC = () => {
             </Route>
             <Route exact path="/kyc-verification">
               <Kyc />
+            </Route>
+              <Route exact path="/analytics">
+              <Analytics />
             </Route>
 
             {/* Catch All */}
