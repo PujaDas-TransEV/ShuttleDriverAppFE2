@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
@@ -32,22 +33,64 @@ const NavbarSidebar: React.FC = () => {
 
   const [driverName, setDriverName] = useState<string>("Driver");
   const [driverImage, setDriverImage] = useState<string | null>(null);
+  const [driverImageUrl, setDriverImageUrl] = useState<string>('');
+  const [verificationStatus, setVerificationStatus] = useState<string>('pending');
+  const [averageRating, setAverageRating] = useState<number | null>(null);
 
   const token = localStorage.getItem("access_token");
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/driver-profile/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.full_name) setDriverName(data.full_name);
-        if (data.profile_picture_path) setDriverImage(data.profile_picture_path);
-      } catch (err) {
-        console.error("Failed to load profile:", err);
+  // ======================
+  // Get full profile image URL (same as ProfileSetup)
+  // ======================
+  const getFullImageUrl = (path: string) => {
+    if (!path) return '';
+    // Convert backslashes to forward slashes
+    const normalizedPath = path.replace(/\\/g, '/');
+    if (normalizedPath.startsWith('http')) return normalizedPath;
+    return `${API_BASE}/${normalizedPath}`;
+  };
+
+  // ======================
+  // Fetch profile from /driver-profile/me
+  // ======================
+  const fetchProfile = async () => {
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/driver-profile/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (!res.ok) throw new Error(`Failed to fetch profile: ${res.status}`);
+      
+      const data = await res.json();
+      console.log("Navbar fetched profile data:", data);
+      
+      // Set driver name
+      if (data.full_name) setDriverName(data.full_name);
+      
+      // Set verification status
+      if (data.verification_status) setVerificationStatus(data.verification_status);
+      
+      // Set rating
+      if (data.average_rating) setAverageRating(data.average_rating);
+      
+      // Set profile image URL from API (same logic as ProfileSetup)
+      if (data.profile_picture_path) {
+        const fullUrl = getFullImageUrl(data.profile_picture_path);
+        console.log("Navbar profile image URL:", fullUrl);
+        setDriverImageUrl(fullUrl);
+        setDriverImage(fullUrl);
+      } else {
+        setDriverImageUrl('');
+        setDriverImage(null);
       }
-    };
+    } catch (err) {
+      console.error("Failed to load profile in navbar:", err);
+    }
+  };
+
+  useEffect(() => {
     if (token) {
       fetchProfile();
     }
@@ -131,6 +174,24 @@ const NavbarSidebar: React.FC = () => {
     }
   };
 
+  // Get verification badge color
+  const getVerificationColor = () => {
+    switch(verificationStatus) {
+      case 'verified': return '#10B981';
+      case 'pending': return '#F59E0B';
+      default: return '#EF4444';
+    }
+  };
+
+  // Get verification text
+  const getVerificationText = () => {
+    switch(verificationStatus) {
+      case 'verified': return 'Verified Driver';
+      case 'pending': return 'Pending Verification';
+      default: return 'Unverified';
+    }
+  };
+
   return (
     <>
       {/* ======================== MODERN NAVBAR ======================== */}
@@ -175,24 +236,63 @@ const NavbarSidebar: React.FC = () => {
               width: '44px',
               height: '44px',
               borderRadius: '99px',
-              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+              background: `linear-gradient(135deg, ${getVerificationColor()}, ${getVerificationColor()}88)`,
               padding: '2px',
             }}>
-              <img
-                src={driverImage || "https://i.ibb.co/4pDNDk1/default-profile.png"}
-                alt="Profile"
-                style={{
+              {driverImageUrl ? (
+                <img
+                  src={driverImageUrl}
+                  alt="Profile"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '99px',
+                    objectFit: 'cover',
+                    border: '2px solid #0A0A0A'
+                  }}
+                  onError={(e) => {
+                    console.error("Navbar image failed to load:", driverImageUrl);
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const icon = document.createElement('div');
+                      icon.style.width = '100%';
+                      icon.style.height = '100%';
+                      icon.style.display = 'flex';
+                      icon.style.alignItems = 'center';
+                      icon.style.justifyContent = 'center';
+                      icon.style.backgroundColor = '#1F1F1F';
+                      icon.style.borderRadius = '99px';
+                      icon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>';
+                      parent.appendChild(icon);
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{
                   width: '100%',
                   height: '100%',
                   borderRadius: '99px',
-                  objectFit: 'cover',
-                  border: '2px solid #0A0A0A'
-                }}
-              />
+                  backgroundColor: '#1F1F1F',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <UserCircleIcon style={{ width: '24px', height: '24px', color: '#6B7280' }} />
+                </div>
+              )}
             </div>
             <div>
               <p style={{ fontWeight: 600, color: '#FFFFFF', fontSize: '15px', margin: 0 }}>{driverName}</p>
-              <p style={{ fontSize: '12px', color: '#9CA3AF', margin: 0 }}>Driver / Owner</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <div style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '99px',
+                  backgroundColor: getVerificationColor(),
+                }} />
+                <p style={{ fontSize: '10px', color: '#9CA3AF', margin: 0 }}>{getVerificationText()}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -275,27 +375,69 @@ const NavbarSidebar: React.FC = () => {
               width: '48px',
               height: '48px',
               borderRadius: '99px',
-              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+              background: `linear-gradient(135deg, ${getVerificationColor()}, ${getVerificationColor()}88)`,
               padding: '2px',
             }}>
-              <img
-                src={driverImage || "https://i.ibb.co/4pDNDk1/default-profile.png"}
-                alt="Profile Pic"
-                style={{
+              {driverImageUrl ? (
+                <img
+                  src={driverImageUrl}
+                  alt="Profile Pic"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '99px',
+                    objectFit: 'cover',
+                    border: '2px solid #0D0D0D'
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      const icon = document.createElement('div');
+                      icon.style.width = '100%';
+                      icon.style.height = '100%';
+                      icon.style.display = 'flex';
+                      icon.style.alignItems = 'center';
+                      icon.style.justifyContent = 'center';
+                      icon.style.backgroundColor = '#1F1F1F';
+                      icon.style.borderRadius = '99px';
+                      icon.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>';
+                      parent.appendChild(icon);
+                    }
+                  }}
+                />
+              ) : (
+                <div style={{
                   width: '100%',
                   height: '100%',
                   borderRadius: '99px',
-                  objectFit: 'cover',
-                  border: '2px solid #0D0D0D'
-                }}
-              />
+                  backgroundColor: '#1F1F1F',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <UserCircleIcon style={{ width: '24px', height: '24px', color: '#6B7280' }} />
+                </div>
+              )}
             </div>
             <div>
               <p style={{ fontWeight: 700, color: '#FFFFFF', fontSize: '16px', margin: 0 }}>{driverName}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                <ShieldCheckIcon style={{ width: '12px', height: '12px', color: '#10B981' }} />
-                <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>Verified Driver</p>
+                <ShieldCheckIcon style={{ width: '12px', height: '12px', color: getVerificationColor() }} />
+                <p style={{ fontSize: '11px', color: '#9CA3AF', margin: 0 }}>{getVerificationText()}</p>
               </div>
+              {averageRating && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {[1,2,3,4,5].map((star) => (
+                      <svg key={star} width="10" height="10" viewBox="0 0 24 24" fill={star <= Math.round(averageRating) ? '#F59E0B' : '#4B5563'} stroke="none">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '10px', color: '#6B7280', margin: 0 }}>{averageRating.toFixed(1)}</p>
+                </div>
+              )}
             </div>
           </div>
           <button

@@ -1280,8 +1280,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FaQrcode, FaCheckCircle, FaExclamationTriangle, FaTimes, FaSpinner } from 'react-icons/fa';
-import { Html5Qrcode } from 'html5-qrcode';
-
+// import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 interface QRScannerComponentProps {
   onClose: () => void;
   onScanSuccess?: (data: any) => void;
@@ -1430,78 +1430,159 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     }, 500);
   };
 
+  // const startScanner = async () => {
+  //   try {
+  //     // Clear any existing scanner
+  //     if (scannerRef.current) {
+  //       await stopAndClearScanner();
+  //     }
+
+  //     // Check if element exists
+  //     const element = document.getElementById("qr-reader-container");
+  //     if (!element) {
+  //       throw new Error("Scanner container not found");
+  //     }
+
+  //     // Create new scanner
+  //     const scanner = new Html5Qrcode("qr-reader-container");
+  //     scannerRef.current = scanner;
+      
+  //     const config = {
+  //       fps: 10,
+  //       qrbox: { width: 300, height: 300 },
+  //       aspectRatio: 1.0,
+  //       disableFlip: false,
+  //     };
+      
+  //     console.log("Starting scanner with config:", config);
+      
+  //     await scanner.start(
+  //       { facingMode: "environment" },
+  //       config,
+  //       (decodedText) => {
+  //         console.log("🎯 QR Code detected - Raw value:", decodedText);
+  //         console.log("🎯 QR Code type:", typeof decodedText);
+          
+  //         // Clear any existing timeout
+  //         if (scanTimeoutRef.current) {
+  //           clearTimeout(scanTimeoutRef.current);
+  //         }
+          
+  //         // Process scan immediately
+  //         if (!isProcessing && !scannedData && scannerRef.current) {
+  //           // Stop scanner immediately when QR is detected
+  //           const currentScanner = scannerRef.current;
+  //           if (currentScanner) {
+  //             currentScanner.stop().then(() => {
+  //               console.log("Scanner stopped after detection");
+  //             }).catch((err: Error) => {
+  //               console.error("Error stopping scanner:", err);
+  //             });
+  //           }
+  //           processScan(decodedText);
+  //         }
+  //       },
+  //       (errorMessage) => {
+  //         // Only log serious errors, ignore NotFoundException
+  //         if (errorMessage && 
+  //             !errorMessage.includes("NotFoundException") && 
+  //             !errorMessage.includes("No MultiFormat Readers") &&
+  //             !errorMessage.includes("Unable to query device")) {
+  //           console.warn("Scanner warning:", errorMessage);
+  //         }
+  //       }
+  //     );
+      
+  //     setIsScannerReady(true);
+  //     console.log("✅ Scanner started successfully - Ready to scan!");
+      
+  //   } catch (err: any) {
+  //     console.error("Failed to start scanner:", err);
+  //     setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
+  //     setIsScannerReady(false);
+  //   }
+  // };
   const startScanner = async () => {
-    try {
-      // Clear any existing scanner
-      if (scannerRef.current) {
-        await stopAndClearScanner();
-      }
-
-      // Check if element exists
-      const element = document.getElementById("qr-reader-container");
-      if (!element) {
-        throw new Error("Scanner container not found");
-      }
-
-      // Create new scanner
-      const scanner = new Html5Qrcode("qr-reader-container");
-      scannerRef.current = scanner;
-      
-      const config = {
-        fps: 10,
-        qrbox: { width: 300, height: 300 },
-        aspectRatio: 1.0,
-        disableFlip: false,
-      };
-      
-      console.log("Starting scanner with config:", config);
-      
-      await scanner.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-          console.log("🎯 QR Code detected - Raw value:", decodedText);
-          console.log("🎯 QR Code type:", typeof decodedText);
-          
-          // Clear any existing timeout
-          if (scanTimeoutRef.current) {
-            clearTimeout(scanTimeoutRef.current);
-          }
-          
-          // Process scan immediately
-          if (!isProcessing && !scannedData && scannerRef.current) {
-            // Stop scanner immediately when QR is detected
-            const currentScanner = scannerRef.current;
-            if (currentScanner) {
-              currentScanner.stop().then(() => {
-                console.log("Scanner stopped after detection");
-              }).catch((err: Error) => {
-                console.error("Error stopping scanner:", err);
-              });
-            }
-            processScan(decodedText);
-          }
-        },
-        (errorMessage) => {
-          // Only log serious errors, ignore NotFoundException
-          if (errorMessage && 
-              !errorMessage.includes("NotFoundException") && 
-              !errorMessage.includes("No MultiFormat Readers") &&
-              !errorMessage.includes("Unable to query device")) {
-            console.warn("Scanner warning:", errorMessage);
-          }
-        }
-      );
-      
-      setIsScannerReady(true);
-      console.log("✅ Scanner started successfully - Ready to scan!");
-      
-    } catch (err: any) {
-      console.error("Failed to start scanner:", err);
-      setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
-      setIsScannerReady(false);
+  try {
+    // Clear any existing scanner
+    if (scannerRef.current) {
+      await stopAndClearScanner();
     }
-  };
+
+    // Check if element exists
+    const element = document.getElementById("qr-reader-container");
+    if (!element) {
+      throw new Error("Scanner container not found");
+    }
+
+    // Create new scanner
+    const scanner = new Html5Qrcode("qr-reader-container", {
+      verbose: false,
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      useBarCodeDetectorIfSupported: true,
+    });
+    scannerRef.current = scanner;
+    
+    const config = {
+      fps: 12,
+      disableFlip: false,
+      videoConstraints: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+    };
+    
+    console.log("Starting scanner with config:", config);
+    
+    await scanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        console.log("🎯 QR Code detected - Raw value:", decodedText);
+        console.log("🎯 QR Code type:", typeof decodedText);
+        
+        // Clear any existing timeout
+        if (scanTimeoutRef.current) {
+          clearTimeout(scanTimeoutRef.current);
+        }
+        
+        // Process scan immediately
+        if (!isProcessing && !scannedData && scannerRef.current) {
+          // Stop scanner immediately when QR is detected
+          const currentScanner = scannerRef.current;
+          if (currentScanner) {
+            currentScanner.stop().then(() => {
+              console.log("Scanner stopped after detection");
+            }).catch((err: Error) => {
+              console.error("Error stopping scanner:", err);
+            });
+          }
+          processScan(decodedText);
+        }
+      },
+      (errorMessage) => {
+        // Only log serious errors, ignore NotFoundException
+        if (
+          errorMessage &&
+          !errorMessage.includes("NotFoundException") &&
+          !errorMessage.includes("No MultiFormat Readers") &&
+          !errorMessage.includes("Unable to query device")
+        ) {
+          console.warn("Scanner warning:", errorMessage);
+        }
+      }
+    );
+    
+    setIsScannerReady(true);
+    console.log("✅ Scanner started successfully - Ready to scan!");
+    
+  } catch (err: any) {
+    console.error("Failed to start scanner:", err);
+    setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
+    setIsScannerReady(false);
+  }
+};
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -1544,10 +1625,10 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
-      <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-9999 p-4">
+      <div className="bg-linear-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
+        <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-xl">
               <FaQrcode className="text-white text-2xl" />
@@ -1611,7 +1692,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
                   </div>
                 </div>
                 {/* Scanning line animation */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
               </div>
             )}
 
@@ -1638,7 +1719,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
 
           {/* Success Message */}
           {scannedData && !error && (
-            <div className="mt-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
+            <div className="mt-5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
               <div className="flex items-center gap-3 mb-3">
                 <div className="bg-green-100 p-2 rounded-full">
                   <FaCheckCircle className="text-green-600 text-xl" />

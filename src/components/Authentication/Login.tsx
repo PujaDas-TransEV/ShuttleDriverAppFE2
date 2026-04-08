@@ -1,181 +1,3 @@
-
-// import React, { useState } from 'react';
-// import {
-//   IonPage,
-//   IonContent,
-//   IonInput,
-//   IonLoading,
-//   IonToast,
-// } from '@ionic/react';
-// import { useHistory } from 'react-router-dom';
-
-// const API_BASE = "https://be.shuttleapp.transev.site";
-
-// const Login: React.FC = () => {
-//   const history = useHistory();
-
-//   const [email, setEmail] = useState('');
-//   const [otp, setOtp] = useState('');
-//   const [showOtpForm, setShowOtpForm] = useState(false);
-//   const [loading, setLoading] = useState(false);
-//   const [toastMsg, setToastMsg] = useState('');
-
-//   // ✅ Send OTP
-//   const handleEmailSubmit = async () => {
-//     if (!email.includes('@')) {
-//       setToastMsg('Enter a valid email');
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const res = await fetch(`${API_BASE}/auth/login/send-otp`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ email }),
-//       });
-
-//       if (!res.ok) throw new Error('Failed to send OTP');
-
-//       setShowOtpForm(true);
-//       setToastMsg(`OTP sent to ${email}`);
-//     } catch (error: any) {
-//       setToastMsg(error.message || 'Error sending OTP');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ✅ Verify OTP and save access token
-//   const handleOtpSubmit = async () => {
-//     if (!otp || otp.length !== 6) {
-//       setToastMsg('Enter a valid 6-digit OTP');
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       const res = await fetch(`${API_BASE}/auth/login`, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ email, otp }),
-//       });
-
-//       const data = await res.json();
-
-//       if (!res.ok) throw new Error(data.detail?.message || data.message || 'Invalid OTP');
-
-//       // ✅ Save access token in localStorage
-//       localStorage.setItem('access_token', data.access_token);
-
-//       setToastMsg('Login successful!');
-//       setEmail('');
-//       setOtp('');
-//       setShowOtpForm(false);
-
-//       // ✅ Redirect to dashboard or profile page
-//       setTimeout(() => {
-//         history.push('/dashboard'); // change this to your desired page
-//       }, 1000);
-
-//     } catch (error: any) {
-//       setToastMsg(error.message || 'Error verifying OTP');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <IonPage>
-//       <IonContent fullscreen className="bg-white">
-//         <div className="flex justify-center items-center min-h-screen px-4">
-//           <div className="w-full max-w-md p-8 rounded-2xl shadow-lg border border-gray-200 bg-white text-black">
-//             <h2 className="text-3xl font-bold mb-2 text-center">Login</h2>
-//             <p className="text-gray-500 mb-6 text-center">
-//               Enter your email to login
-//             </p>
-
-//             {/* Email Input */}
-//             {!showOtpForm && (
-//               <IonInput
-//                 type="email"
-//                 value={email}
-//                 placeholder="Enter your email"
-//                 onIonChange={(e: any) => setEmail(e.detail.value)}
-//                 className="w-full px-4 py-3 mb-4 rounded-lg bg-gray-100 text-black placeholder-gray-400"
-//               />
-//             )}
-
-//             {/* OTP Input */}
-//             {showOtpForm && (
-//               <>
-//                 <p className="text-gray-500 mb-2 text-sm">
-//                   Enter the OTP sent to your email
-//                 </p>
-//                 <IonInput
-//                   type="text"
-//                   maxlength={6}
-//                   value={otp}
-//                   placeholder="123456"
-//                   onIonChange={(e: any) => setOtp(e.detail.value)}
-//                   className="w-full px-4 py-3 mb-4 rounded-lg bg-gray-100 text-black placeholder-gray-400"
-//                 />
-//               </>
-//             )}
-
-//             {/* Button */}
-//             <div className="flex justify-center mt-6">
-//               {!showOtpForm ? (
-//                 <button
-//                   onClick={handleEmailSubmit}
-//                   disabled={loading}
-//                   className="w-64 h-12 text-white font-semibold rounded-full 
-//                              bg-black hover:bg-gray-900
-//                              transition duration-300 disabled:opacity-50"
-//                 >
-//                   Send OTP
-//                 </button>
-//               ) : (
-//                 <button
-//                   onClick={handleOtpSubmit}
-//                   disabled={loading}
-//                   className="w-64 h-12 text-white font-semibold rounded-full 
-//                              bg-black hover:bg-gray-900
-//                              transition duration-300 disabled:opacity-50"
-//                 >
-//                   Verify OTP
-//                 </button>
-//               )}
-//             </div>
-
-//             <div className="mt-6 text-center">
-//               <p className="text-gray-500 text-sm">
-//                 Don&apos;t have an account?{' '}
-//                 <span
-//                   className="text-black font-semibold cursor-pointer hover:underline"
-//                   onClick={() => history.push('/signup')}
-//                 >
-//                   Sign Up
-//                 </span>
-//               </p>
-//             </div>
-//           </div>
-//         </div>
-
-//         <IonLoading isOpen={loading} message="Processing..." />
-//         <IonToast
-//           isOpen={!!toastMsg}
-//           message={toastMsg}
-//           duration={2500}
-//           onDidDismiss={() => setToastMsg('')}
-//         />
-//       </IonContent>
-//     </IonPage>
-//   );
-// };
-
-// export default Login;
-
 import React, { useState, useEffect } from 'react';
 import {
   IonPage,
@@ -190,10 +12,17 @@ import {
   ArrowRightIcon,
   TruckIcon,
   ShieldCheckIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  ExclamationTriangleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
+
+interface ErrorDetail {
+  error?: string;
+  message?: string;
+}
 
 const Login: React.FC = () => {
   const history = useHistory();
@@ -207,6 +36,8 @@ const Login: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [resendTimer, setResendTimer] = useState(0);
   const [focusedOtpIndex, setFocusedOtpIndex] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
 
   useEffect(() => {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -233,9 +64,15 @@ const Login: React.FC = () => {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
+  const showErrorModal = (title: string, message: string) => {
+    setErrorMessage(`${title}: ${message}`);
+    setShowErrorPopup(true);
+    setTimeout(() => setShowErrorPopup(false), 5000);
+  };
+
   const handleEmailSubmit = async () => {
     if (!email.includes('@') || !email.includes('.')) {
-      showNotification('Please enter a valid email address', 'error');
+      showErrorModal('Invalid Email', 'Please enter a valid email address');
       return;
     }
 
@@ -248,20 +85,42 @@ const Login: React.FC = () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail?.message || data.message || 'Failed to send OTP');
+      
+      if (!res.ok) {
+        // Handle different error formats
+        let errorMsg = '';
+        if (data.detail?.message) {
+          errorMsg = data.detail.message;
+        } else if (data.detail?.error) {
+          errorMsg = data.detail.error;
+        } else if (typeof data.detail === 'string') {
+          errorMsg = data.detail;
+        } else if (data.message) {
+          errorMsg = data.message;
+        } else {
+          errorMsg = 'Failed to send OTP';
+        }
+        
+        showErrorModal('OTP Failed', errorMsg);
+        throw new Error(errorMsg);
+      }
 
       setShowOtpForm(true);
       setResendTimer(60);
       showNotification(`OTP sent successfully to ${email}`, 'success');
     } catch (error: any) {
-      showNotification(error.message || 'Error sending OTP', 'error');
+      console.error('Send OTP error:', error);
+      // Error already shown in modal
     } finally {
       setLoading(false);
     }
   };
 
   const handleResendOtp = async () => {
-    if (resendTimer > 0) return;
+    if (resendTimer > 0) {
+      showErrorModal('Please Wait', `Please wait ${resendTimer} seconds before requesting another OTP`);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -272,12 +131,46 @@ const Login: React.FC = () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail?.message || data.message || 'Failed to resend OTP');
+      
+      if (!res.ok) {
+        let errorMsg = '';
+        let waitTime = 0;
+        
+        // Check for specific error types
+        if (data.detail?.error === 'otp_resend_too_soon' || 
+            (data.detail?.message && data.detail.message.includes('wait'))) {
+          // Extract wait time from message if possible
+          const match = data.detail.message?.match(/(\d+)/);
+          if (match) {
+            waitTime = parseInt(match[1]);
+            errorMsg = `Please wait ${waitTime} seconds before requesting another OTP`;
+          } else {
+            errorMsg = 'OTP was sent recently. Please wait before requesting another one.';
+          }
+        } else if (data.detail?.message) {
+          errorMsg = data.detail.message;
+        } else if (data.detail?.error) {
+          errorMsg = data.detail.error;
+        } else if (typeof data.detail === 'string') {
+          errorMsg = data.detail;
+        } else {
+          errorMsg = 'Failed to resend OTP';
+        }
+        
+        showErrorModal('Resend Failed', errorMsg);
+        
+        // If server returns a wait time, use it
+        if (waitTime > 0 && waitTime > resendTimer) {
+          setResendTimer(waitTime);
+        }
+        
+        throw new Error(errorMsg);
+      }
 
       setResendTimer(60);
       showNotification(`OTP resent successfully to ${email}`, 'success');
     } catch (error: any) {
-      showNotification(error.message || 'Error resending OTP', 'error');
+      console.error('Resend OTP error:', error);
     } finally {
       setLoading(false);
     }
@@ -306,7 +199,7 @@ const Login: React.FC = () => {
   const handleOtpSubmit = async () => {
     const otpValue = otp.join('');
     if (otpValue.length !== 6) {
-      showNotification('Please enter complete 6-digit OTP', 'error');
+      showErrorModal('Invalid OTP', 'Please enter complete 6-digit OTP');
       return;
     }
 
@@ -320,7 +213,21 @@ const Login: React.FC = () => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.detail?.message || data.message || 'Invalid OTP');
+      if (!res.ok) {
+        let errorMsg = '';
+        if (data.detail?.message) {
+          errorMsg = data.detail.message;
+        } else if (data.detail?.error) {
+          errorMsg = data.detail.error;
+        } else if (typeof data.detail === 'string') {
+          errorMsg = data.detail;
+        } else {
+          errorMsg = 'Invalid OTP. Please try again.';
+        }
+        
+        showErrorModal('Login Failed', errorMsg);
+        throw new Error(errorMsg);
+      }
 
       localStorage.setItem('access_token', data.access_token);
       if (data.refresh_token) {
@@ -334,7 +241,7 @@ const Login: React.FC = () => {
       }, 1500);
 
     } catch (error: any) {
-      showNotification(error.message || 'Error verifying OTP', 'error');
+      console.error('OTP verification error:', error);
     } finally {
       setLoading(false);
     }
@@ -343,6 +250,7 @@ const Login: React.FC = () => {
   const handleBackToEmail = () => {
     setShowOtpForm(false);
     setOtp(['', '', '', '', '', '']);
+    setErrorMessage('');
   };
 
   const styles = getStyles(isDarkMode);
@@ -354,6 +262,27 @@ const Login: React.FC = () => {
           
           {/* Background Decoration */}
           <div style={styles.bgDecoration} />
+          
+          {/* Error Popup */}
+          {showErrorPopup && (
+            <div style={styles.errorPopup}>
+              <div style={styles.errorPopupContent}>
+                <div style={styles.errorIconContainer}>
+                  <ExclamationTriangleIcon style={styles.errorIcon} />
+                </div>
+                <div style={styles.errorTextContainer}>
+                  <h4 style={styles.errorTitle}>Error</h4>
+                  <p style={styles.errorMessage}>{errorMessage}</p>
+                </div>
+                <button 
+                  onClick={() => setShowErrorPopup(false)}
+                  style={styles.errorCloseBtn}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Main Card */}
           <div style={styles.card}>
@@ -440,20 +369,25 @@ const Login: React.FC = () => {
                   </button>
                   
                   <div style={styles.resendSection}>
-                    <p style={styles.resendText}>
-                      Didn't receive the code?
-                    </p>
-                    <button
-                      onClick={handleResendOtp}
-                      disabled={resendTimer > 0 || loading}
-                      style={{
-                        ...styles.resendButton,
-                        opacity: resendTimer > 0 ? 0.5 : 1,
-                        cursor: resendTimer > 0 ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
-                    </button>
+                    <div style={styles.resendCard}>
+                      <ClockIcon style={styles.clockIcon} />
+                      <div>
+                        <p style={styles.resendText}>
+                          Didn't receive the code?
+                        </p>
+                        <button
+                          onClick={handleResendOtp}
+                          disabled={resendTimer > 0 || loading}
+                          style={{
+                            ...styles.resendButton,
+                            opacity: resendTimer > 0 ? 0.5 : 1,
+                            cursor: resendTimer > 0 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -510,6 +444,66 @@ const getStyles = (isDark: boolean) => ({
     background: 'linear-gradient(135deg, #FFFFFF10, #FFFFFF05)',
     borderRadius: '0 0 50% 50%',
     filter: 'blur(60px)'
+  },
+  errorPopup: {
+    position: 'fixed' as const,
+    top: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 1000,
+    animation: 'slideDown 0.3s ease-out'
+  },
+  errorPopupContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    background: isDark ? '#1A1A1A' : '#FFFFFF',
+    border: `1px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`,
+    borderRadius: '16px',
+    padding: '16px 20px',
+    boxShadow: isDark 
+      ? '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+      : '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+    backdropFilter: 'blur(10px)',
+    minWidth: '300px',
+    maxWidth: '400px'
+  },
+  errorIconContainer: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '20px',
+    background: '#EF444420',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  errorIcon: {
+    width: '20px',
+    height: '20px',
+    color: '#EF4444'
+  },
+  errorTextContainer: {
+    flex: 1
+  },
+  errorTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#EF4444',
+    margin: 0,
+    marginBottom: '4px'
+  },
+  errorMessage: {
+    fontSize: '12px',
+    color: isDark ? '#D1D5DB' : '#4B5563',
+    margin: 0
+  },
+  errorCloseBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: isDark ? '#9CA3AF' : '#6B7280',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '4px'
   },
   card: {
     maxWidth: '480px',
@@ -630,21 +624,24 @@ const getStyles = (isDark: boolean) => ({
     width: '18px',
     height: '18px'
   },
+  // CHANGED: OTP box container - now forces single row
   otpBoxContainer: {
     display: 'flex',
-    gap: '12px',
+    gap: '8px',  // Reduced gap
     justifyContent: 'center',
-    flexWrap: 'wrap' as const
+    flexWrap: 'nowrap' as const,  // Force single row
+    width: '100%'
   },
+  // CHANGED: OTP box size - smaller
   otpBox: {
-    width: '60px',
-    height: '70px',
+    width: '48px',  // Smaller width
+    height: '52px', // Smaller height
     textAlign: 'center' as const,
-    fontSize: '24px',
+    fontSize: '20px', // Smaller font
     fontWeight: '600',
     background: isDark ? '#0A0A0A' : '#F9FAFB',
     border: `2px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`,
-    borderRadius: '16px',
+    borderRadius: '12px', // Smaller border radius
     color: isDark ? '#FFFFFF' : '#000000',
     outline: 'none',
     transition: 'all 0.2s ease',
@@ -681,14 +678,27 @@ const getStyles = (isDark: boolean) => ({
   resendSection: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    flexWrap: 'wrap' as const
+    justifyContent: 'center'
+  },
+  resendCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 20px',
+    background: isDark ? '#1A1A1A' : '#F9FAFB',
+    borderRadius: '16px',
+    border: `1px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`
+  },
+  clockIcon: {
+    width: '20px',
+    height: '20px',
+    color: isDark ? '#9CA3AF' : '#6B7280'
   },
   resendText: {
-    fontSize: '13px',
+    fontSize: '12px',
     color: isDark ? '#9CA3AF' : '#6B7280',
-    margin: 0
+    margin: 0,
+    marginBottom: '4px'
   },
   resendButton: {
     background: 'transparent',
@@ -698,7 +708,7 @@ const getStyles = (isDark: boolean) => ({
     fontWeight: '600',
     cursor: 'pointer',
     transition: 'all 0.2s',
-    textDecoration: 'underline'
+    padding: 0
   },
   footer: {
     textAlign: 'center' as const,
@@ -737,5 +747,21 @@ const getStyles = (isDark: boolean) => ({
     height: '18px'
   }
 });
+
+// Add CSS animation
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default Login;
