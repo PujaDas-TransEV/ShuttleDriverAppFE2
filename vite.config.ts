@@ -12,6 +12,18 @@ export default defineConfig({
     legacy(),
     tailwindcss(),
   ],
+  server: {
+    allowedHosts: ['fe.driver.shuttleapp.transev.site'],
+    cors: {
+      origin: ['https://fe.driver.shuttleapp.transev.site'],
+    },
+  },
+  preview: {
+    allowedHosts: ['fe.driver.shuttleapp.transev.site'],
+    cors: {
+      origin: ['https://fe.driver.shuttleapp.transev.site'],
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',
