@@ -1280,8 +1280,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FaQrcode, FaCheckCircle, FaExclamationTriangle, FaTimes, FaSpinner } from 'react-icons/fa';
-import { Html5Qrcode } from 'html5-qrcode';
-
+// import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 interface QRScannerComponentProps {
   onClose: () => void;
   onScanSuccess?: (data: any) => void;
@@ -1430,78 +1430,159 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
     }, 500);
   };
 
+  // const startScanner = async () => {
+  //   try {
+  //     // Clear any existing scanner
+  //     if (scannerRef.current) {
+  //       await stopAndClearScanner();
+  //     }
+
+  //     // Check if element exists
+  //     const element = document.getElementById("qr-reader-container");
+  //     if (!element) {
+  //       throw new Error("Scanner container not found");
+  //     }
+
+  //     // Create new scanner
+  //     const scanner = new Html5Qrcode("qr-reader-container");
+  //     scannerRef.current = scanner;
+      
+  //     const config = {
+  //       fps: 10,
+  //       qrbox: { width: 300, height: 300 },
+  //       aspectRatio: 1.0,
+  //       disableFlip: false,
+  //     };
+      
+  //     console.log("Starting scanner with config:", config);
+      
+  //     await scanner.start(
+  //       { facingMode: "environment" },
+  //       config,
+  //       (decodedText) => {
+  //         console.log("🎯 QR Code detected - Raw value:", decodedText);
+  //         console.log("🎯 QR Code type:", typeof decodedText);
+          
+  //         // Clear any existing timeout
+  //         if (scanTimeoutRef.current) {
+  //           clearTimeout(scanTimeoutRef.current);
+  //         }
+          
+  //         // Process scan immediately
+  //         if (!isProcessing && !scannedData && scannerRef.current) {
+  //           // Stop scanner immediately when QR is detected
+  //           const currentScanner = scannerRef.current;
+  //           if (currentScanner) {
+  //             currentScanner.stop().then(() => {
+  //               console.log("Scanner stopped after detection");
+  //             }).catch((err: Error) => {
+  //               console.error("Error stopping scanner:", err);
+  //             });
+  //           }
+  //           processScan(decodedText);
+  //         }
+  //       },
+  //       (errorMessage) => {
+  //         // Only log serious errors, ignore NotFoundException
+  //         if (errorMessage && 
+  //             !errorMessage.includes("NotFoundException") && 
+  //             !errorMessage.includes("No MultiFormat Readers") &&
+  //             !errorMessage.includes("Unable to query device")) {
+  //           console.warn("Scanner warning:", errorMessage);
+  //         }
+  //       }
+  //     );
+      
+  //     setIsScannerReady(true);
+  //     console.log("✅ Scanner started successfully - Ready to scan!");
+      
+  //   } catch (err: any) {
+  //     console.error("Failed to start scanner:", err);
+  //     setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
+  //     setIsScannerReady(false);
+  //   }
+  // };
   const startScanner = async () => {
-    try {
-      // Clear any existing scanner
-      if (scannerRef.current) {
-        await stopAndClearScanner();
-      }
-
-      // Check if element exists
-      const element = document.getElementById("qr-reader-container");
-      if (!element) {
-        throw new Error("Scanner container not found");
-      }
-
-      // Create new scanner
-      const scanner = new Html5Qrcode("qr-reader-container");
-      scannerRef.current = scanner;
-      
-      const config = {
-        fps: 10,
-        qrbox: { width: 300, height: 300 },
-        aspectRatio: 1.0,
-        disableFlip: false,
-      };
-      
-      console.log("Starting scanner with config:", config);
-      
-      await scanner.start(
-        { facingMode: "environment" },
-        config,
-        (decodedText) => {
-          console.log("🎯 QR Code detected - Raw value:", decodedText);
-          console.log("🎯 QR Code type:", typeof decodedText);
-          
-          // Clear any existing timeout
-          if (scanTimeoutRef.current) {
-            clearTimeout(scanTimeoutRef.current);
-          }
-          
-          // Process scan immediately
-          if (!isProcessing && !scannedData && scannerRef.current) {
-            // Stop scanner immediately when QR is detected
-            const currentScanner = scannerRef.current;
-            if (currentScanner) {
-              currentScanner.stop().then(() => {
-                console.log("Scanner stopped after detection");
-              }).catch((err: Error) => {
-                console.error("Error stopping scanner:", err);
-              });
-            }
-            processScan(decodedText);
-          }
-        },
-        (errorMessage) => {
-          // Only log serious errors, ignore NotFoundException
-          if (errorMessage && 
-              !errorMessage.includes("NotFoundException") && 
-              !errorMessage.includes("No MultiFormat Readers") &&
-              !errorMessage.includes("Unable to query device")) {
-            console.warn("Scanner warning:", errorMessage);
-          }
-        }
-      );
-      
-      setIsScannerReady(true);
-      console.log("✅ Scanner started successfully - Ready to scan!");
-      
-    } catch (err: any) {
-      console.error("Failed to start scanner:", err);
-      setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
-      setIsScannerReady(false);
+  try {
+    // Clear any existing scanner
+    if (scannerRef.current) {
+      await stopAndClearScanner();
     }
-  };
+
+    // Check if element exists
+    const element = document.getElementById("qr-reader-container");
+    if (!element) {
+      throw new Error("Scanner container not found");
+    }
+
+    // Create new scanner
+    const scanner = new Html5Qrcode("qr-reader-container", {
+      verbose: false,
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      useBarCodeDetectorIfSupported: true,
+    });
+    scannerRef.current = scanner;
+    
+    const config = {
+      fps: 12,
+      disableFlip: false,
+      videoConstraints: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+    };
+    
+    console.log("Starting scanner with config:", config);
+    
+    await scanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        console.log("🎯 QR Code detected - Raw value:", decodedText);
+        console.log("🎯 QR Code type:", typeof decodedText);
+        
+        // Clear any existing timeout
+        if (scanTimeoutRef.current) {
+          clearTimeout(scanTimeoutRef.current);
+        }
+        
+        // Process scan immediately
+        if (!isProcessing && !scannedData && scannerRef.current) {
+          // Stop scanner immediately when QR is detected
+          const currentScanner = scannerRef.current;
+          if (currentScanner) {
+            currentScanner.stop().then(() => {
+              console.log("Scanner stopped after detection");
+            }).catch((err: Error) => {
+              console.error("Error stopping scanner:", err);
+            });
+          }
+          processScan(decodedText);
+        }
+      },
+      (errorMessage) => {
+        // Only log serious errors, ignore NotFoundException
+        if (
+          errorMessage &&
+          !errorMessage.includes("NotFoundException") &&
+          !errorMessage.includes("No MultiFormat Readers") &&
+          !errorMessage.includes("Unable to query device")
+        ) {
+          console.warn("Scanner warning:", errorMessage);
+        }
+      }
+    );
+    
+    setIsScannerReady(true);
+    console.log("✅ Scanner started successfully - Ready to scan!");
+    
+  } catch (err: any) {
+    console.error("Failed to start scanner:", err);
+    setError("Camera error: " + (err.message || "Could not start camera. Please check permissions and ensure you're using HTTPS."));
+    setIsScannerReady(false);
+  }
+};
 
   useEffect(() => {
     isMountedRef.current = true;
