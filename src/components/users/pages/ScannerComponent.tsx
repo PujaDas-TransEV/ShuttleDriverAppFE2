@@ -1544,10 +1544,10 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
-      <div className="bg-gradient-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
+    <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center z-9999 p-4">
+      <div className="bg-linear-to-br from-white to-gray-50 rounded-3xl shadow-2xl w-full max-w-md mx-auto overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
+        <div className="bg-linear-to-r from-blue-600 to-blue-500 px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="bg-white/20 p-2 rounded-xl">
               <FaQrcode className="text-white text-2xl" />
@@ -1611,7 +1611,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
                   </div>
                 </div>
                 {/* Scanning line animation */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-transparent via-green-500 to-transparent animate-scanLine"></div>
               </div>
             )}
 
@@ -1638,7 +1638,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({ onClose, onScan
 
           {/* Success Message */}
           {scannedData && !error && (
-            <div className="mt-5 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
+            <div className="mt-5 bg-linear-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-5 animate-slideUp">
               <div className="flex items-center gap-3 mb-3">
                 <div className="bg-green-100 p-2 rounded-full">
                   <FaCheckCircle className="text-green-600 text-xl" />

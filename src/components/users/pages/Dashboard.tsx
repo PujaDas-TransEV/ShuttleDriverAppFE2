@@ -698,7 +698,7 @@ const Dashboard: React.FC = () => {
 
           {/* Verification Warning */}
           {!driverVerified && (
-            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center gap-3">
+            <div className="mb-6 p-4 rounded-2xl bg-linear-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 flex items-center gap-3">
               <ExclamationTriangleIcon className="w-6 h-6 text-amber-500" />
               <div>
                 <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
@@ -717,7 +717,7 @@ const Dashboard: React.FC = () => {
               <div
                 key={i}
                 onClick={() => history.push(card.path)}
-                className={`group relative overflow-hidden rounded-2xl bg-gradient-to-r ${card.color} p-4 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                className={`group relative overflow-hidden rounded-2xl bg-linear-to-r ${card.color} p-4 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl`}
               >
                 <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10"></div>
                 <div className="relative z-10">
@@ -821,12 +821,12 @@ const Dashboard: React.FC = () => {
 <div className={`mb-6 rounded-2xl overflow-hidden shadow-2xl border ${isDark ? 'border-gray-700' : 'border-gray-200'} relative group`} style={{ height: '360px', width: '100%' }}>
   
   {/* Gradient Overlay for better visibility */}
-  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-[5] pointer-events-none rounded-2xl"></div>
+  <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent z-5 pointer-events-none rounded-2xl"></div>
   
   {/* Top Status Bar with Gradient */}
   <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none">
     <div className="flex justify-between items-center">
-      <div className="bg-gradient-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/20">
+      <div className="bg-linear-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/20">
         <div className="flex items-center gap-2">
           <div className="relative">
             <div className="w-2 h-2 bg-white rounded-full animate-ping absolute"></div>
@@ -867,7 +867,7 @@ const Dashboard: React.FC = () => {
         <Popup>
           <div className="text-center min-w-[180px]">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+              <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
                 <span className="text-xl">🚗</span>
               </div>
               <div>
@@ -989,7 +989,7 @@ const Dashboard: React.FC = () => {
         {/* Earnings Modal - Fixed positioning */}
         {showEarningsModal && (
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-9999 p-4" 
             onClick={() => setShowEarningsModal(false)}
             style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           >
