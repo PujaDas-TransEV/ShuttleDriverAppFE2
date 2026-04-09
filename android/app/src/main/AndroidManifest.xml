@@ -33,9 +33,79 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        
+        <!-- Google Maps API Key (if using Google Maps) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}" />
+            
     </application>
 
-    <!-- Permissions -->
-
+    <!-- ==================== -->
+    <!-- Location Permissions -->
+    <!-- ==================== -->
+    <!-- Fine location permission (GPS) - Required for accurate tracking -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    
+    <!-- Coarse location permission (Network/WiFi) - Fallback when GPS is not available -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Background location permission - Required for tracking when app is in background -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    
+    <!-- ==================== -->
+    <!-- Camera Permissions -->
+    <!-- ==================== -->
+    <!-- Camera permission - Required for document upload and profile picture -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    
+    <!-- ==================== -->
+    <!-- Notification Permissions -->
+    <!-- ==================== -->
+    <!-- Notification permission for Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- ==================== -->
+    <!-- Network Permissions -->
+    <!-- ==================== -->
+    <!-- Internet permission - Required for API calls -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Network state permission - Check internet connectivity -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
+    <!-- ==================== -->
+    <!-- Additional Permissions -->
+    <!-- ==================== -->
+    <!-- Wi-Fi state permission - For better location accuracy -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    
+    <!-- Foreground service permission - For location tracking in background (Android 10+) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    
+    <!-- Wake lock permission - Keep device awake during trips -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Vibration permission - For notifications -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Read external storage - For document uploads -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- Write external storage - For saving downloaded reports -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="28" />
+    
+    <!-- ==================== -->
+    <!-- Hardware Features -->
+    <!-- ==================== -->
+    <!-- Declare that the app requires GPS hardware -->
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    
+    <!-- Declare that the app requires camera hardware -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    
+    <!-- Declare that the app requires autofocus for camera -->
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
 </manifest>

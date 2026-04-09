@@ -15,7 +15,6 @@ import {
   CalendarIcon,
   CheckCircleIcon,
   XCircleIcon,
-
   MapPinIcon,
   CreditCardIcon,
 } from "@heroicons/react/24/outline";
@@ -34,6 +33,7 @@ const BookingDetails: React.FC = () => {
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [vehicleData, setVehicleData] = useState<any>(null);
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
+  const [sortedTrips, setSortedTrips] = useState<any[]>([]);
 
   // Fetch all routes
   useEffect(() => {
@@ -71,7 +71,7 @@ const BookingDetails: React.FC = () => {
     fetchVehicle();
   }, [token]);
 
-  // Fetch trips for selected route
+  // Fetch trips for selected route and sort them - MOST RECENT FIRST (all trips - past and future)
   useEffect(() => {
     if (!selectedRouteId) return;
     const fetchRouteDetails = async () => {
@@ -83,15 +83,25 @@ const BookingDetails: React.FC = () => {
         );
         const data = await res.json();
         setRouteDetails(data);
+        
+        // Sort all trips by planned_start date - MOST RECENT FIRST (descending order)
+        // This includes both past and future trips
         if (data.trips && data.trips.length > 0) {
-          setSelectedTripId(data.trips[0].trip_id);
+          const sorted = [...data.trips].sort((a, b) => 
+            new Date(b.planned_start).getTime() - new Date(a.planned_start).getTime()
+          );
+          setSortedTrips(sorted);
+          // Select the most recent trip (first item in sorted array)
+          setSelectedTripId(sorted[0].trip_id);
         } else {
+          setSortedTrips([]);
           setSelectedTripId("");
           setBookingDetails(null);
         }
       } catch (err) {
         console.error("Error fetching route details:", err);
         setRouteDetails(null);
+        setSortedTrips([]);
       } finally {
         setLoading(false);
       }
@@ -99,7 +109,7 @@ const BookingDetails: React.FC = () => {
     fetchRouteDetails();
   }, [selectedRouteId, token]);
 
-  // Fetch booking details **after vehicle is loaded**
+  // Fetch booking details whenever selectedTripId changes (including older trips)
   useEffect(() => {
     if (!selectedTripId || !vehicleData) return;
     const fetchBookingDetails = async () => {
@@ -146,6 +156,67 @@ const BookingDetails: React.FC = () => {
     }
   };
 
+  // Helper function to check if trip is upcoming or past
+  const isUpcomingTrip = (plannedStart: string) => {
+    return new Date(plannedStart) > new Date();
+  };
+
+  // Check if trip is today
+  const isTodayTrip = (plannedStart: string) => {
+    const today = new Date();
+    const tripDate = new Date(plannedStart);
+    return tripDate.toDateString() === today.toDateString();
+  };
+
+  // Format date for display in dropdown
+  const formatTripDisplay = (trip: any) => {
+    const startDate = new Date(trip.planned_start);
+    const endDate = new Date(trip.planned_end);
+    const isUpcoming = isUpcomingTrip(trip.planned_start);
+    const isToday = isTodayTrip(trip.planned_start);
+    
+    const formattedDate = startDate.toLocaleDateString("en-IN", { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    
+    const startTime = startDate.toLocaleTimeString("en-IN", { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    const endTime = endDate.toLocaleTimeString("en-IN", { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    let icon = "🔵"; // Default for past trips
+    let statusText = "";
+    
+    if (isToday) {
+      icon = "🟡"; // Yellow for today
+      statusText = " (Today)";
+    } else if (isUpcoming) {
+      icon = "🟢"; // Green for upcoming
+      statusText = " (Upcoming)";
+    } else {
+      icon = "🔵"; // Blue for past
+      statusText = " (Completed)";
+    }
+    
+    return {
+      display: `${formattedDate} | ${startTime} - ${endTime}`,
+      icon,
+      statusText,
+      isUpcoming,
+      isToday,
+      date: startDate
+    };
+  };
+
   return (
     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       <NavbarSidebar />
@@ -163,7 +234,7 @@ const BookingDetails: React.FC = () => {
               <BusIcon className="w-4 h-4" />
               <span>Booking Management</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 dark:text-yellow-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
               Booking Details
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -172,149 +243,137 @@ const BookingDetails: React.FC = () => {
           </div>
 
           {/* Filters Card */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
-  <div className="p-6 space-y-4">
-    {/* Route Selector */}
-    <div>
-      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-        Select Route
-      </label>
-      <div className="relative">
-        <select
-          value={selectedRouteId}
-          onChange={(e) => setSelectedRouteId(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            borderRadius: '12px',
-            border: '2px solid',
-            borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
-            backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff',
-            color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
-            transition: 'all 0.2s ease',
-            appearance: 'none',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontFamily: 'inherit',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = '#3b82f6';
-            e.currentTarget.style.outline = 'none';
-            e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          {routes.map((r) => (
-            <option 
-              key={r.route_id} 
-              value={r.route_id}
-              style={{
-                backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
-                padding: '8px',
-              }}
-            >
-              {r.name}
-            </option>
-          ))}
-        </select>
-        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-          <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-        </div>
-      </div>
-    </div>
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div className="p-6 space-y-4">
+              {/* Route Selector */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Select Route
+                </label>
+                <div className="relative">
+                  <select
+                    value={selectedRouteId}
+                    onChange={(e) => setSelectedRouteId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      border: '2px solid',
+                      borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+                      backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff',
+                      color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
+                      transition: 'all 0.2s ease',
+                      appearance: 'none',
+                      cursor: 'pointer',
+                      fontSize: '1rem',
+                      fontFamily: 'inherit',
+                    }}
+                    onFocus={(e) => {
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.outline = 'none';
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.currentTarget.style.borderColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    {routes.map((r) => (
+                      <option 
+                        key={r.route_id} 
+                        value={r.route_id}
+                        style={{
+                          backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                          color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
+                          padding: '8px',
+                        }}
+                      >
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                    <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                  </div>
+                </div>
+              </div>
 
-    {/* Trip Selector */}
-    {routeDetails?.trips?.length > 0 ? (
-  <div>
-    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-      Select Trip
-    </label>
-    <div className="relative">
-      <select
-        value={selectedTripId}
-        onChange={(e) => setSelectedTripId(e.target.value)}
-        style={{
-          width: '100%',
-          padding: '12px 16px',
-          borderRadius: '12px',
-          border: '2px solid',
-          borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
-          backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff',
-          color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
-          transition: 'all 0.2s ease',
-          appearance: 'none',
-          cursor: 'pointer',
-          fontSize: '1rem',
-          fontFamily: 'inherit',
-        }}
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = '#3b82f6';
-          e.currentTarget.style.outline = 'none';
-          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
-          e.currentTarget.style.boxShadow = 'none';
-        }}
-      >
-        {/* Sort trips by planned_start date - most recent first */}
-        {[...routeDetails.trips]
-          .sort((a, b) => new Date(b.planned_start).getTime() - new Date(a.planned_start).getTime())
-          .map((t: any) => (
-            <option 
-              key={t.trip_id} 
-              value={t.trip_id}
-              style={{
-                backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
-                color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
-                padding: '8px',
-              }}
-            >
-              {formatDateTime(t.planned_start)} - {formatDateTime(t.planned_end)}
-            </option>
-          ))}
-      </select>
-      <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
-        <ChevronDownIcon className="w-5 h-5 text-gray-400" />
-      </div>
-    </div>
-  </div>
-) : (
-  <div className="text-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
-    <p className="text-yellow-800 dark:text-yellow-400 font-medium">
-      ⚠️ No trips created for this route. Please create a trip first.
-    </p>
-  </div>
-)}
-</div>
-</div>
+              {/* Trip Selector - Shows ALL trips (past and future) with Most Recent First */}
+              {sortedTrips.length > 0 ? (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Select Trip
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedTripId}
+                      onChange={(e) => setSelectedTripId(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: '2px solid',
+                        borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+                        backgroundColor: document.documentElement.classList.contains('dark') ? '#111827' : '#ffffff',
+                        color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
+                        transition: 'all 0.2s ease',
+                        appearance: 'none',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        fontFamily: 'inherit',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                        e.currentTarget.style.outline = 'none';
+                        e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      {sortedTrips.map((t: any) => {
+                        const tripInfo = formatTripDisplay(t);
+                        return (
+                          <option 
+                            key={t.trip_id} 
+                            value={t.trip_id}
+                            style={{
+                              backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                              color: document.documentElement.classList.contains('dark') ? '#ffffff' : '#1f2937',
+                              padding: '8px',
+                              fontWeight: tripInfo.isToday ? 'bold' : 'normal',
+                            }}
+                          >
+                            {tripInfo.icon} {tripInfo.display}{tripInfo.statusText}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+                      <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      🟢 Upcoming | 🟡 Today | 🔵 Completed
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      📅 Showing all trips (most recent first)
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-yellow-800 dark:text-yellow-400 font-medium">
+                    ⚠️ No trips created for this route. Please create a trip first.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
 
-<style>{`
-  /* Ensure select options are visible in dark mode */
-  select option {
-    background-color: #ffffff;
-    color: #1f2937;
-  }
-  
-  .dark select option {
-    background-color: #1f2937 !important;
-    color: #ffffff !important;
-  }
-  
-  /* For the selected value */
-  select {
-    color-scheme: light;
-  }
-  
-  .dark select {
-    color-scheme: dark;
-  }
-`}</style>
-          {/* Booking Details */}
+          {/* Booking Details - Shows for selected trip (any date - past or future) */}
           {bookingDetails && (
             <>
               {/* Trip Summary Card */}
@@ -395,36 +454,55 @@ const BookingDetails: React.FC = () => {
                 </div>
               </div>
 
-              {/* Seat Availability Alert */}
-              <div className={`mb-6 rounded-xl p-4 ${
-                seatsLeft <= 0
-                  ? "bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700"
-                  : seatsLeft <= 5
-                  ? "bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700"
-                  : "bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700"
-              }`}>
-                <div className="flex items-center gap-3">
-                  <UsersIcon className={`w-6 h-6 ${
-                    seatsLeft <= 0 ? "text-red-600" : seatsLeft <= 5 ? "text-orange-600" : "text-green-600"
-                  }`} />
-                  <div>
-                    <p className={`font-semibold ${
-                      seatsLeft <= 0 ? "text-red-800 dark:text-red-300" : 
-                      seatsLeft <= 5 ? "text-orange-800 dark:text-orange-300" : 
-                      "text-green-800 dark:text-green-300"
-                    }`}>
-                      {seatsLeft <= 0
-                        ? "🚫 No seats available — Booking Closed"
-                        : `🎟️ Seats Available: ${seatsLeft} remaining out of ${availableSeats}`}
-                    </p>
-                    {seatsLeft <= 5 && seatsLeft > 0 && (
-                      <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
-                        ⚠️ Only {seatsLeft} seats left! Limited availability.
+              {/* Seat Availability Alert - Only show for upcoming/today trips */}
+              {isUpcomingTrip(bookingDetails.planned_start) && (
+                <div className={`mb-6 rounded-xl p-4 ${
+                  seatsLeft <= 0
+                    ? "bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700"
+                    : seatsLeft <= 5
+                    ? "bg-orange-100 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700"
+                    : "bg-green-100 dark:bg-green-900/30 border border-green-300 dark:border-green-700"
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <UsersIcon className={`w-6 h-6 ${
+                      seatsLeft <= 0 ? "text-red-600" : seatsLeft <= 5 ? "text-orange-600" : "text-green-600"
+                    }`} />
+                    <div>
+                      <p className={`font-semibold ${
+                        seatsLeft <= 0 ? "text-red-800 dark:text-red-300" : 
+                        seatsLeft <= 5 ? "text-orange-800 dark:text-orange-300" : 
+                        "text-green-800 dark:text-green-300"
+                      }`}>
+                        {seatsLeft <= 0
+                          ? "🚫 No seats available — Booking Closed"
+                          : `🎟️ Seats Available: ${seatsLeft} remaining out of ${availableSeats}`}
                       </p>
-                    )}
+                      {seatsLeft <= 5 && seatsLeft > 0 && (
+                        <p className="text-xs text-orange-700 dark:text-orange-400 mt-1">
+                          ⚠️ Only {seatsLeft} seats left! Limited availability.
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Past Trip Note */}
+              {!isUpcomingTrip(bookingDetails.planned_start) && (
+                <div className="mb-6 rounded-xl p-4 bg-gray-100 dark:bg-gray-800/50 border border-gray-300 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <ClockIcon className="w-6 h-6 text-gray-500" />
+                    <div>
+                      <p className="font-semibold text-gray-700 dark:text-gray-300">
+                        📅 Past Trip
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        This trip has already been completed. Showing historical booking data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Bookings List */}
               <div className="space-y-4">
@@ -615,6 +693,25 @@ const BookingDetails: React.FC = () => {
         .dark .bg-grid-white\\/[0.02] {
           background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
                             linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+        
+        /* Select option styles */
+        select option {
+          background-color: #ffffff;
+          color: #1f2937;
+        }
+        
+        .dark select option {
+          background-color: #1f2937 !important;
+          color: #ffffff !important;
+        }
+        
+        select {
+          color-scheme: light;
+        }
+        
+        .dark select {
+          color-scheme: dark;
         }
       `}</style>
     </IonPage>
