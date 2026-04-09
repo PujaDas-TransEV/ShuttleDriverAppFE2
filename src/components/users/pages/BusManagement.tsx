@@ -246,7 +246,7 @@ const DriverVehicle: React.FC = () => {
         <div className="max-w-5xl mx-auto p-6 space-y-6 mt-10">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-600 bg-clip-text text-transparent">
               Vehicle Details
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -352,7 +352,7 @@ const DriverVehicle: React.FC = () => {
                           {getStatusIcon(vehicleData.verification_status)}
                         </div>
                         <div className="flex-1">
-                          <p className="text-sm font-semibold">Verification Status</p>
+                          <p className="text-sm font-semibold dark:text-gray-400">Verification Status</p>
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${getStatusStyle(vehicleData.verification_status)}`}>
                             {getStatusIcon(vehicleData.verification_status)}
                             {getDisplayStatus(vehicleData.verification_status)}
@@ -361,7 +361,7 @@ const DriverVehicle: React.FC = () => {
                         {vehicleData.verification_requested_at && (
                           <div className="text-right">
                             <p className="text-xs text-gray-500 dark:text-gray-400">Submitted On</p>
-                            <p className="text-sm font-medium">{formatDate(vehicleData.verification_requested_at)}</p>
+                            <p className="text-sm font-medium dark:text-gray-200">{formatDate(vehicleData.verification_requested_at)}</p>
                           </div>
                         )}
                       </div>
@@ -381,8 +381,8 @@ const DriverVehicle: React.FC = () => {
                             "text-green-600"
                           }`} />
                           <div className="flex-1">
-                            <p className="text-sm font-semibold">Registration Valid Till</p>
-                            <p className="text-lg font-bold">{formatDateOnly(vehicleData.registration_valid_till)}</p>
+                            <p className="text-sm font-semibold dark:text-gray-300">Registration Valid Till</p>
+                            <p className="text-lg font-bold dark:text-gray-200">{formatDateOnly(vehicleData.registration_valid_till)}</p>
                           </div>
                           {isRegistrationExpired() && (
                             <span className="px-3 py-1 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-300 rounded-full text-xs font-semibold">
