@@ -234,7 +234,7 @@ const BookingDetails: React.FC = () => {
               <BusIcon className="w-4 h-4" />
               <span>Booking Management</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-700 bg-clip-text text-transparent dark:text-gray-500">
               Booking Details
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">

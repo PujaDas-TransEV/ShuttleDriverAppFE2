@@ -360,47 +360,45 @@ const CreateTripPage = () => {
         <div className="relative z-10 pt-20 pb-8 px-4 md:px-6 max-w-5xl mx-auto">
           <IonLoading isOpen={loading} message="Creating your trip..." />
 
-          {/* Error/Success Popup */}
-          {showErrorPopup && (
-            <div className="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 animate-slideDown">
-              <div className={`flex items-center gap-3 p-4 rounded-xl shadow-2xl backdrop-blur-sm min-w-[300px] max-w-[450px]
-                ${isSuccess 
-                  ? 'bg-green-50 dark:bg-green-900/95 border border-green-200 dark:border-green-700' 
-                  : 'bg-red-50 dark:bg-red-900/95 border border-red-200 dark:border-red-700'}`}
-              >
-                <div className={`p-2 rounded-full ${
-                  isSuccess
-                    ? 'bg-green-100 dark:bg-green-800'
-                    : 'bg-red-100 dark:bg-red-800'
-                }`}>
-                  {isSuccess ? (
-                    <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className={`text-sm font-semibold ${
-                    isSuccess
-                      ? 'text-green-800 dark:text-green-200'
-                      : 'text-red-800 dark:text-red-200'
-                  }`}>
-                    {isSuccess ? 'Success' : 'Error'}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                    {errorMessage.replace('Success: ', '').replace('✅ ', '')}
-                  </p>
-                </div>
-                <button 
-                  onClick={() => setShowErrorPopup(false)}
-                  className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition"
-                >
-                  <XMarkIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-            </div>
-          )}
-
+{showErrorPopup && (
+  <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm animate-fadeIn">
+    <div className={`flex items-center gap-3 p-5 rounded-2xl shadow-2xl min-w-[320px] max-w-[400px] mx-4
+      ${isSuccess 
+        ? 'bg-green-50 dark:bg-green-900/95 border-2 border-green-200 dark:border-green-700' 
+        : 'bg-red-50 dark:bg-red-900/95 border-2 border-red-200 dark:border-red-700'}`}
+    >
+      <div className={`p-2.5 rounded-full shrink-0 ${
+        isSuccess
+          ? 'bg-green-100 dark:bg-green-800'
+          : 'bg-red-100 dark:bg-red-800'
+      }`}>
+        {isSuccess ? (
+          <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+        ) : (
+          <ExclamationTriangleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+        )}
+      </div>
+      <div className="flex-1">
+        <p className={`text-base font-bold ${
+          isSuccess
+            ? 'text-green-800 dark:text-green-200'
+            : 'text-red-800 dark:text-red-200'
+        }`}>
+          {isSuccess ? 'Success!' : 'Error!'}
+        </p>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
+          {errorMessage.replace('Success: ', '').replace('✅ ', '')}
+        </p>
+      </div>
+      <button 
+        onClick={() => setShowErrorPopup(false)}
+        className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition shrink-0"
+      >
+        <XMarkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+      </button>
+    </div>
+  </div>
+)}
           {/* Header Section */}
           <div className="mb-8 text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-sm font-medium mb-4">
