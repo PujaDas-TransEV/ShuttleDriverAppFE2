@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { IonPage, IonContent, IonLoading, IonToast } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from "./Navbar";
 import { 
   FiCamera, 
@@ -22,6 +23,17 @@ import QRScannerComponent from "../pages/ScannerComponent";
 
 const API_BASE = "https://be.shuttleapp.transev.site";
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 interface StopWithTime {
   stop_id: string;
   name: string;
@@ -39,7 +51,7 @@ interface StopWithTime {
 }
 
 const CurrentTrip: React.FC = () => {
-  const token = localStorage.getItem("access_token") || "";
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [trip, setTrip] = useState<any>(null);
   const [route, setRoute] = useState<any>(null);
@@ -79,11 +91,29 @@ const CurrentTrip: React.FC = () => {
   const [cancelCharCount, setCancelCharCount] = useState(0);
   const [emergencyCharCount, setEmergencyCharCount] = useState(0);
 
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        showPopup('error', 'Authentication Error', 'Please login again', 'Session expired');
+      }
+    };
+    loadToken();
+  }, []);
+
   useEffect(() => {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     setIsDarkMode(prefersDark);
-    fetchTripDetails();
   }, []);
+
+  // Fetch trip details when token is available
+  useEffect(() => {
+    if (token) {
+      fetchTripDetails();
+    }
+  }, [token]);
 
   // Show beautiful popup
   const showPopup = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, details?: string) => {
@@ -171,6 +201,8 @@ const CurrentTrip: React.FC = () => {
   };
 
   const fetchTripDetails = async () => {
+    if (!token) return;
+    
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/driver/trips/current`, {
@@ -262,7 +294,7 @@ const CurrentTrip: React.FC = () => {
   };
 
   const handleStopAction = async (stop_id: string, mode: "arrive" | "depart") => {
-    if (!trip) return;
+    if (!trip || !token) return;
     
     try {
       const position = await getCurrentLocation();
@@ -299,7 +331,7 @@ const CurrentTrip: React.FC = () => {
   };
 
   const handleStartTrip = async (tripId: string) => {
-    if (!tripId) {
+    if (!tripId || !token) {
       showPopup('error', 'Error', 'No trip ID found', 'Please refresh and try again');
       return;
     }
@@ -340,7 +372,7 @@ const CurrentTrip: React.FC = () => {
   };
 
   const handleEndTrip = async (tripId: string) => {
-    if (!tripId) return;
+    if (!tripId || !token) return;
     setLoading(true);
     try {
       const position = await getCurrentLocation();
@@ -379,7 +411,7 @@ const CurrentTrip: React.FC = () => {
   };
 
   const submitEmergencyStop = async () => {
-    if (!emergencyTripId || !emergencyReason) {
+    if (!emergencyTripId || !emergencyReason || !token) {
       showPopup('error', 'Error', 'Please provide a reason for emergency stop!');
       return;
     }
@@ -436,7 +468,7 @@ const CurrentTrip: React.FC = () => {
   };
 
   const submitCancelTrip = async () => {
-    if (!cancelTripId || !cancelReason) {
+    if (!cancelTripId || !cancelReason || !token) {
       showPopup('error', 'Error', 'Please provide a reason for cancellation');
       return;
     }
@@ -543,6 +575,23 @@ const CurrentTrip: React.FC = () => {
   };
 
   const styles = getStyles(isDarkMode, trip);
+
+  // Show loading while getting token
+  if (token === null && loading) {
+    return (
+      <IonPage>
+        <NavbarSidebar />
+        <IonContent style={{ '--background': isDarkMode ? '#000000' : '#F8F9FA' } as any}>
+          <div style={styles.container}>
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
+              <p style={{ color: isDarkMode ? '#9CA3AF' : '#6B7280', marginTop: '16px' }}>Loading session...</p>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>
@@ -989,7 +1038,7 @@ const CurrentTrip: React.FC = () => {
           )}
           
           {/* QR Scanner Modal */}
-          {showScanner && trip && (
+          {showScanner && trip && token && (
             <QRScannerComponent
               onClose={() => setShowScanner(false)}
               onScanSuccess={handleScanSuccess}

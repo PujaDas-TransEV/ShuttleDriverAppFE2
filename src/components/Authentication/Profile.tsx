@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { IonPage, IonContent, IonLoading, IonToast } from '@ionic/react';
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from '../users/pages/Navbar';
 import { 
   UserCircleIcon, 
@@ -15,6 +16,17 @@ import {
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 // ================================
 // ProfileSetup page
@@ -39,8 +51,30 @@ const ProfileSetup: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
+  const [token, setToken] = useState<string | null>(null);
 
-  const token = localStorage.getItem('access_token');
+  // ======================
+  // Get token on component mount
+  // ======================
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        setToastMsg("Session expired. Please login again.");
+      }
+    };
+    loadToken();
+  }, []);
+
+  // ======================
+  // Fetch profile when token is available
+  // ======================
+  useEffect(() => {
+    if (token) {
+      fetchProfile();
+    }
+  }, [token]);
 
   // ======================
   // Get full profile image URL
@@ -110,10 +144,6 @@ const ProfileSetup: React.FC = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
 
   // ======================
   // Handle form changes
@@ -290,6 +320,22 @@ const ProfileSetup: React.FC = () => {
   const verificationBadge = getVerificationBadge();
   const displayImage = imagePreview || profileImageUrl;
 
+  // Show loading while getting token
+  if (token === null) {
+    return (
+      <IonPage>
+        <IonContent className="flex items-center justify-center">
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading session...</p>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
   return (
     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       <NavbarSidebar />
@@ -304,7 +350,7 @@ const ProfileSetup: React.FC = () => {
               <UserCircleIcon className="w-4 h-4" />
               <span>Driver Profile</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-700 bg-clip-text text-transparent">
               {isCreated ? "My Profile" : "Complete Your Profile"}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
@@ -470,7 +516,7 @@ const ProfileSetup: React.FC = () => {
                         placeholder="Enter your full name"
                         className="w-full pl-11 pr-4 py-3 rounded-xl 
                                    border border-gray-300 dark:border-gray-600 
-                                   bg-white dark:bg-gray-800 
+                                   bg-white dark:bg-gray-400 
                                    text-gray-900 dark:text-gray-100 
                                    placeholder-gray-400 dark:placeholder-gray-500
                                    focus:outline-none
@@ -496,7 +542,7 @@ const ProfileSetup: React.FC = () => {
                         placeholder="Enter your phone number"
                         className="w-full pl-11 pr-4 py-3 rounded-xl 
                                    border border-gray-300 dark:border-gray-600 
-                                   bg-white dark:bg-gray-800 
+                                   bg-white dark:bg-gray-400 
                                    text-gray-900 dark:text-white 
                                    placeholder-gray-400 dark:placeholder-gray-400
                                    focus:outline-none

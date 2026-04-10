@@ -1,6 +1,7 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect } from 'react';
 import { IonPage, IonContent, IonLoading, IonToast } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
+import { Preferences } from '@capacitor/preferences';
 import NavbarSidebar from '../pages/Navbar';
 import { 
   TruckIcon, 
@@ -17,8 +18,20 @@ import {
 
 const API_BASE = "https://be.shuttleapp.transev.site";
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 const VehicleRegistration: React.FC = () => {
   const history = useHistory();
+  const [token, setToken] = useState<string | null>(null);
 
   const [vehicle, setVehicle] = useState({
     hasAc: '',
@@ -27,7 +40,7 @@ const VehicleRegistration: React.FC = () => {
     vehicle_model: '',
     vehicle_name: '',
     registration_number: '',
-    registration_valid_till: '', // ✅ ADDED
+    registration_valid_till: '',
   });
 
   const [rearPhoto, setRearPhoto] = useState<File | null>(null);
@@ -40,7 +53,18 @@ const VehicleRegistration: React.FC = () => {
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const token = localStorage.getItem("access_token");
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        setServerError("Session expired. Please login again.");
+        showToast("Session expired. Please login again.", 'error');
+      }
+    };
+    loadToken();
+  }, []);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -95,7 +119,6 @@ const VehicleRegistration: React.FC = () => {
       return;
     }
 
-    // ✅ Validate registration valid till
     if (!vehicle.registration_valid_till) {
       setServerError("Registration valid till date is required.");
       showToast("Please select registration valid till date.", 'error');
@@ -112,7 +135,7 @@ const VehicleRegistration: React.FC = () => {
       formData.append("vehicle_model", vehicle.vehicle_model);
       formData.append("vehicle_name", vehicle.vehicle_name);
       formData.append("registration_number", vehicle.registration_number);
-      formData.append("registration_valid_till", vehicle.registration_valid_till); // ✅ ADDED
+      formData.append("registration_valid_till", vehicle.registration_valid_till);
       if (rearPhoto) formData.append("rear_photo", rearPhoto);
       if (rcFile) formData.append("rc_file", rcFile);
 
@@ -166,11 +189,11 @@ const VehicleRegistration: React.FC = () => {
           
           {/* Header Section */}
           <div className="text-center mb-8 animate-fadeInUp">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 dark:bg-white/10 text-black dark:text-white text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 dark:bg-white/10 text-black dark:text-blue-600 text-sm font-medium mb-4">
               <TruckIcon className="w-4 h-4" />
               <span>Vehicle Registration</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-800 dark:from-white dark:to-gray-700 bg-clip-text text-transparent mb-3">
+            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-800 dark:from-white dark:to-gray-800 bg-clip-text text-transparent mb-3">
               Register Your Vehicle
             </h1>
             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
@@ -206,17 +229,22 @@ const VehicleRegistration: React.FC = () => {
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Registration Number <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="registration_number"
-                  value={vehicle.registration_number}
-                  onChange={handleChange}
-                  placeholder="e.g., WB 01 AB 1234"
-                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                           bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                           focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                           transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
+                <div className="relative">
+                  <TruckIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    name="registration_number"
+                    value={vehicle.registration_number}
+                    onChange={handleChange}
+                    placeholder="e.g., WB 01 AB 1234"
+                    className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
+                             bg-white dark:bg-white-700 
+                             text-gray-900 dark:text-white
+                             placeholder:text-gray-400 dark:placeholder:text-gray-500
+                             focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                             transition-all duration-200"
+                  />
+                </div>
               </div>
 
               {/* Two Column Layout */}
@@ -231,13 +259,14 @@ const VehicleRegistration: React.FC = () => {
                     value={vehicle.hasAc}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                             bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                             bg-white dark:bg-white-800 
+                             text-gray-900 dark:text-white
                              focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
                              transition-all duration-200 cursor-pointer"
                   >
-                    <option value="" disabled>Select type</option>
-                    <option value="true">❄️ AC Bus</option>
-                    <option value="false">☀️ Non-AC Bus</option>
+                    <option value="" disabled className="text-gray-500 dark:text-gray-400">Select type</option>
+                    <option value="true" className="text-gray-900 dark:text-black">❄️ AC Bus</option>
+                    <option value="false" className="text-gray-900 dark:text-black">☀️ Non-AC Bus</option>
                   </select>
                 </div>
 
@@ -251,7 +280,7 @@ const VehicleRegistration: React.FC = () => {
                       type="button"
                       onClick={() => handleSeatCountChange(false)}
                       className="w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                               bg-white dark:bg-gray-800 text-white-900 dark:text-white
                                hover:border-black dark:hover:border-white hover:bg-gray-50 dark:hover:bg-gray-700
                                transition-all duration-200 flex items-center justify-center
                                disabled:opacity-50 disabled:cursor-not-allowed"
@@ -269,7 +298,8 @@ const VehicleRegistration: React.FC = () => {
                         onChange={handleChange}
                         min="0"
                         className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                                 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-center text-lg font-semibold
+                                 bg-white dark:bg-white-800 
+                                 text-gray-900 dark:text-white text-center text-lg font-semibold
                                  focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
                                  transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
@@ -307,9 +337,11 @@ const VehicleRegistration: React.FC = () => {
                       onChange={handleChange}
                       placeholder="e.g., City Shuttle"
                       className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                               bg-white dark:bg-white-800 
+                               text-gray-900 dark:text-white
+                               placeholder:text-gray-400 dark:placeholder:text-gray-500
                                focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                               transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                               transition-all duration-200"
                     />
                   </div>
                 </div>
@@ -325,9 +357,11 @@ const VehicleRegistration: React.FC = () => {
                     onChange={handleChange}
                     placeholder="e.g., 2024, BharatBenz"
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                             bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                             bg-white dark:bg-white-800 
+                             text-gray-900 dark:text-white
+                             placeholder:text-gray-400 dark:placeholder:text-gray-500
                              focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                             transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                             transition-all duration-200"
                   />
                 </div>
               </div>
@@ -345,9 +379,11 @@ const VehicleRegistration: React.FC = () => {
                     onChange={handleChange}
                     placeholder="e.g., White, Red, Blue"
                     className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                             bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                             bg-white dark:bg-white-800 
+                             text-gray-900 dark:text-white
+                             placeholder:text-gray-400 dark:placeholder:text-gray-500
                              focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                             transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                             transition-all duration-200"
                   />
                   {vehicle.color && (
                     <div 
@@ -358,30 +394,35 @@ const VehicleRegistration: React.FC = () => {
                 </div>
               </div>
 
-              {/* ✅ Registration Valid Till Date - NEW FIELD */}
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Registration Valid Till <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="date"
-                    name="registration_valid_till"
-                    value={vehicle.registration_valid_till}
-                    onChange={handleChange}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                             bg-white dark:bg-gray-800 text-gray-900 dark:text-white
-                             focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                             transition-all duration-200"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Select the date when your vehicle registration expires
-                </p>
-              </div>
+             {/* Registration Valid Till Date */}
+<div className="space-y-2">
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+    Registration Valid Till <span className="text-red-500">*</span>
+  </label>
+  <div className="relative">
+    <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+    <input
+      type="date"
+      name="registration_valid_till"
+      value={vehicle.registration_valid_till}
+      onChange={handleChange}
+      min={new Date().toISOString().split('T')[0]}
+      className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-600 
+               bg-white dark:bg-white 
+               text-gray-900 dark:text-gray-900
+               focus:border-black dark:focus:border-gray-400 focus:ring-2 focus:ring-black/20 dark:focus:ring-gray-400/20
+               transition-all duration-200
+               dark:scheme-light"
+      required
+      style={{
+        colorScheme: 'light'
+      }}
+    />
+  </div>
+  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+    Select the date when your vehicle registration expires
+  </p>
+</div>
 
               {/* Document Uploads */}
               <div className="space-y-4 pt-4">
@@ -457,7 +498,7 @@ const VehicleRegistration: React.FC = () => {
                         onChange={(e) => handleFileChange(e, "rc")} 
                         className="hidden" 
                       />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
                         {rcPreview ? "File selected: " + (rcFile?.name || "Document") : "Click to upload RC document"}
                       </span>
                       {rcPreview && (
@@ -488,9 +529,9 @@ const VehicleRegistration: React.FC = () => {
                 <span>Required fields</span>
               </div>
 
-              {/* Action Buttons */}
+               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                <button
+                 <button
                   onClick={submitVehicle}
                   style={{
                     height: '56px',
@@ -581,6 +622,56 @@ const VehicleRegistration: React.FC = () => {
         
         input[type="number"] {
           -moz-appearance: textfield;
+        }
+        
+        /* Dark mode styles for date picker */
+        .dark input[type="date"] {
+          color-scheme: dark;
+          color: #ffffff !important;
+          background-color: #1f2937 !important;
+        }
+        
+        .dark input[type="date"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          cursor: pointer;
+        }
+        
+        .dark input[type="date"]::-webkit-datetime-edit {
+          color: #ffffff !important;
+        }
+        
+        .dark input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+          color: #ffffff !important;
+        }
+        
+        .dark input[type="date"]::-webkit-datetime-edit-text {
+          color: #9ca3af !important;
+        }
+        
+        .dark input[type="date"]::-webkit-datetime-edit-month-field,
+        .dark input[type="date"]::-webkit-datetime-edit-day-field,
+        .dark input[type="date"]::-webkit-datetime-edit-year-field,
+        .dark input[type="date"]::-webkit-datetime-edit-hour-field,
+        .dark input[type="date"]::-webkit-datetime-edit-minute-field {
+          color: #ffffff !important;
+        }
+        
+        /* Dark mode styles for select options */
+        .dark select option {
+          background-color: #1f2937 !important;
+          color: #ffffff !important;
+        }
+        
+        /* Dark mode styles for input placeholders */
+        .dark input::placeholder {
+          color: #9ca3af !important;
+        }
+        
+        /* Dark mode styles for disabled inputs */
+        .dark input:disabled,
+        .dark select:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
     </IonPage>

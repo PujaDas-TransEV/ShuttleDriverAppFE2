@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { IonPage, IonContent, IonLoading } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import NavbarSidebar from "./Navbar";
@@ -34,6 +34,17 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 interface Stop {
   stop_id: string;
   name: string;
@@ -53,7 +64,7 @@ interface Route {
 }
 
 const CreateTripPage = () => {
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
   const history = useHistory();
 
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -71,6 +82,25 @@ const CreateTripPage = () => {
     planned_end_at: "",
     stop_times: {} as Record<string, string>,
   });
+
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        showErrorModal("Authentication Error", "Please login again", false);
+      }
+    };
+    loadToken();
+  }, []);
+
+  // Fetch routes when token is available
+  useEffect(() => {
+    if (token) {
+      fetchRoutes();
+    }
+  }, [token]);
 
   // Show error modal
   const showErrorModal = (title: string, message: string, success: boolean = false) => {
@@ -135,10 +165,6 @@ const CreateTripPage = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchRoutes();
-  }, []);
 
   // Calculate estimated arrival times
   const calculateArrivalTimes = (startDateTime: string, stops: Stop[]): Stop[] => {
@@ -250,6 +276,11 @@ const CreateTripPage = () => {
   };
 
   const handleCreateTrip = async () => {
+    if (!token) {
+      showErrorModal("Authentication Error", "Please login again", false);
+      return;
+    }
+
     if (!newTrip.route_name || !newTrip.planned_start_at || !newTrip.planned_end_at) {
       showErrorModal("Incomplete Data", "Please select route and set start/end times", false);
       return;
@@ -349,6 +380,23 @@ const CreateTripPage = () => {
   const formattedEndTime = newTrip.planned_start_at && selectedRoute && selectedRoute.stops
     ? getFormattedEndTime(newTrip.planned_start_at, selectedRoute.stops)
     : "";
+
+  // Show loading while getting token
+  if (token === null && loading) {
+    return (
+      <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
+        <NavbarSidebar />
+        <IonContent className="relative">
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 dark:border-emerald-400 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">Loading session...</p>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">

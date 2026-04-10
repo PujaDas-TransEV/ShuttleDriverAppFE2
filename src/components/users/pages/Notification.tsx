@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { IonPage, IonContent, IonRefresher, IonRefresherContent, IonToast, IonLoading } from '@ionic/react';
+import { Preferences } from '@capacitor/preferences';
 import NavbarSidebar from '../../users/pages/Navbar';
 import { 
   CheckCircleIcon, 
@@ -7,8 +8,9 @@ import {
   XCircleIcon,
   InboxIcon,
   EyeIcon,
-  ArrowPathIcon  // Changed from RefreshIcon to ArrowPathIcon
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+
 interface NotificationData {
   booking_id?: string;
   scheduled_trip_id?: string;
@@ -54,6 +56,17 @@ interface WsMarkReadMessage {
 const API_BASE = "https://be.shuttleapp.transev.site";
 const WS_BASE = "wss://be.shuttleapp.transev.site";
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -68,8 +81,8 @@ const NotificationsPage: React.FC = () => {
   
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<number | null>(null);
-
-  const getAccessToken = () => localStorage.getItem('access_token');
+  const reconnectTimeoutRef = useRef<number | null>(null);
+  const processedNotificationIds = useRef<Set<string>>(new Set()); // Track processed notifications
 
   useEffect(() => {
     // Dark mode listener
@@ -88,7 +101,7 @@ const NotificationsPage: React.FC = () => {
   // Fetch notifications from API
   const fetchNotifications = async (isLoadMore = false) => {
     try {
-      const token = getAccessToken();
+      const token = await getToken();
       if (!token) return;
 
       const currentOffset = isLoadMore ? offset : 0;
@@ -123,7 +136,7 @@ const NotificationsPage: React.FC = () => {
   // Fetch unread count
   const fetchUnreadCount = async () => {
     try {
-      const token = getAccessToken();
+      const token = await getToken();
       if (!token) return;
 
       const response = await fetch(`${API_BASE}/notifications/unread-count`, {
@@ -145,7 +158,7 @@ const NotificationsPage: React.FC = () => {
   // Mark notification as read
   const markAsRead = async (id: string) => {
     try {
-      const token = getAccessToken();
+      const token = await getToken();
       if (!token) return;
 
       // Try via WebSocket first
@@ -181,7 +194,7 @@ const NotificationsPage: React.FC = () => {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      const token = getAccessToken();
+      const token = await getToken();
       if (!token) return;
 
       const response = await fetch(`${API_BASE}/notifications/read-all`, {
@@ -216,9 +229,7 @@ const NotificationsPage: React.FC = () => {
         case 'driver_trips':
         case 'driver_payouts':
         case 'current_trip':
-          // Trigger appropriate page refreshes
           console.log(`Refresh required for: ${key}`);
-          // You can emit events or refresh specific data stores here
           break;
         default:
           console.log(`Unknown refresh key: ${key}`);
@@ -228,86 +239,111 @@ const NotificationsPage: React.FC = () => {
 
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
-    const token = getAccessToken();
-    if (!token) return;
+    const connect = async () => {
+      const token = await getToken();
+      if (!token) return;
 
-    const wsUrl = `${WS_BASE}/notifications/ws?token=${encodeURIComponent(token)}`;
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      // Start ping interval (send ping every 30 seconds)
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      pingIntervalRef.current = window.setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) {
-          const pingMessage: WsPingMessage = { type: 'ping' };
-          ws.send(JSON.stringify(pingMessage));
-        }
-      }, 30000);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        
-        // Handle ping from server
-        if (payload?.type === 'ping') {
-          const pongMessage: WsPongMessage = { type: 'pong' };
-          ws.send(JSON.stringify(pongMessage));
-          return;
-        }
-        
-        // Handle authentication success
-        if (payload?.message === 'WebSocket authenticated successfully.') {
-          console.log('WebSocket authenticated');
-          return;
-        }
-        
-        // Handle mark-read acknowledgment
-        if (payload?.message === 'Notification marked as read.') {
-          console.log('Mark read acknowledged:', payload.notification_id);
-          return;
-        }
-        
-        // Handle new notification
-        if (payload?.id && payload?.title) {
-          const newNotification: Notification = {
-            id: payload.id,
-            title: payload.title,
-            message: payload.message,
-            data: payload.data || {},
-            read_at: null,
-            created_at: payload.created_at || new Date().toISOString()
-          };
-          
-          setNotifications(prev => [newNotification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-          
-          // Show toast for new notification
-          showNotification(`New: ${payload.title}`, 'info');
-          
-          // Handle refresh actions based on data.refresh
-          if (payload.data?.refresh && Array.isArray(payload.data.refresh)) {
-            handleRefreshActions(payload.data.refresh);
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+      // Clear any pending reconnect
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
+
+      const wsUrl = `${WS_BASE}/notifications/ws?token=${encodeURIComponent(token)}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        // Start ping interval (send ping every 30 seconds)
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = window.setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            const pingMessage: WsPingMessage = { type: 'ping' };
+            ws.send(JSON.stringify(pingMessage));
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data);
+          
+          // Handle ping from server
+          if (payload?.type === 'ping') {
+            const pongMessage: WsPongMessage = { type: 'pong' };
+            ws.send(JSON.stringify(pongMessage));
+            return;
+          }
+          
+          // Handle authentication success
+          if (payload?.message === 'WebSocket authenticated successfully.') {
+            console.log('WebSocket authenticated');
+            return;
+          }
+          
+          // Handle mark-read acknowledgment
+          if (payload?.message === 'Notification marked as read.') {
+            console.log('Mark read acknowledged:', payload.notification_id);
+            return;
+          }
+          
+          // Handle new notification - CHECK FOR DUPLICATES
+          if (payload?.id && payload?.title) {
+            // Prevent duplicate notifications using Set
+            if (!processedNotificationIds.current.has(payload.id)) {
+              // Add to processed set
+              processedNotificationIds.current.add(payload.id);
+              
+              // Optional: Clean up old IDs from set (keep last 100)
+              if (processedNotificationIds.current.size > 100) {
+                const idsArray = Array.from(processedNotificationIds.current);
+                const idsToKeep = idsArray.slice(-50);
+                processedNotificationIds.current = new Set(idsToKeep);
+              }
+              
+              const newNotification: Notification = {
+                id: payload.id,
+                title: payload.title,
+                message: payload.message,
+                data: payload.data || {},
+                read_at: null,
+                created_at: payload.created_at || new Date().toISOString()
+              };
+              
+              setNotifications(prev => [newNotification, ...prev]);
+              setUnreadCount(prev => prev + 1);
+              
+              // Show toast for new notification
+              showNotification(`New: ${payload.title}`, 'info');
+              
+              // Handle refresh actions based on data.refresh
+              if (payload.data?.refresh && Array.isArray(payload.data.refresh)) {
+                handleRefreshActions(payload.data.refresh);
+              }
+            } else {
+              console.log('Duplicate notification ignored:', payload.id);
+            }
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket disconnected, reconnecting in 5 seconds...');
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          connectWebSocket();
+        }, 5000);
+      };
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected, reconnecting in 5 seconds...');
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      setTimeout(() => {
-        connectWebSocket();
-      }, 5000);
-    };
+    connect();
   }, []);
 
   // Load initial data
@@ -362,6 +398,9 @@ const NotificationsPage: React.FC = () => {
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -373,7 +412,7 @@ const NotificationsPage: React.FC = () => {
       <IonContent className={`${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div style={styles.container}>
           
-          {/* Header - Now with more top padding */}
+          {/* Header */}
           <div style={styles.header}>
             <div style={styles.headerLeft}>
               <div style={styles.iconContainer}>
@@ -463,7 +502,7 @@ const NotificationsPage: React.FC = () => {
               {hasMore && notifications.length >= limit && (
                 <div style={styles.loadMoreContainer}>
                   <button onClick={loadMore} style={styles.loadMoreButton}>
-                    < ArrowPathIcon  style={styles.loadMoreIcon} />
+                    <ArrowPathIcon style={styles.loadMoreIcon} />
                     <span>Load more</span>
                   </button>
                 </div>
@@ -488,7 +527,7 @@ const NotificationsPage: React.FC = () => {
 const getStyles = (isDark: boolean) => ({
   container: {
     minHeight: '100vh',
-    padding: '80px 24px 24px 24px', // Increased top padding from 24px to 80px
+    padding: '80px 24px 24px 24px',
     background: isDark ? '#0A0A0A' : '#F8F9FA'
   },
   header: {

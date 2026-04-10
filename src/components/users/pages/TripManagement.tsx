@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { IonPage, IonContent, IonLoading } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import NavbarSidebar from "./Navbar";
@@ -7,6 +8,17 @@ import { useHistory } from "react-router-dom";
 import L from 'leaflet';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 let DefaultIcon = L.icon({
   iconUrl: icon,
@@ -20,7 +32,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const API_BASE = "https://be.shuttleapp.transev.site";
 
 const DriverTripManagement = () => {
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
   const history = useHistory();
 
   const [routes, setRoutes] = useState<any[]>([]);
@@ -37,8 +49,19 @@ const DriverTripManagement = () => {
   const [emergencyTripId, setEmergencyTripId] = useState<string | null>(null);
   const [emergencyReason, setEmergencyReason] = useState("");
 
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+    };
+    loadToken();
+  }, []);
+
+  // Fetch profile when token is available
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token) return;
       try {
         const res = await fetch(`${API_BASE}/driver-profile/me`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -53,7 +76,9 @@ const DriverTripManagement = () => {
     fetchProfile();
   }, [token]);
 
+  // Fetch routes when token is available
   useEffect(() => {
+    if (!token) return;
     fetch(`${API_BASE}/driver/routes`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -63,7 +88,7 @@ const DriverTripManagement = () => {
   }, [token]);
 
   const fetchRouteDetails = async (routeId: string) => {
-    if (!routeId) {
+    if (!routeId || !token) {
       setRouteDetails(null);
       setTrips([]);
       return;
@@ -90,6 +115,7 @@ const DriverTripManagement = () => {
   };
 
   const fetchTripDetails = async () => {
+    if (!token) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/driver/trips/current`, {
@@ -128,11 +154,13 @@ const DriverTripManagement = () => {
   };
 
   useEffect(() => {
-    fetchTripDetails();
-  }, []);
+    if (token) {
+      fetchTripDetails();
+    }
+  }, [token]);
 
   const handleStartTrip = async (tripId: string) => {
-    if (!tripId) return;
+    if (!tripId || !token) return;
     setLoading(true);
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
@@ -169,7 +197,7 @@ const DriverTripManagement = () => {
   };
 
   const handleEndTrip = async (tripId: string) => {
-    if (!tripId) return;
+    if (!tripId || !token) return;
     setLoading(true);
     try {
       const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
@@ -219,7 +247,7 @@ const DriverTripManagement = () => {
   };
 
   const submitEmergencyStop = async () => {
-    if (!emergencyTripId || !emergencyReason) {
+    if (!emergencyTripId || !emergencyReason || !token) {
       alert("Please provide a reason for emergency stop!");
       return;
     }
@@ -292,7 +320,7 @@ const DriverTripManagement = () => {
   };
 
   const submitCancelTrip = async () => {
-    if (!cancelTripId || !cancelReason) return;
+    if (!cancelTripId || !cancelReason || !token) return;
     setLoading(true);
     try {
       const formData = new FormData();
@@ -553,21 +581,13 @@ const DriverTripManagement = () => {
                     </p>
                   </div>
                 </div>
-  {/* Actual */}
-            <div className="flex justify-between text-xs text-gray-500 mb-3">
-              <span>
-                 🟢 Actual Start:{" "}
-                {trip.actual_start
-                  ? new Date(trip.actual_start).toLocaleTimeString()
-                  : "--"}
-              </span>
-              <span>
-                🔴 Actual End:{" "}
-                {trip.actual_end
-                  ? new Date(trip.actual_end).toLocaleTimeString()
-                  : "--"}
-              </span>
-            </div>
+
+                {/* Actual */}
+                <div className="flex justify-between text-xs text-gray-300 mb-3">
+                  <span>🟢 Actual Start: {trip.actual_start ? new Date(trip.actual_start).toLocaleTimeString() : "--"}</span>
+                  <span>🔴 Actual End: {trip.actual_end ? new Date(trip.actual_end).toLocaleTimeString() : "--"}</span>
+                </div>
+
                 {/* Status Badge */}
                 <div className="flex justify-end mb-4">
                   <span style={{

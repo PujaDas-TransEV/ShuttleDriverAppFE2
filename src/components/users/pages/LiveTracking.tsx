@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { IonPage, IonContent, IonLoading } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from "../pages/Navbar";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -9,6 +10,17 @@ import "leaflet/dist/leaflet.css";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -87,7 +99,7 @@ const FitBounds = ({ stops }: { stops: any[] }) => {
 };
 
 const DriverLiveTracking: React.FC = () => {
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
 
   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
   const [routes, setRoutes] = useState<any[]>([]);
@@ -108,7 +120,19 @@ const DriverLiveTracking: React.FC = () => {
     window.location.hostname === 'localhost' || 
     window.location.hostname === '127.0.0.1';
 
-  // Fetch all routes
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        setLocationError("Authentication failed. Please login again.");
+      }
+    };
+    loadToken();
+  }, []);
+
+  // Fetch all routes when token is available
   useEffect(() => {
     if (!token) return;
     fetch(`${API_BASE}/driver/routes`, { 
@@ -169,7 +193,7 @@ const DriverLiveTracking: React.FC = () => {
 
   // Fetch route details and trips
   const fetchRouteDetails = async (routeId: string) => {
-    if (!routeId) {
+    if (!routeId || !token) {
       setRouteDetails(null);
       setTrips([]);
       return;
