@@ -660,15 +660,9 @@ import {
   FaExclamationTriangle,
   FaTimes,
   FaSpinner,
-  FaCamera,
   FaSyncAlt,
 } from 'react-icons/fa';
-import {
-  BrowserMultiFormatReader,
-  NotFoundException,
-  DecodeHintType,
-  BarcodeFormat,
-} from '@zxing/library';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 
 interface QRScannerComponentProps {
   onClose: () => void;
@@ -701,13 +695,9 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
   const [token, setToken] = useState<string | null>(propToken || null);
   const [tripId, setTripId] = useState<string | null>(propTripId || null);
   const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
-  const [scanCount, setScanCount] = useState(0);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  
+  const scannerRef = useRef<Html5Qrcode | null>(null);
   const scanningRef = useRef(true);
-  const scanTimeoutRef = useRef<number | null>(null);
 
   // Load token from Preferences if not provided as prop
   useEffect(() => {
@@ -720,24 +710,17 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
     loadToken();
   }, [propToken]);
 
-  // 📍 Location with better error handling
+  // Get current location
   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!navigator.geolocation) {
-        reject(new Error("Geolocation not supported"));
+        resolve({ lat: 0, lng: 0 });
         return;
       }
       
       navigator.geolocation.getCurrentPosition(
-        (pos) =>
-          resolve({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-          }),
-        (err) => {
-          console.error("Location error:", err);
-          resolve({ lat: 0, lng: 0 });
-        },
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve({ lat: 0, lng: 0 }),
         { enableHighAccuracy: true, timeout: 10000 }
       );
     });
@@ -745,7 +728,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
 
   const [scanType, setScanType] = useState<"board" | "drop">("board");
 
-  // 🔁 Process Scan with better error handling
+  // Process scan with backend
   const processScan = async (qrToken: string) => {
     const activeToken = token || propToken;
     const activeTripId = tripId || propTripId;
@@ -755,23 +738,22 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
       return;
     }
 
-    // Prevent multiple scans of the same QR
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current);
-    }
-
     setIsProcessing(true);
-    stopScanner();
+    
+    // Stop scanner while processing
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      await scannerRef.current.stop();
+    }
 
     try {
       const { lat, lng } = await getCurrentLocation();
 
-      const res = await fetch(
+      const response = await fetch(
         `https://be.shuttleapp.transev.site/driver/scan/${activeTripId}/scan`,
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${activeToken}`,
+            'Authorization': `Bearer ${activeToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -783,14 +765,13 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
         }
       );
 
-      const data = await res.json();
+      const data = await response.json();
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(data.detail || data.message || 'Scan failed');
       }
 
       setScannedData(data);
-      setScanCount(prev => prev + 1);
       
       // Call success callback
       if (onScanSuccess) {
@@ -798,7 +779,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
       }
 
       // Auto close after successful scan
-      scanTimeoutRef.current = window.setTimeout(() => {
+      setTimeout(() => {
         onClose();
       }, 2000);
       
@@ -808,7 +789,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
       setIsProcessing(false);
       
       // Restart scanner after error
-      scanTimeoutRef.current = window.setTimeout(() => {
+      setTimeout(() => {
         setError(null);
         startScanner();
       }, 2000);
@@ -817,54 +798,54 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
 
   const startScanner = async () => {
     try {
-      // Stop previous scanner first
-      stopScanner();
-
-      if (!videoRef.current) {
-        console.error("Video element not found");
-        return;
+      // Stop existing scanner
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        await scannerRef.current.stop();
       }
 
-      scanningRef.current = true;
       setCameraStarted(false);
       setError(null);
 
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.QR_CODE]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
+      // Create scanner element
+      const scannerElementId = "qr-reader";
+      let element = document.getElementById(scannerElementId);
+      if (!element) {
+        const div = document.createElement('div');
+        div.id = scannerElementId;
+        div.style.width = '100%';
+        div.style.height = '100%';
+        document.getElementById('scanner-container')?.appendChild(div);
+        element = div;
+      }
 
-      const reader = new BrowserMultiFormatReader(hints);
-      readerRef.current = reader;
+      // Initialize scanner
+      const html5QrCode = new Html5Qrcode(scannerElementId);
+      scannerRef.current = html5QrCode;
 
-      // Request camera with specific facing mode
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: cameraFacing },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+      };
+
+      await html5QrCode.start(
+        { facingMode: cameraFacing },
+        config,
+        (decodedText) => {
+          if (!isProcessing && decodedText && scanningRef.current) {
+            processScan(decodedText);
+          }
         },
-      }).catch(async () => {
-        // Fallback to any camera if exact facing mode fails
-        return await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: cameraFacing,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-        });
-      });
+        (errorMessage) => {
+          // Ignore scanning errors - just log for debugging
+          if (errorMessage && !errorMessage.includes('NotFoundException')) {
+            console.debug("Scanning...", errorMessage);
+          }
+        }
+      );
 
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-      videoRef.current.setAttribute('playsinline', 'true');
-
-      await videoRef.current.play();
       setCameraStarted(true);
-
-      // Start scan loop with delay to ensure camera is ready
-      setTimeout(() => {
-        scanLoop();
-      }, 500);
 
     } catch (err: any) {
       console.error("Camera error:", err);
@@ -885,86 +866,40 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
     }
   };
 
-  const scanLoop = async () => {
-    if (!scanningRef.current || !videoRef.current || !readerRef.current || isProcessing) {
-      return;
-    }
-
-    try {
-      const result = await readerRef.current.decodeFromVideoElement(
-        videoRef.current
-      );
-
-      if (result && !isProcessing) {
-        const qrText = result.getText();
-        if (qrText) {
-          await processScan(qrText);
-          return;
-        }
-      }
-    } catch (err) {
-      // NotFoundException is expected when no QR is found - ignore it
-      if (!(err instanceof NotFoundException)) {
-        console.error("Scan loop error:", err);
-      }
-    }
-
-    // Continue scanning
-    requestAnimationFrame(scanLoop);
-  };
-
-  const stopScanner = () => {
+  const stopScanner = async () => {
     scanningRef.current = false;
-
-    if (readerRef.current) {
+    
+    if (scannerRef.current && scannerRef.current.isScanning) {
       try {
-        readerRef.current.reset();
+        await scannerRef.current.stop();
       } catch (err) {
-        console.error("Error resetting reader:", err);
+        console.error("Error stopping scanner:", err);
       }
-      readerRef.current = null;
     }
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
-        if (track.readyState === 'live') {
-          track.stop();
-        }
-      });
-      streamRef.current = null;
+    
+    if (scannerRef.current) {
+      scannerRef.current.clear();
+      scannerRef.current = null;
     }
-
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.srcObject = null;
-    }
-
+    
     setCameraStarted(false);
   };
 
   const switchCamera = async () => {
-    setCameraFacing(prev => prev === 'environment' ? 'user' : 'environment');
-    stopScanner();
+    const newFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(newFacing);
+    await stopScanner();
     setTimeout(() => {
       startScanner();
-    }, 300);
+    }, 500);
   };
 
   const retryScanner = async () => {
     setError(null);
     setScannedData(null);
     setIsProcessing(false);
-    setScanCount(0);
-
-    stopScanner();
-
-    // Clear any pending timeouts
-    if (scanTimeoutRef.current) {
-      clearTimeout(scanTimeoutRef.current);
-      scanTimeoutRef.current = null;
-    }
-
-    // Small delay before restarting
+    scanningRef.current = true;
+    await stopScanner();
     setTimeout(() => {
       startScanner();
     }, 500);
@@ -975,9 +910,6 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
     
     return () => {
       stopScanner();
-      if (scanTimeoutRef.current) {
-        clearTimeout(scanTimeoutRef.current);
-      }
     };
   }, [cameraFacing]);
 
@@ -1022,10 +954,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
           {/* Scan Type Selector */}
           <div className="flex gap-2 mb-4">
             <button
-              onClick={() => {
-                setScanType("board");
-                setError(null);
-              }}
+              onClick={() => setScanType("board")}
               className={`flex-1 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
                 scanType === "board"
                   ? "bg-green-600 text-white shadow-lg transform scale-105"
@@ -1036,10 +965,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
             </button>
 
             <button
-              onClick={() => {
-                setScanType("drop");
-                setError(null);
-              }}
+              onClick={() => setScanType("drop")}
               className={`flex-1 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
                 scanType === "drop"
                   ? "bg-blue-600 text-white shadow-lg transform scale-105"
@@ -1063,13 +989,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
 
           {/* Scanner View */}
           <div className="relative bg-black rounded-xl h-[350px] overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            <div id="scanner-container" className="w-full h-full"></div>
 
             {/* Scanner Frame Overlay */}
             <div className="absolute inset-0 pointer-events-none">
@@ -1099,7 +1019,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm">
                 <div className="text-center">
                   <FaSpinner className="animate-spin text-white text-4xl mx-auto mb-3" />
-                  <p className="text-white text-sm font-medium">Processing scan...</p>
+                  <p className="text-white text-sm font-medium">Verifying passenger...</p>
                   <p className="text-white/70 text-xs mt-1">Please wait</p>
                 </div>
               </div>
@@ -1112,17 +1032,15 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
               <FaCheckCircle className="text-green-600 dark:text-green-400 text-lg" />
               <div>
                 <p className="text-sm font-semibold">Success!</p>
-                <p className="text-xs">{scannedData.message || "Passenger verified successfully!"}</p>
+                <p className="text-xs">
+                  {scannedData.message || "Passenger verified successfully!"}
+                  {scannedData.distance_meters && (
+                    <span className="block text-xs mt-1">
+                      📍 Distance: {scannedData.distance_meters.toFixed(2)} meters
+                    </span>
+                  )}
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Scan Count */}
-          {scanCount > 0 && !scannedData && (
-            <div className="mt-3 text-center">
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Scans completed: {scanCount}
-              </p>
             </div>
           )}
 
@@ -1137,7 +1055,10 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
               </span>
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              📍 Location will be captured automatically
+              📍 Location will be captured automatically for verification
+            </p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              ⚡ Must be within {scanType === "board" ? "pickup" : "dropoff"} stop radius
             </p>
           </div>
         </div>
