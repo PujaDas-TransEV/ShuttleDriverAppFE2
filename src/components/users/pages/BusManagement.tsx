@@ -1,10 +1,22 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { IonPage, IonContent, IonLoading } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from '../pages/Navbar';
 import { PencilIcon, CalendarIcon, ClockIcon, CheckCircleIcon, XCircleIcon, EyeIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 interface VehicleData {
   id?: string;
@@ -37,13 +49,34 @@ const DriverVehicle: React.FC = () => {
   const [rearPhoto, setRearPhoto] = useState<File | null>(null);
   const [rcFile, setRcFile] = useState<File | null>(null);
   const [registrationValidTill, setRegistrationValidTill] = useState<string>("");
+  const [token, setToken] = useState<string | null>(null);
 
-  const token = localStorage.getItem("access_token");
   const [rearPreview, setRearPreview] = useState<string | null>(null);
   const [rcPreview, setRcPreview] = useState<string | null>(null);
   
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        setServerMsg("Session expired. Please login again.");
+        setMessageType('error');
+      }
+    };
+    loadToken();
+  }, []);
+
+  // Fetch vehicle when token is available
+  useEffect(() => {
+    if (token) {
+      fetchVehicle();
+    }
+  }, [token]);
+
   // Fetch vehicle
   const fetchVehicle = async () => {
+    if (!token) return;
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/driver/vehicle/my-vehicle`, {
@@ -72,10 +105,6 @@ const DriverVehicle: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchVehicle();
-  }, []);
-
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormVehicle({ ...formVehicle, [name]: value });
@@ -98,6 +127,12 @@ const DriverVehicle: React.FC = () => {
 
   // Update Vehicle PATCH
   const handleUpdate = async () => {
+    if (!token) {
+      setServerMsg("Session expired. Please login again.");
+      setMessageType('error');
+      return;
+    }
+
     setLoading(true);
     setServerMsg(null);
 
@@ -239,6 +274,21 @@ const DriverVehicle: React.FC = () => {
     return expiryDate < today;
   };
 
+  // Show loading while getting token
+  if (token === null && loading) {
+    return (
+      <IonPage>
+        <NavbarSidebar />
+        <IonContent className="bg-gray-50 dark:bg-gray-900 pt-16 text-gray-900 dark:text-white font-sans">
+          <div className="max-w-5xl mx-auto p-6 space-y-6 mt-10 text-center">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-black dark:border-t-white"></div>
+            <p className="text-gray-500 dark:text-gray-400 mt-4">Loading session...</p>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
+
   return (
     <IonPage>
       <NavbarSidebar />
@@ -246,7 +296,7 @@ const DriverVehicle: React.FC = () => {
         <div className="max-w-5xl mx-auto p-6 space-y-6 mt-10">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-600 bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-800 dark:from-white dark:to-gray-800 bg-clip-text text-transparent">
               Vehicle Details
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">

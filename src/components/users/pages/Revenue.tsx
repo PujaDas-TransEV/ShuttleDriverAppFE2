@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from "../../users/pages/Navbar";
 import {
   CurrencyRupeeIcon,
@@ -21,6 +22,17 @@ import {
 
 const BASE_URL = "https://be.shuttleapp.transev.site";
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 async function getDriverPayoutDetails(token: string) {
   const res = await fetch(`${BASE_URL}/driver/trips/payout-details`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -34,7 +46,16 @@ const DriverPayoutPage: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
+
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+    };
+    loadToken();
+  }, []);
 
   const fetchData = async () => {
     if (!token) return;
@@ -50,8 +71,10 @@ const DriverPayoutPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (token) {
+      fetchData();
+    }
+  }, [token]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig: any = {

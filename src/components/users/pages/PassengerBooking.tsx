@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { IonPage, IonContent, IonLoading } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from "./Navbar";
 import {
   ClockIcon,
@@ -22,8 +23,19 @@ import { BusIcon } from "lucide-react";
 
 const API_BASE = "https://be.shuttleapp.transev.site";
 
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
+
 const BookingDetails: React.FC = () => {
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [routes, setRoutes] = useState<any[]>([]);
@@ -35,8 +47,19 @@ const BookingDetails: React.FC = () => {
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [sortedTrips, setSortedTrips] = useState<any[]>([]);
 
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+    };
+    loadToken();
+  }, []);
+
   // Fetch all routes
   useEffect(() => {
+    if (!token) return;
+    
     const fetchRoutes = async () => {
       try {
         const res = await fetch(`${API_BASE}/driver/routes`, {
@@ -54,6 +77,8 @@ const BookingDetails: React.FC = () => {
 
   // Fetch vehicle first
   useEffect(() => {
+    if (!token) return;
+    
     const fetchVehicle = async () => {
       setLoading(true);
       try {
@@ -73,7 +98,8 @@ const BookingDetails: React.FC = () => {
 
   // Fetch trips for selected route and sort them - MOST RECENT FIRST (all trips - past and future)
   useEffect(() => {
-    if (!selectedRouteId) return;
+    if (!selectedRouteId || !token) return;
+    
     const fetchRouteDetails = async () => {
       setLoading(true);
       try {
@@ -111,7 +137,8 @@ const BookingDetails: React.FC = () => {
 
   // Fetch booking details whenever selectedTripId changes (including older trips)
   useEffect(() => {
-    if (!selectedTripId || !vehicleData) return;
+    if (!selectedTripId || !vehicleData || !token) return;
+    
     const fetchBookingDetails = async () => {
       setLoading(true);
       try {
@@ -385,7 +412,7 @@ const BookingDetails: React.FC = () => {
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
                       <CalendarIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="text-sm text-gray-600 dark:text-gray-500">
                         {formatDate(bookingDetails.planned_start)}
                       </span>
                     </div>
@@ -496,7 +523,7 @@ const BookingDetails: React.FC = () => {
                       <p className="font-semibold text-gray-700 dark:text-gray-300">
                         📅 Past Trip
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-200 mt-1">
                         This trip has already been completed. Showing historical booking data.
                       </p>
                     </div>
@@ -518,7 +545,7 @@ const BookingDetails: React.FC = () => {
                 {bookings.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700">
                     <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                    <p className="text-gray-500 dark:text-gray-200 font-medium">
                       No bookings have been made for this trip yet.
                     </p>
                   </div>

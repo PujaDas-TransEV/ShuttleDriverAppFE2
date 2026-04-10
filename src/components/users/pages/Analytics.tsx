@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { IonPage, IonContent } from "@ionic/react";
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from "../../users/pages/Navbar";
 import {
   CurrencyRupeeIcon,
@@ -22,6 +23,17 @@ import {
 } from "@heroicons/react/24/solid";
 
 const BASE_URL = "https://be.shuttleapp.transev.site";
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 interface AnalyticsData {
   driver_id: string;
@@ -77,13 +89,32 @@ const DriverAnalyticsPage: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState("week");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const token = localStorage.getItem("access_token");
+  const [token, setToken] = useState<string | null>(null);
+
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+      if (!accessToken) {
+        console.log("No token found, please login");
+        setLoading(false);
+      }
+    };
+    loadToken();
+  }, []);
 
   useEffect(() => {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     setIsDarkMode(prefersDark);
-    fetchAllData();
   }, []);
+
+  // Fetch data when token is available
+  useEffect(() => {
+    if (token) {
+      fetchAllData();
+    }
+  }, [token]);
 
   const fetchAllData = async () => {
     if (!token) return;
@@ -180,6 +211,23 @@ const DriverAnalyticsPage: React.FC = () => {
            key === 'totalBookings' ? 0 :
            { completed: 0, cancelled: 0, in_progress: 0, scheduled: 0, premature_end: 0 }) as AnalyticsSummary[K];
   };
+
+  // Show loading while getting token
+  if (token === null && loading) {
+    return (
+      <IonPage>
+        <NavbarSidebar />
+        <IonContent style={{ '--background': isDarkMode ? '#0A0A0A' : '#F3F4F6' } as any}>
+          <div style={styles.container}>
+            <div style={styles.loadingContainer}>
+              <div style={styles.spinner} />
+              <p style={styles.loadingText}>Loading session...</p>
+            </div>
+          </div>
+        </IonContent>
+      </IonPage>
+    );
+  }
 
   return (
     <IonPage>
@@ -757,4 +805,3 @@ styleSheet.textContent = `
 document.head.appendChild(styleSheet);
 
 export default DriverAnalyticsPage;
-

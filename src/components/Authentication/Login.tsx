@@ -8,7 +8,6 @@ import {
 import { useHistory } from 'react-router-dom';
 import {
   EnvelopeIcon,
-  KeyIcon,
   ArrowRightIcon,
   TruckIcon,
   ShieldCheckIcon,
@@ -16,13 +15,9 @@ import {
   ExclamationTriangleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
+import { Preferences } from '@capacitor/preferences'; // Changed from @ionic/storage
 
 const API_BASE = "https://be.shuttleapp.transev.site";
-
-interface ErrorDetail {
-  error?: string;
-  message?: string;
-}
 
 const Login: React.FC = () => {
   const history = useHistory();
@@ -70,6 +65,34 @@ const Login: React.FC = () => {
     setTimeout(() => setShowErrorPopup(false), 5000);
   };
 
+  // Save token using Capacitor Preferences (works in APK)
+  const saveTokens = async (accessToken: string, refreshToken?: string) => {
+    try {
+      await Preferences.set({
+        key: 'access_token',
+        value: accessToken
+      });
+      
+      if (refreshToken) {
+        await Preferences.set({
+          key: 'refresh_token',
+          value: refreshToken
+        });
+      }
+      
+      console.log('Tokens saved successfully with Preferences');
+      
+      // Verify tokens were saved
+      const { value: savedToken } = await Preferences.get({ key: 'access_token' });
+      console.log('Verification - Token saved:', savedToken ? 'Yes' : 'No');
+      
+      return true;
+    } catch (error) {
+      console.error('Error saving tokens:', error);
+      return false;
+    }
+  };
+
   const handleEmailSubmit = async () => {
     if (!email.includes('@') || !email.includes('.')) {
       showErrorModal('Invalid Email', 'Please enter a valid email address');
@@ -87,7 +110,6 @@ const Login: React.FC = () => {
       const data = await res.json();
       
       if (!res.ok) {
-        // Handle different error formats
         let errorMsg = '';
         if (data.detail?.message) {
           errorMsg = data.detail.message;
@@ -110,7 +132,6 @@ const Login: React.FC = () => {
       showNotification(`OTP sent successfully to ${email}`, 'success');
     } catch (error: any) {
       console.error('Send OTP error:', error);
-      // Error already shown in modal
     } finally {
       setLoading(false);
     }
@@ -136,10 +157,8 @@ const Login: React.FC = () => {
         let errorMsg = '';
         let waitTime = 0;
         
-        // Check for specific error types
         if (data.detail?.error === 'otp_resend_too_soon' || 
             (data.detail?.message && data.detail.message.includes('wait'))) {
-          // Extract wait time from message if possible
           const match = data.detail.message?.match(/(\d+)/);
           if (match) {
             waitTime = parseInt(match[1]);
@@ -159,7 +178,6 @@ const Login: React.FC = () => {
         
         showErrorModal('Resend Failed', errorMsg);
         
-        // If server returns a wait time, use it
         if (waitTime > 0 && waitTime > resendTimer) {
           setResendTimer(waitTime);
         }
@@ -229,16 +247,18 @@ const Login: React.FC = () => {
         throw new Error(errorMsg);
       }
 
-      localStorage.setItem('access_token', data.access_token);
-      if (data.refresh_token) {
-        localStorage.setItem('refresh_token', data.refresh_token);
-      }
-
-      showNotification('Login successful! Redirecting...', 'success');
+      // Save tokens using Preferences
+      const saved = await saveTokens(data.access_token, data.refresh_token);
       
-      setTimeout(() => {
-        history.push('/dashboard');
-      }, 1500);
+      if (saved) {
+        showNotification('Login successful! Redirecting...', 'success');
+        
+        setTimeout(() => {
+          history.push('/dashboard');
+        }, 1500);
+      } else {
+        showErrorModal('Storage Error', 'Failed to save login information');
+      }
 
     } catch (error: any) {
       console.error('OTP verification error:', error);
@@ -624,24 +644,22 @@ const getStyles = (isDark: boolean) => ({
     width: '18px',
     height: '18px'
   },
-  // CHANGED: OTP box container - now forces single row
   otpBoxContainer: {
     display: 'flex',
-    gap: '8px',  // Reduced gap
+    gap: '8px',
     justifyContent: 'center',
-    flexWrap: 'nowrap' as const,  // Force single row
+    flexWrap: 'nowrap' as const,
     width: '100%'
   },
-  // CHANGED: OTP box size - smaller
   otpBox: {
-    width: '48px',  // Smaller width
-    height: '52px', // Smaller height
+    width: '48px',
+    height: '52px',
     textAlign: 'center' as const,
-    fontSize: '20px', // Smaller font
+    fontSize: '20px',
     fontWeight: '600',
     background: isDark ? '#0A0A0A' : '#F9FAFB',
     border: `2px solid ${isDark ? '#2A2A2A' : '#E5E7EB'}`,
-    borderRadius: '12px', // Smaller border radius
+    borderRadius: '12px',
     color: isDark ? '#FFFFFF' : '#000000',
     outline: 'none',
     transition: 'all 0.2s ease',

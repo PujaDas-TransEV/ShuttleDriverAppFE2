@@ -1,5 +1,5 @@
 // import React, { useState, useEffect } from 'react';
-// import { IonPage, IonContent } from '@ionic/react';
+// import { IonPage, IonContent, IonAlert } from '@ionic/react';
 // import { useHistory } from 'react-router-dom';
 // import NavbarSidebar from '../../users/pages/Navbar';
 
@@ -12,18 +12,28 @@
 //   ClockIcon,
 //   ExclamationTriangleIcon,
 //   ArrowDownTrayIcon,
-//   CalendarIcon,
 //   ChartBarIcon,
 //   CheckCircleIcon,
 //   XCircleIcon,
 //   WalletIcon,
 //   BanknotesIcon,
-//   DocumentArrowDownIcon
+//   DocumentArrowDownIcon,
+//   CameraIcon,
+//   BellIcon,
+
+//   MapPinIcon,
+
 // } from '@heroicons/react/24/outline';
 
 // import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 // import L from 'leaflet';
 // import 'leaflet/dist/leaflet.css';
+
+// // Capacitor Plugins
+// import { Geolocation } from '@capacitor/geolocation';
+// import { Camera } from '@capacitor/camera';
+// import { LocalNotifications } from '@capacitor/local-notifications';
+// import { Capacitor } from '@capacitor/core';
 
 // import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 // import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -69,10 +79,20 @@
 //   const [downloading, setDownloading] = useState(false);
 //   const [selectedFilter, setSelectedFilter] = useState<'month' | 'year'>('month');
 
-//   // Get available years
+//   // Permission states
+//   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+//   const [cameraPermissionGranted, setCameraPermissionGranted] = useState(false);
+//   const [notificationPermissionGranted, setNotificationPermissionGranted] = useState(false);
+//   const [showPermissionAlert, setShowPermissionAlert] = useState(false);
+//   const [currentPermissionRequest, setCurrentPermissionRequest] = useState<'location' | 'camera' | 'notification' | null>(null);
+//   const [permissionMessage, setPermissionMessage] = useState('');
+//   const [loadingLocation, setLoadingLocation] = useState(false);
+
+//   const isNative = Capacitor.isNativePlatform();
+
+//   // Available years
 //   const availableYears = [new Date().getFullYear(), new Date().getFullYear() - 1];
   
-//   // Months list
 //   const months = [
 //     { value: '01', name: 'January' },
 //     { value: '02', name: 'February' },
@@ -88,6 +108,266 @@
 //     { value: '12', name: 'December' }
 //   ];
 
+//   // ======================
+//   // Permission Handlers
+//   // ======================
+  
+//   // Request Location Permission
+//   const requestLocationPermission = async () => {
+//     if (!isNative) {
+//       // Web fallback - use browser geolocation
+//       if (navigator.geolocation) {
+//         navigator.geolocation.getCurrentPosition(
+//           (pos) => {
+//             setDriverPos([pos.coords.latitude, pos.coords.longitude]);
+//             setLocationPermissionGranted(true);
+//           },
+//           (err) => {
+//             console.error('Browser GPS error:', err);
+//             setPermissionMessage('Please enable location access in your browser settings to use this feature.');
+//             setShowPermissionAlert(true);
+//           }
+//         );
+//       }
+//       return;
+//     }
+
+//     setLoadingLocation(true);
+//     try {
+//       const permission = await Geolocation.checkPermissions();
+      
+//       if (permission.location === 'prompt') {
+//         const result = await Geolocation.requestPermissions();
+//         if (result.location === 'granted') {
+//           setLocationPermissionGranted(true);
+//           await getCurrentLocation();
+//         } else {
+//           setPermissionMessage('Location permission is required to track your trips and show your position on the map.');
+//           setShowPermissionAlert(true);
+//         }
+//       } else if (permission.location === 'granted') {
+//         setLocationPermissionGranted(true);
+//         await getCurrentLocation();
+//       } else {
+//         setPermissionMessage('Location permission is required. Please enable it in app settings.');
+//         setShowPermissionAlert(true);
+//       }
+//     } catch (error) {
+//       console.error('Error requesting location permission:', error);
+//       setPermissionMessage('Failed to get location permission. Please check your device settings.');
+//       setShowPermissionAlert(true);
+//     } finally {
+//       setLoadingLocation(false);
+//     }
+//   };
+
+//   // Get current location
+//   const getCurrentLocation = async () => {
+//     if (!isNative) {
+//       return new Promise((resolve, reject) => {
+//         navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true });
+//       }).then((pos: any) => {
+//         setDriverPos([pos.coords.latitude, pos.coords.longitude]);
+//       }).catch((err) => {
+//         console.error('Browser GPS error:', err);
+//       });
+//     }
+
+//     try {
+//       const position = await Geolocation.getCurrentPosition({
+//         enableHighAccuracy: true,
+//         timeout: 15000,
+//       });
+//       setDriverPos([position.coords.latitude, position.coords.longitude]);
+//     } catch (error) {
+//       console.error('Error getting location:', error);
+//     }
+//   };
+
+//   // Request Camera Permission
+//   const requestCameraPermission = async () => {
+//     if (!isNative) {
+//       setCameraPermissionGranted(true);
+//       return;
+//     }
+
+//     try {
+//       const permission = await Camera.checkPermissions();
+      
+//       if (permission.camera === 'prompt') {
+//         const result = await Camera.requestPermissions();
+//         if (result.camera === 'granted') {
+//           setCameraPermissionGranted(true);
+//         } else {
+//           setPermissionMessage('Camera permission is required to upload documents and profile pictures.');
+//           setShowPermissionAlert(true);
+//         }
+//       } else if (permission.camera === 'granted') {
+//         setCameraPermissionGranted(true);
+//       } else {
+//         setPermissionMessage('Camera permission is required. Please enable it in app settings.');
+//         setShowPermissionAlert(true);
+//       }
+//     } catch (error) {
+//       console.error('Error requesting camera permission:', error);
+//     }
+//   };
+
+//   // Request Notification Permission
+//   const requestNotificationPermission = async () => {
+//     if (!isNative) {
+//       setNotificationPermissionGranted(true);
+//       return;
+//     }
+
+//     try {
+//       const permission = await LocalNotifications.requestPermissions();
+      
+//       if (permission.display === 'granted') {
+//         setNotificationPermissionGranted(true);
+        
+//         // Register for push notifications
+//         await LocalNotifications.registerActionTypes({
+//           types: [
+//             {
+//               id: 'trip_update',
+//               actions: [
+//                 { id: 'accept', title: 'Accept' },
+//                 { id: 'reject', title: 'Reject', destructive: true }
+//               ]
+//             }
+//           ]
+//         });
+//       } else {
+//         setPermissionMessage('Notification permission is required to receive trip alerts and updates.');
+//         setShowPermissionAlert(true);
+//       }
+//     } catch (error) {
+//       console.error('Error requesting notification permission:', error);
+//     }
+//   };
+
+//   // Show permission prompt
+//   const showPermissionPrompt = (type: 'location' | 'camera' | 'notification') => {
+//     setCurrentPermissionRequest(type);
+//     let message = '';
+//     let title = '';
+    
+//     switch(type) {
+//       case 'location':
+//         title = 'Location Access Required';
+//         message = 'Shuttle needs your location to track your trips, show your position on the map, and provide accurate navigation. This helps us ensure safe and efficient service.';
+//         break;
+//       case 'camera':
+//         title = 'Camera Access Required';
+//         message = 'Shuttle needs camera access to capture your documents for KYC verification and update your profile picture.';
+//         break;
+//       case 'notification':
+//         title = 'Notification Access Required';
+//         message = 'Shuttle needs notification access to alert you about new trip requests, payment updates, and important announcements.';
+//         break;
+//     }
+    
+//     setPermissionMessage(message);
+//     setShowPermissionAlert(true);
+//   };
+
+//   // Handle permission alert response
+//   const handlePermissionAlert = async (action: 'allow' | 'deny') => {
+//     setShowPermissionAlert(false);
+    
+//     if (action === 'allow') {
+//       switch(currentPermissionRequest) {
+//         case 'location':
+//           await requestLocationPermission();
+//           break;
+//         case 'camera':
+//           await requestCameraPermission();
+//           break;
+//         case 'notification':
+//           await requestNotificationPermission();
+//           break;
+//       }
+//     }
+    
+//     setCurrentPermissionRequest(null);
+//   };
+
+//   // Check all permissions on app start
+//   const checkAllPermissions = async () => {
+//     if (!isNative) {
+//       // For web, just use browser geolocation
+//       if (navigator.geolocation) {
+//         navigator.geolocation.getCurrentPosition(
+//           (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
+//           (err) => console.error('GPS error:', err)
+//         );
+//       }
+//       setLocationPermissionGranted(true);
+//       setCameraPermissionGranted(true);
+//       setNotificationPermissionGranted(true);
+//       return;
+//     }
+
+//     // Check Location
+//     const locationStatus = await Geolocation.checkPermissions();
+//     if (locationStatus.location === 'granted') {
+//       setLocationPermissionGranted(true);
+//       await getCurrentLocation();
+//     } else if (locationStatus.location === 'prompt') {
+//       showPermissionPrompt('location');
+//     }
+
+//     // Check Camera
+//     const cameraStatus = await Camera.checkPermissions();
+//     if (cameraStatus.camera === 'granted') {
+//       setCameraPermissionGranted(true);
+//     } else if (cameraStatus.camera === 'prompt') {
+//       showPermissionPrompt('camera');
+//     }
+
+//     // Check Notifications
+//     const notificationStatus = await LocalNotifications.checkPermissions();
+//     if (notificationStatus.display === 'granted') {
+//       setNotificationPermissionGranted(true);
+//     } else if (notificationStatus.display === 'prompt') {
+//       showPermissionPrompt('notification');
+//     }
+//   };
+
+//   // Start location tracking interval
+//   const startLocationTracking = () => {
+//     if (!locationPermissionGranted) return;
+    
+//     const updatePosition = async () => {
+//       if (isNative && locationPermissionGranted) {
+//         try {
+//           const position = await Geolocation.getCurrentPosition({
+//             enableHighAccuracy: true,
+//             timeout: 10000,
+//           });
+//           setDriverPos([position.coords.latitude, position.coords.longitude]);
+//         } catch (err) {
+//           console.error('GPS error:', err);
+//         }
+//       } else if (navigator.geolocation) {
+//         navigator.geolocation.getCurrentPosition(
+//           (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
+//           (err) => console.error('GPS error:', err),
+//           { enableHighAccuracy: true }
+//         );
+//       }
+//     };
+    
+//     updatePosition();
+//     const interval = setInterval(updatePosition, 30000);
+//     return () => clearInterval(interval);
+//   };
+
+//   // ======================
+//   // Data Fetching
+//   // ======================
+  
 //   // Fetch verification status
 //   useEffect(() => {
 //     const fetchProfile = async () => {
@@ -121,7 +401,7 @@
 //     fetchStats();
 //   }, [token]);
 
-//   // Fetch payout details with month/year filters
+//   // Fetch payout details
 //   const fetchPayoutDetails = async (year: string, month: string, filterType: 'month' | 'year' = 'month') => {
 //     try {
 //       let url = `${API_BASE}/driver/trips/payout-details?`;
@@ -148,6 +428,19 @@
 //     }
 //   }, [driverVerified, selectedYear, selectedMonth, selectedFilter]);
 
+//   // Initialize permissions on mount
+//   useEffect(() => {
+//     checkAllPermissions();
+//   }, []);
+
+//   // Start location tracking when permission is granted
+//   useEffect(() => {
+//     if (locationPermissionGranted) {
+//       const cleanup = startLocationTracking();
+//       return cleanup;
+//     }
+//   }, [locationPermissionGranted]);
+
 //   // Dark mode listener
 //   useEffect(() => {
 //     const listener = (e: MediaQueryListEvent) => setIsDark(e.matches);
@@ -155,23 +448,7 @@
 //     return () => window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', listener);
 //   }, []);
 
-//   // Get driver location
-//   useEffect(() => {
-//     if (navigator.geolocation) {
-//       const updatePosition = () => {
-//         navigator.geolocation.getCurrentPosition(
-//           (pos) => setDriverPos([pos.coords.latitude, pos.coords.longitude]),
-//           (err) => console.error('GPS error:', err),
-//           { enableHighAccuracy: true }
-//         );
-//       };
-//       updatePosition();
-//       const interval = setInterval(updatePosition, 30000);
-//       return () => clearInterval(interval);
-//     }
-//   }, []);
-
-//   // Download earnings report as CSV
+//   // Download earnings report
 //   const downloadEarningsReport = async () => {
 //     setDownloading(true);
 //     try {
@@ -225,7 +502,7 @@
 //     total_pending_payout_amount: 0
 //   };
 
-//   // Body scroll lock when modal is open
+//   // Body scroll lock for modal
 //   useEffect(() => {
 //     if (showEarningsModal) {
 //       document.body.style.overflow = 'hidden';
@@ -262,6 +539,36 @@
 //       <IonContent className={`${isDark ? 'bg-gray-900' : 'bg-gray-50'} pt-16`}>
 //         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           
+//           {/* Permission Status Bar */}
+//           {isNative && (
+//             <div className="mb-4 flex flex-wrap gap-2 justify-center">
+//               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
+//                 locationPermissionGranted 
+//                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+//                   : 'bg-red-500/20 text-red-600 dark:text-red-400'
+//               }`}>
+//                   <MapPinIcon className="w-3 h-3" />
+//                 <span>Location {locationPermissionGranted ? '✓' : '✗'}</span>
+//               </div>
+//               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
+//                 cameraPermissionGranted 
+//                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+//                   : 'bg-red-500/20 text-red-600 dark:text-red-400'
+//               }`}>
+//                 <CameraIcon className="w-3 h-3" />
+//                 <span>Camera {cameraPermissionGranted ? '✓' : '✗'}</span>
+//               </div>
+//               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
+//                 notificationPermissionGranted 
+//                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
+//                   : 'bg-red-500/20 text-red-600 dark:text-red-400'
+//               }`}>
+//                 <BellIcon className="w-3 h-3" />
+//                 <span>Notifications {notificationPermissionGranted ? '✓' : '✗'}</span>
+//               </div>
+//             </div>
+//           )}
+
 //           {/* Header */}
 //           <div className="mb-6">
 //             <h1 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
@@ -393,125 +700,137 @@
 //           )}
 
 //           {/* Map Section */}
-//         {/* Map Section - Colorful Modern Design */}
-// <div className={`mb-6 rounded-2xl overflow-hidden shadow-2xl border ${isDark ? 'border-gray-700' : 'border-gray-200'} relative group`} style={{ height: '360px', width: '100%' }}>
-  
-//   {/* Gradient Overlay for better visibility */}
-//   <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent z-5 pointer-events-none rounded-2xl"></div>
-  
-//   {/* Top Status Bar with Gradient */}
-//   <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none">
-//     <div className="flex justify-between items-center">
-//       <div className="bg-linear-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/20">
-//         <div className="flex items-center gap-2">
-//           <div className="relative">
-//             <div className="w-2 h-2 bg-white rounded-full animate-ping absolute"></div>
-//             <div className="w-2 h-2 bg-white rounded-full"></div>
-//           </div>
-//           <span className="text-white text-xs font-bold tracking-wide">LIVE TRACKING</span>
-//         </div>
-//       </div>
-//       <div className="bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/10">
-//         <div className="flex items-center gap-1">
-//           <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
-//           <span className="text-white text-xs font-mono">
-//             {driverPos ? `${driverPos[0].toFixed(4)}°, ${driverPos[1].toFixed(4)}°` : 'Fetching...'}
-//           </span>
-//         </div>
-//       </div>
-//     </div>
-//   </div>
+//           <div className={`mb-6 rounded-2xl overflow-hidden shadow-2xl border ${isDark ? 'border-gray-700' : 'border-gray-200'} relative group`} style={{ height: '360px', width: '100%' }}>
+            
+//             <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent z-5 pointer-events-none rounded-2xl"></div>
+            
+//             {/* Top Status Bar */}
+//             <div className="absolute top-3 left-3 right-3 z-10 pointer-events-none">
+//               <div className="flex justify-between items-center">
+//                 <div className="bg-linear-to-r from-emerald-600/90 to-teal-600/90 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/20">
+//                   <div className="flex items-center gap-2">
+//                     <div className="relative">
+//                       <div className="w-2 h-2 bg-white rounded-full animate-ping absolute"></div>
+//                       <div className="w-2 h-2 bg-white rounded-full"></div>
+//                     </div>
+//                     <span className="text-white text-xs font-bold tracking-wide">LIVE TRACKING</span>
+//                   </div>
+//                 </div>
+//                 <div className="bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/10">
+//                   <div className="flex items-center gap-1">
+//                     <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+//                     <span className="text-white text-xs font-mono">
+//                       {driverPos ? `${driverPos[0].toFixed(4)}°, ${driverPos[1].toFixed(4)}°` : 'Fetching...'}
+//                     </span>
+//                   </div>
+//                 </div>
+//               </div>
+//             </div>
 
-//   {driverPos ? (
-//     <MapContainer 
-//       center={driverPos} 
-//       zoom={15} 
-//       style={{ height: '100%', width: '100%' }}
-//       zoomControl={true}
-//       className="leaflet-container"
-//     >
-//       {/* Colorful Map Tile Layer - Satelite + Street Mix */}
-//       <TileLayer
-//         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-//         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-//       />
-      
-//       <LiveLocationUpdater position={driverPos} />
-      
-//       {/* Custom Animated Marker */}
-//       <Marker position={driverPos} icon={driverIcon}>
-//         <Popup>
-//           <div className="text-center min-w-[180px]">
-//             <div className="flex items-center justify-center gap-2 mb-2">
-//               <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-//                 <span className="text-xl">🚗</span>
+//             {loadingLocation ? (
+//               <div className="flex flex-col justify-center items-center h-full bg-linear-to-br from-slate-800 via-slate-900 to-slate-800">
+//                 <div className="text-center">
+//                   <div className="relative">
+//                     <div className="w-20 h-20 mx-auto mb-4 relative">
+//                       <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+//                       <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-pink-500 border-l-emerald-500 animate-spin"></div>
+//                       <div className="absolute inset-0 flex items-center justify-center">
+//                         <MapPinIcon className="w-8 h-8 text-white" />
+//                       </div>
+//                     </div>
+//                     <p className="text-white font-semibold text-lg">Requesting Location...</p>
+//                     <p className="text-gray-400 text-sm mt-2">Please allow location access</p>
+//                   </div>
+//                 </div>
 //               </div>
-//               <div>
-//                 <p className="font-bold text-gray-800">Your Location</p>
-//                 <p className="text-xs text-emerald-600 font-semibold">Active Now</p>
+//             ) : driverPos ? (
+//               <MapContainer 
+//                 center={driverPos} 
+//                 zoom={15} 
+//                 style={{ height: '100%', width: '100%' }}
+//                 zoomControl={true}
+//                 className="leaflet-container"
+//               >
+//                 <TileLayer
+//                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+//                   url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+//                 />
+                
+//                 <LiveLocationUpdater position={driverPos} />
+                
+//                 <Marker position={driverPos} icon={driverIcon}>
+//                   <Popup>
+//                     <div className="text-center min-w-[180px]">
+//                       <div className="flex items-center justify-center gap-2 mb-2">
+//                         <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
+//                           <span className="text-xl">🚗</span>
+//                         </div>
+//                         <div>
+//                           <p className="font-bold text-gray-800">Your Location</p>
+//                           <p className="text-xs text-emerald-600 font-semibold">Active Now</p>
+//                         </div>
+//                       </div>
+//                       <div className="border-t border-gray-200 pt-2 text-xs text-gray-500">
+//                         <p>📍 Lat: {driverPos[0].toFixed(6)}</p>
+//                         <p>📍 Lng: {driverPos[1].toFixed(6)}</p>
+//                       </div>
+//                     </div>
+//                   </Popup>
+//                 </Marker>
+//               </MapContainer>
+//             ) : (
+//               <div className="flex flex-col justify-center items-center h-full bg-linear-to-br from-slate-800 via-slate-900 to-slate-800">
+//                 <div className="text-center">
+//                   <div className="relative">
+//                     <div className="w-20 h-20 mx-auto mb-4 relative">
+//                       <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
+//                       <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-pink-500 border-l-emerald-500 animate-spin"></div>
+//                       <div className="absolute inset-0 flex items-center justify-center">
+//                         <MapPinIcon className="w-8 h-8 text-white" />
+//                       </div>
+//                     </div>
+//                     <p className="text-white font-semibold text-lg">Getting your location...</p>
+//                     <p className="text-gray-400 text-sm mt-2">Please wait while we fetch your position</p>
+//                   </div>
+//                 </div>
 //               </div>
-//             </div>
-//             <div className="border-t border-gray-200 pt-2 text-xs text-gray-500">
-//               <p>📍 Lat: {driverPos[0].toFixed(6)}</p>
-//               <p>📍 Lng: {driverPos[1].toFixed(6)}</p>
+//             )}
+            
+//             {/* Bottom Info Bar */}
+//             <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-none">
+//               <div className="bg-linear-to-r from-black/70 to-black/50 backdrop-blur-md rounded-xl px-3 py-2 flex justify-between items-center border border-white/10">
+//                 <div className="flex items-center gap-2">
+//                   <div className="relative">
+//                     <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute"></div>
+//                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+//                   </div>
+//                   <span className="text-white text-xs font-medium">
+//                     {locationPermissionGranted ? 'GPS Signal Strong' : 'Location Disabled'}
+//                   </span>
+//                 </div>
+//                 <div className="flex items-center gap-3">
+//                   {!locationPermissionGranted && (
+//                     <button
+//                       onClick={() => showPermissionPrompt('location')}
+//                       style={{
+//                         background: '#10b981',
+//                         color: 'white',
+//                         border: 'none',
+//                         borderRadius: '20px',
+//                         padding: '4px 12px',
+//                         fontSize: '10px',
+//                         fontWeight: '500',
+//                         cursor: 'pointer'
+//                       }}
+//                     >
+//                       Enable Location
+//                     </button>
+//                   )}
+//                 </div>
+//               </div>
 //             </div>
 //           </div>
-//         </Popup>
-//       </Marker>
-      
-//       {/* Custom Zoom Controls */}
-//       <div className="leaflet-bottom leaflet-right">
-//         <div className="leaflet-control leaflet-control-zoom custom-zoom">
-//           <a className="leaflet-control-zoom-in" title="Zoom in">+</a>
-//           <a className="leaflet-control-zoom-out" title="Zoom out">−</a>
-//         </div>
-//       </div>
-//     </MapContainer>
-//   ) : (
-//     <div className="flex flex-col justify-center items-center h-full bg-linear-to-br from-slate-800 via-slate-900 to-slate-800">
-//       <div className="text-center">
-//         <div className="relative">
-//           {/* Animated Loading Circle */}
-//           <div className="w-20 h-20 mx-auto mb-4 relative">
-//             <div className="absolute inset-0 rounded-full border-4 border-blue-500/20"></div>
-//             <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-pink-500 border-l-emerald-500 animate-spin"></div>
-//             <div className="absolute inset-0 flex items-center justify-center">
-//               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-//                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-//               </svg>
-//             </div>
-//           </div>
-//           <p className="text-white font-semibold text-lg">Getting your location...</p>
-//           <p className="text-gray-400 text-sm mt-2">Please wait while we fetch your position</p>
-//         </div>
-//       </div>
-//     </div>
-//   )}
-  
-//   {/* Bottom Info Bar with Colors */}
-//   <div className="absolute bottom-3 left-3 right-3 z-10 pointer-events-none">
-//     <div className="bg-linear-to-r from-black/70 to-black/50 backdrop-blur-md rounded-xl px-3 py-2 flex justify-between items-center border border-white/10">
-//       <div className="flex items-center gap-2">
-//         <div className="relative">
-//           <div className="w-2 h-2 bg-green-400 rounded-full animate-ping absolute"></div>
-//           <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-//         </div>
-//         <span className="text-white text-xs font-medium">GPS Signal Strong</span>
-//       </div>
-//       <div className="flex items-center gap-3">
-//         <div className="flex items-center gap-1">
-//           <span className="text-yellow-400 text-xs">📍</span>
-//           <span className="text-white/80 text-xs">High Accuracy</span>
-//         </div>
-//         <div className="flex items-center gap-1">
-//           <span className="text-blue-400 text-xs">🔄</span>
-//           <span className="text-white/60 text-xs">Auto-update</span>
-//         </div>
-//       </div>
-//     </div>
-//   </div>
-// </div>
+
 //           {/* Earnings Report Card */}
 //           {driverVerified && (
 //             <div className={`rounded-2xl p-5 ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-sm border ${isDark ? 'border-gray-700' : 'border-gray-100'}`}>
@@ -520,28 +839,28 @@
 //                   <ChartBarIcon className="w-5 h-5 text-emerald-500" />
 //                   <h3 className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>Earnings Overview</h3>
 //                 </div>
-//                <button
-//   onClick={() => setShowEarningsModal(true)}
-//   style={{
-//     display: 'flex',
-//     alignItems: 'center',
-//     gap: '8px',
-//     padding: '6px 12px',
-//     backgroundColor: '#10b981',
-//     color: '#ffffff',
-//     borderRadius: '8px',
-//     fontSize: '12px',
-//     fontWeight: '600',
-//     border: 'none',
-//     cursor: 'pointer',
-//     transition: '0.3s'
-//   }}
-//   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-//   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
-// >
-//   <DocumentArrowDownIcon style={{ width: '16px', height: '16px' }} />
-//   View Details
-// </button>
+//                 <button
+//                   onClick={() => setShowEarningsModal(true)}
+//                   style={{
+//                     display: 'flex',
+//                     alignItems: 'center',
+//                     gap: '8px',
+//                     padding: '6px 12px',
+//                     backgroundColor: '#10b981',
+//                     color: '#ffffff',
+//                     borderRadius: '8px',
+//                     fontSize: '12px',
+//                     fontWeight: '600',
+//                     border: 'none',
+//                     cursor: 'pointer',
+//                     transition: '0.3s'
+//                   }}
+//                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+//                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
+//                 >
+//                   <DocumentArrowDownIcon style={{ width: '16px', height: '16px' }} />
+//                   View Details
+//                 </button>
 //               </div>
               
 //               <div className="grid grid-cols-2 gap-4">
@@ -562,7 +881,7 @@
 //           )}
 //         </div>
 
-//         {/* Earnings Modal - Fixed positioning */}
+//         {/* Earnings Modal */}
 //         {showEarningsModal && (
 //           <div 
 //             className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-9999 p-4" 
@@ -591,45 +910,45 @@
 //                 <div className="mb-6">
 //                   <div className="flex gap-2 mb-4">
 //                     <button
-//   onClick={() => setSelectedFilter('month')}
-//   style={{
-//     padding: '8px 16px',
-//     borderRadius: '8px',
-//     fontSize: '14px',
-//     fontWeight: '500',
-//     transition: '0.3s',
-//     backgroundColor: selectedFilter === 'month'
-//       ? '#10b981'
-//       : (isDark ? '#374151' : '#f3f4f6'),
-//     color: selectedFilter === 'month'
-//       ? '#ffffff'
-//       : (isDark ? '#d1d5db' : '#4b5563'),
-//     border: 'none',
-//     cursor: 'pointer'
-//   }}
-// >
-//   Monthly View
-// </button>
-//                   <button
-//   onClick={() => setSelectedFilter('year')}
-//   style={{
-//     padding: '8px 16px',
-//     borderRadius: '8px',
-//     fontSize: '14px',
-//     fontWeight: '500',
-//     transition: '0.3s',
-//     backgroundColor: selectedFilter === 'year'
-//       ? '#10b981'
-//       : (isDark ? '#374151' : '#f3f4f6'),
-//     color: selectedFilter === 'year'
-//       ? '#ffffff'
-//       : (isDark ? '#d1d5db' : '#4b5563'),
-//     border: 'none',
-//     cursor: 'pointer'
-//   }}
-// >
-//   Yearly View
-// </button>
+//                       onClick={() => setSelectedFilter('month')}
+//                       style={{
+//                         padding: '8px 16px',
+//                         borderRadius: '8px',
+//                         fontSize: '14px',
+//                         fontWeight: '500',
+//                         transition: '0.3s',
+//                         backgroundColor: selectedFilter === 'month'
+//                           ? '#10b981'
+//                           : (isDark ? '#374151' : '#f3f4f6'),
+//                         color: selectedFilter === 'month'
+//                           ? '#ffffff'
+//                           : (isDark ? '#d1d5db' : '#4b5563'),
+//                         border: 'none',
+//                         cursor: 'pointer'
+//                       }}
+//                     >
+//                       Monthly View
+//                     </button>
+//                     <button
+//                       onClick={() => setSelectedFilter('year')}
+//                       style={{
+//                         padding: '8px 16px',
+//                         borderRadius: '8px',
+//                         fontSize: '14px',
+//                         fontWeight: '500',
+//                         transition: '0.3s',
+//                         backgroundColor: selectedFilter === 'year'
+//                           ? '#10b981'
+//                           : (isDark ? '#374151' : '#f3f4f6'),
+//                         color: selectedFilter === 'year'
+//                           ? '#ffffff'
+//                           : (isDark ? '#d1d5db' : '#4b5563'),
+//                         border: 'none',
+//                         cursor: 'pointer'
+//                       }}
+//                     >
+//                       Yearly View
+//                     </button>
 //                   </div>
                   
 //                   <div className="grid grid-cols-2 gap-3">
@@ -666,22 +985,22 @@
 //                     )}
 //                   </div>
                   
-//                  <button
-//   onClick={() => fetchPayoutDetails(selectedYear, selectedMonth, selectedFilter)}
-//   style={{
-//     width: '100%',
-//     marginTop: '12px',
-//     backgroundColor: '#10b981',
-//     color: '#ffffff',
-//     padding: '10px 0',
-//     borderRadius: '8px',
-//     fontWeight: '600',
-//     border: 'none',
-//     cursor: 'pointer'
-//   }}
-// >
-//   Apply Filters
-// </button>
+//                   <button
+//                     onClick={() => fetchPayoutDetails(selectedYear, selectedMonth, selectedFilter)}
+//                     style={{
+//                       width: '100%',
+//                       marginTop: '12px',
+//                       backgroundColor: '#10b981',
+//                       color: '#ffffff',
+//                       padding: '10px 0',
+//                       borderRadius: '8px',
+//                       fontWeight: '600',
+//                       border: 'none',
+//                       cursor: 'pointer'
+//                     }}
+//                   >
+//                     Apply Filters
+//                   </button>
 //                 </div>
                 
 //                 {/* Summary Cards */}
@@ -755,21 +1074,40 @@
 //                   <ArrowDownTrayIcon className="w-4 h-4 inline mr-2" />
 //                   {downloading ? 'Downloading...' : 'Download Report'}
 //                 </button>
-//               <button
-//   onClick={() => setShowEarningsModal(false)}
-//   style={{ height: '45px', width: '120px' }}
-//   className={`flex-1 py-2 rounded-xl font-semibold transition ${
-//     isDark 
-//       ? 'bg-gray-700 text-white hover:bg-gray-600' 
-//       : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-//   }`}
-// >
-//   Close
-// </button>
+//                 <button
+//                   onClick={() => setShowEarningsModal(false)}
+//                   style={{ height: '45px', width: '120px' }}
+//                   className={`flex-1 py-2 rounded-xl font-semibold transition ${
+//                     isDark 
+//                       ? 'bg-gray-700 text-white hover:bg-gray-600' 
+//                       : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+//                   }`}
+//                 >
+//                   Close
+//                 </button>
 //               </div>
 //             </div>
 //           </div>
 //         )}
+
+//         {/* Permission Alert Dialog */}
+//         <IonAlert
+//           isOpen={showPermissionAlert}
+//           onDidDismiss={() => setShowPermissionAlert(false)}
+//           header="Permission Required"
+//           message={permissionMessage}
+//           buttons={[
+//             {
+//               text: 'Deny',
+//               role: 'cancel',
+//               handler: () => handlePermissionAlert('deny')
+//             },
+//             {
+//               text: 'Allow',
+//               handler: () => handlePermissionAlert('allow')
+//             }
+//           ]}
+//         />
 //       </IonContent>
 //     </IonPage>
 //   );
@@ -780,6 +1118,7 @@
 import React, { useState, useEffect } from 'react';
 import { IonPage, IonContent, IonAlert } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
+import { Preferences } from '@capacitor/preferences'; // Add this import
 import NavbarSidebar from '../../users/pages/Navbar';
 
 import {
@@ -799,9 +1138,7 @@ import {
   DocumentArrowDownIcon,
   CameraIcon,
   BellIcon,
-
   MapPinIcon,
-
 } from '@heroicons/react/24/outline';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -817,6 +1154,17 @@ import { Capacitor } from '@capacitor/core';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Helper function to get token from Preferences
+const getToken = async (): Promise<string | null> => {
+  try {
+    const { value } = await Preferences.get({ key: 'access_token' });
+    return value || null;
+  } catch (error) {
+    console.error('Error getting token:', error);
+    return null;
+  }
+};
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -845,7 +1193,7 @@ const API_BASE = "https://be.shuttleapp.transev.site";
 
 const Dashboard: React.FC = () => {
   const history = useHistory();
-  const token = localStorage.getItem('access_token');
+  const [token, setToken] = useState<string | null>(null);
 
   const [driverVerified, setDriverVerified] = useState(false);
   const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
@@ -866,6 +1214,7 @@ const Dashboard: React.FC = () => {
   const [currentPermissionRequest, setCurrentPermissionRequest] = useState<'location' | 'camera' | 'notification' | null>(null);
   const [permissionMessage, setPermissionMessage] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [permissionQueue, setPermissionQueue] = useState<Array<'location' | 'camera' | 'notification'>>([]);
 
   const isNative = Capacitor.isNativePlatform();
 
@@ -887,10 +1236,47 @@ const Dashboard: React.FC = () => {
     { value: '12', name: 'December' }
   ];
 
+  // Load token on mount
+  useEffect(() => {
+    const loadToken = async () => {
+      const accessToken = await getToken();
+      setToken(accessToken);
+    };
+    loadToken();
+  }, []);
+
   // ======================
-  // Permission Handlers
+  // Permission Handlers with Queue System
   // ======================
   
+  const processNextPermission = async () => {
+    if (permissionQueue.length === 0) return;
+    
+    const nextPermission = permissionQueue[0];
+    setCurrentPermissionRequest(nextPermission);
+    
+    let title = '';
+    let message = '';
+    
+    switch(nextPermission) {
+      case 'location':
+        title = '📍 Location Access Required';
+        message = 'Shuttle needs your location to track your trips, show your position on the map, and provide accurate navigation. This helps us ensure safe and efficient service.';
+        break;
+      case 'camera':
+        title = '📸 Camera Access Required';
+        message = 'Shuttle needs camera access to capture your documents for KYC verification and update your profile picture.';
+        break;
+      case 'notification':
+        title = '🔔 Notification Access Required';
+        message = 'Shuttle needs notification access to alert you about new trip requests, payment updates, and important announcements.';
+        break;
+    }
+    
+    setPermissionMessage(message);
+    setShowPermissionAlert(true);
+  };
+
   // Request Location Permission
   const requestLocationPermission = async () => {
     if (!isNative) {
@@ -920,23 +1306,18 @@ const Dashboard: React.FC = () => {
         if (result.location === 'granted') {
           setLocationPermissionGranted(true);
           await getCurrentLocation();
-        } else {
-          setPermissionMessage('Location permission is required to track your trips and show your position on the map.');
-          setShowPermissionAlert(true);
         }
       } else if (permission.location === 'granted') {
         setLocationPermissionGranted(true);
         await getCurrentLocation();
-      } else {
-        setPermissionMessage('Location permission is required. Please enable it in app settings.');
-        setShowPermissionAlert(true);
       }
     } catch (error) {
       console.error('Error requesting location permission:', error);
-      setPermissionMessage('Failed to get location permission. Please check your device settings.');
-      setShowPermissionAlert(true);
     } finally {
       setLoadingLocation(false);
+      // Remove from queue and process next
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
     }
   };
 
@@ -967,6 +1348,8 @@ const Dashboard: React.FC = () => {
   const requestCameraPermission = async () => {
     if (!isNative) {
       setCameraPermissionGranted(true);
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
       return;
     }
 
@@ -977,18 +1360,15 @@ const Dashboard: React.FC = () => {
         const result = await Camera.requestPermissions();
         if (result.camera === 'granted') {
           setCameraPermissionGranted(true);
-        } else {
-          setPermissionMessage('Camera permission is required to upload documents and profile pictures.');
-          setShowPermissionAlert(true);
         }
       } else if (permission.camera === 'granted') {
         setCameraPermissionGranted(true);
-      } else {
-        setPermissionMessage('Camera permission is required. Please enable it in app settings.');
-        setShowPermissionAlert(true);
       }
     } catch (error) {
       console.error('Error requesting camera permission:', error);
+    } finally {
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
     }
   };
 
@@ -996,66 +1376,62 @@ const Dashboard: React.FC = () => {
   const requestNotificationPermission = async () => {
     if (!isNative) {
       setNotificationPermissionGranted(true);
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
       return;
     }
 
     try {
-      const permission = await LocalNotifications.requestPermissions();
+      const permission = await LocalNotifications.checkPermissions();
       
-      if (permission.display === 'granted') {
+      if (permission.display === 'prompt') {
+        const result = await LocalNotifications.requestPermissions();
+        if (result.display === 'granted') {
+          setNotificationPermissionGranted(true);
+          
+          // Register for push notifications
+          await LocalNotifications.registerActionTypes({
+            types: [
+              {
+                id: 'trip_update',
+                actions: [
+                  { id: 'accept', title: 'Accept' },
+                  { id: 'reject', title: 'Reject', destructive: true }
+                ]
+              }
+            ]
+          });
+        }
+      } else if (permission.display === 'granted') {
         setNotificationPermissionGranted(true);
-        
-        // Register for push notifications
-        await LocalNotifications.registerActionTypes({
-          types: [
-            {
-              id: 'trip_update',
-              actions: [
-                { id: 'accept', title: 'Accept' },
-                { id: 'reject', title: 'Reject', destructive: true }
-              ]
-            }
-          ]
-        });
-      } else {
-        setPermissionMessage('Notification permission is required to receive trip alerts and updates.');
-        setShowPermissionAlert(true);
       }
     } catch (error) {
       console.error('Error requesting notification permission:', error);
+    } finally {
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
     }
   };
 
-  // Show permission prompt
-  const showPermissionPrompt = (type: 'location' | 'camera' | 'notification') => {
-    setCurrentPermissionRequest(type);
-    let message = '';
-    let title = '';
+  // Show sequential permission prompts
+  const showSequentialPermissions = () => {
+    const permissionsToRequest: Array<'location' | 'camera' | 'notification'> = [];
     
-    switch(type) {
-      case 'location':
-        title = 'Location Access Required';
-        message = 'Shuttle needs your location to track your trips, show your position on the map, and provide accurate navigation. This helps us ensure safe and efficient service.';
-        break;
-      case 'camera':
-        title = 'Camera Access Required';
-        message = 'Shuttle needs camera access to capture your documents for KYC verification and update your profile picture.';
-        break;
-      case 'notification':
-        title = 'Notification Access Required';
-        message = 'Shuttle needs notification access to alert you about new trip requests, payment updates, and important announcements.';
-        break;
+    if (!locationPermissionGranted) permissionsToRequest.push('location');
+    if (!cameraPermissionGranted) permissionsToRequest.push('camera');
+    if (!notificationPermissionGranted) permissionsToRequest.push('notification');
+    
+    if (permissionsToRequest.length > 0) {
+      setPermissionQueue(permissionsToRequest);
+      processNextPermission();
     }
-    
-    setPermissionMessage(message);
-    setShowPermissionAlert(true);
   };
 
   // Handle permission alert response
   const handlePermissionAlert = async (action: 'allow' | 'deny') => {
     setShowPermissionAlert(false);
     
-    if (action === 'allow') {
+    if (action === 'allow' && currentPermissionRequest) {
       switch(currentPermissionRequest) {
         case 'location':
           await requestLocationPermission();
@@ -1067,6 +1443,10 @@ const Dashboard: React.FC = () => {
           await requestNotificationPermission();
           break;
       }
+    } else {
+      // User denied, just move to next permission
+      setPermissionQueue(prev => prev.slice(1));
+      processNextPermission();
     }
     
     setCurrentPermissionRequest(null);
@@ -1093,25 +1473,22 @@ const Dashboard: React.FC = () => {
     if (locationStatus.location === 'granted') {
       setLocationPermissionGranted(true);
       await getCurrentLocation();
-    } else if (locationStatus.location === 'prompt') {
-      showPermissionPrompt('location');
     }
 
     // Check Camera
     const cameraStatus = await Camera.checkPermissions();
     if (cameraStatus.camera === 'granted') {
       setCameraPermissionGranted(true);
-    } else if (cameraStatus.camera === 'prompt') {
-      showPermissionPrompt('camera');
     }
 
     // Check Notifications
     const notificationStatus = await LocalNotifications.checkPermissions();
     if (notificationStatus.display === 'granted') {
       setNotificationPermissionGranted(true);
-    } else if (notificationStatus.display === 'prompt') {
-      showPermissionPrompt('notification');
     }
+
+    // Show sequential permissions for missing ones
+    showSequentialPermissions();
   };
 
   // Start location tracking interval
@@ -1150,6 +1527,7 @@ const Dashboard: React.FC = () => {
   // Fetch verification status
   useEffect(() => {
     const fetchProfile = async () => {
+      if (!token) return;
       try {
         const res = await fetch(`${API_BASE}/driver-profile/me`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -1167,6 +1545,7 @@ const Dashboard: React.FC = () => {
   // Fetch driver stats
   useEffect(() => {
     const fetchStats = async () => {
+      if (!token) return;
       try {
         const res = await fetch(`${API_BASE}/driver/stats`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -1182,6 +1561,7 @@ const Dashboard: React.FC = () => {
 
   // Fetch payout details
   const fetchPayoutDetails = async (year: string, month: string, filterType: 'month' | 'year' = 'month') => {
+    if (!token) return;
     try {
       let url = `${API_BASE}/driver/trips/payout-details?`;
       
@@ -1202,10 +1582,10 @@ const Dashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (driverVerified) {
+    if (driverVerified && token) {
       fetchPayoutDetails(selectedYear, selectedMonth, selectedFilter);
     }
-  }, [driverVerified, selectedYear, selectedMonth, selectedFilter]);
+  }, [driverVerified, selectedYear, selectedMonth, selectedFilter, token]);
 
   // Initialize permissions on mount
   useEffect(() => {
@@ -1229,6 +1609,7 @@ const Dashboard: React.FC = () => {
 
   // Download earnings report
   const downloadEarningsReport = async () => {
+    if (!token) return;
     setDownloading(true);
     try {
       let url = `${API_BASE}/driver/trips/payout-details?`;
@@ -1324,24 +1705,24 @@ const Dashboard: React.FC = () => {
               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
                 locationPermissionGranted 
                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                  : 'bg-red-500/20 text-red-600 dark:text-red-400'
-              }`}>
-                  <MapPinIcon className="w-3 h-3" />
+                  : 'bg-red-500/20 text-red-600 dark:text-red-400 cursor-pointer'
+              }`} onClick={() => !locationPermissionGranted && showSequentialPermissions()}>
+                <MapPinIcon className="w-3 h-3" />
                 <span>Location {locationPermissionGranted ? '✓' : '✗'}</span>
               </div>
               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
                 cameraPermissionGranted 
                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                  : 'bg-red-500/20 text-red-600 dark:text-red-400'
-              }`}>
+                  : 'bg-red-500/20 text-red-600 dark:text-red-400 cursor-pointer'
+              }`} onClick={() => !cameraPermissionGranted && showSequentialPermissions()}>
                 <CameraIcon className="w-3 h-3" />
                 <span>Camera {cameraPermissionGranted ? '✓' : '✗'}</span>
               </div>
               <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs ${
                 notificationPermissionGranted 
                   ? 'bg-green-500/20 text-green-600 dark:text-green-400' 
-                  : 'bg-red-500/20 text-red-600 dark:text-red-400'
-              }`}>
+                  : 'bg-red-500/20 text-red-600 dark:text-red-400 cursor-pointer'
+              }`} onClick={() => !notificationPermissionGranted && showSequentialPermissions()}>
                 <BellIcon className="w-3 h-3" />
                 <span>Notifications {notificationPermissionGranted ? '✓' : '✗'}</span>
               </div>
@@ -1350,7 +1731,7 @@ const Dashboard: React.FC = () => {
 
           {/* Header */}
           <div className="mb-6">
-            <h1 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            <h1 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-black' : 'text-gray-800'}`}>
               Welcome Back, Driver! 👋
             </h1>
             <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1`}>
@@ -1590,7 +1971,7 @@ const Dashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                   {!locationPermissionGranted && (
                     <button
-                      onClick={() => showPermissionPrompt('location')}
+                      onClick={() => showSequentialPermissions()}
                       style={{
                         background: '#10b981',
                         color: 'white',
@@ -1821,7 +2202,28 @@ const Dashboard: React.FC = () => {
                             <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
                               Trip #{item.trip_id?.slice(0, 8) || 'N/A'}
                             </p>
-                            <p className="text-xs text-gray-500">{item.trip_date || 'Date not available'}</p>
+                         <div>
+  {item.planned_start_at ? (
+    <>
+      <p className="text-xs text-gray-500">
+        📅 {new Date(item.planned_start_at).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        })}
+      </p>
+      <p className="text-xs text-gray-500 mt-1">
+        🕒 {new Date(item.planned_start_at).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        })}
+      </p>
+    </>
+  ) : (
+    <p className="text-xs text-gray-500">Date not available</p>
+  )}
+</div>
                           </div>
                           <div className="text-right">
                             <p className="text-lg font-bold text-emerald-500">₹{item.driver_payout_amount || 0}</p>
