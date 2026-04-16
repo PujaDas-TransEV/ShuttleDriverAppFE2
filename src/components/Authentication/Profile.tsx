@@ -1,6 +1,6 @@
 import React, { useState, useEffect, ChangeEvent } from 'react';
 import { IonPage, IonContent, IonLoading, IonToast } from '@ionic/react';
-import { Preferences } from '@capacitor/preferences'; // Add this import
+import { Preferences } from '@capacitor/preferences';
 import NavbarSidebar from '../users/pages/Navbar';
 import { 
   UserCircleIcon, 
@@ -11,7 +11,14 @@ import {
   PencilSquareIcon,
   XMarkIcon,
   CheckIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  TruckIcon,
+  ShieldCheckIcon,
+  ExclamationTriangleIcon,
+  ClockIcon,
+  CalendarIcon,
+  DocumentCheckIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
@@ -28,9 +35,15 @@ const getToken = async (): Promise<string | null> => {
   }
 };
 
-// ================================
-// ProfileSetup page
-// ================================
+// Vehicle Inspection Status Interface
+interface VehicleInspection {
+  vehicle_id: string;
+  inspection_status: 'pending' | 'approved' | 'rejected' | 'expired';
+  inspection_reason: string | null;
+  inspection_created_at: string | null;
+  inspection_reviewed_at: string | null;
+}
+
 const ProfileSetup: React.FC = () => {
   const [profile, setProfile] = useState({
     id: '',
@@ -52,6 +65,11 @@ const ProfileSetup: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
   const [token, setToken] = useState<string | null>(null);
+  
+  // Vehicle Inspection State
+  const [vehicleInspection, setVehicleInspection] = useState<VehicleInspection | null>(null);
+  const [loadingInspection, setLoadingInspection] = useState(false);
+  const [showInspectionDetails, setShowInspectionDetails] = useState(false);
 
   // ======================
   // Get token on component mount
@@ -73,6 +91,7 @@ const ProfileSetup: React.FC = () => {
   useEffect(() => {
     if (token) {
       fetchProfile();
+      fetchVehicleInspection();
     }
   }, [token]);
 
@@ -101,7 +120,6 @@ const ProfileSetup: React.FC = () => {
       });
       
       if (res.status === 404) {
-        // Profile not created yet
         setIsCreated(false);
         setLoading(false);
         return;
@@ -142,6 +160,43 @@ const ProfileSetup: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ======================
+  // Fetch Vehicle Inspection Status
+  // ======================
+  const fetchVehicleInspection = async () => {
+    if (!token) return;
+    
+    setLoadingInspection(true);
+    try {
+      const response = await fetch(`${API_BASE}/driver/vehicle/inspection-status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.status === 404) {
+        console.log("No vehicle inspection data found");
+        setVehicleInspection(null);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch inspection status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("Vehicle inspection data:", data);
+      setVehicleInspection(data);
+      
+    } catch (error) {
+      console.error("Error fetching vehicle inspection:", error);
+      // Don't show toast for this as it's not critical
+    } finally {
+      setLoadingInspection(false);
     }
   };
 
@@ -223,6 +278,7 @@ const ProfileSetup: React.FC = () => {
         setIsEditing(false);
         setTimeout(() => {
           fetchProfile();
+          fetchVehicleInspection();
         }, 500);
       } else {
         setToastMsg(data.detail?.message || data.message || "Failed to create profile");
@@ -283,6 +339,7 @@ const ProfileSetup: React.FC = () => {
         setIsEditing(false);
         setTimeout(() => {
           fetchProfile();
+          fetchVehicleInspection();
         }, 500);
       } else {
         setToastMsg(data.detail?.message || data.message || "Failed to update profile");
@@ -306,6 +363,108 @@ const ProfileSetup: React.FC = () => {
     }
   };
 
+  // ======================
+  // Calculate next inspection due date (15 days after inspection_reviewed_at)
+  // ======================
+  const getNextInspectionDueDate = (): string | null => {
+    if (!vehicleInspection?.inspection_reviewed_at) return null;
+    
+    const reviewedDate = new Date(vehicleInspection.inspection_reviewed_at);
+    const nextDueDate = new Date(reviewedDate);
+    nextDueDate.setDate(reviewedDate.getDate() + 15);
+    
+    return nextDueDate.toISOString();
+  };
+
+  // ======================
+  // Get Days Until Due
+  // ======================
+  const getDaysUntilDue = (): number | null => {
+    const nextDueDateStr = getNextInspectionDueDate();
+    if (!nextDueDateStr) return null;
+    
+    const dueDate = new Date(nextDueDateStr);
+    const today = new Date();
+    // Reset time part for accurate day calculation
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = dueDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  };
+
+  // ======================
+  // Get Inspection Status Badge
+  // ======================
+  const getInspectionStatusBadge = () => {
+    if (!vehicleInspection) {
+      return { 
+        color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400', 
+        icon: null, 
+        text: 'No Vehicle Assigned',
+        borderColor: 'border-gray-300 dark:border-gray-600'
+      };
+    }
+    
+    switch(vehicleInspection.inspection_status) {
+      case 'approved':
+        return { 
+          color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', 
+          icon: ShieldCheckIcon, 
+          text: 'Inspection Approved',
+          borderColor: 'border-green-500 dark:border-green-400'
+        };
+      case 'pending':
+        return { 
+          color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', 
+          icon: ClockIcon, 
+          text: 'Inspection Pending',
+          borderColor: 'border-yellow-500 dark:border-yellow-400'
+        };
+      case 'rejected':
+        return { 
+          color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400', 
+          icon: ExclamationTriangleIcon, 
+          text: 'Inspection Rejected',
+          borderColor: 'border-red-500 dark:border-red-400'
+        };
+      case 'expired':
+        return { 
+          color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400', 
+          icon: ExclamationTriangleIcon, 
+          text: 'Inspection Expired',
+          borderColor: 'border-orange-500 dark:border-orange-400'
+        };
+      default:
+        return { 
+          color: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400', 
+          icon: null, 
+          text: 'Unknown Status',
+          borderColor: 'border-gray-300 dark:border-gray-600'
+        };
+    }
+  };
+
+  // ======================
+  // Format Date
+  // ======================
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return 'Not scheduled';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
   const getVerificationBadge = () => {
     switch(profile.verification_status) {
       case 'verified':
@@ -318,6 +477,12 @@ const ProfileSetup: React.FC = () => {
   };
 
   const verificationBadge = getVerificationBadge();
+  const inspectionBadge = getInspectionStatusBadge();
+  const daysUntilDue = getDaysUntilDue();
+  const nextInspectionDate = getNextInspectionDueDate();
+  const isExpired = daysUntilDue !== null && daysUntilDue < 0;
+  const isDueSoon = daysUntilDue !== null && daysUntilDue >= 0 && daysUntilDue <= 15;
+
   const displayImage = imagePreview || profileImageUrl;
 
   // Show loading while getting token
@@ -357,6 +522,180 @@ const ProfileSetup: React.FC = () => {
               {isCreated ? "View and manage your driver information" : "Fill in your details to get started"}
             </p>
           </div>
+
+          {/* Vehicle Inspection Card - Only show when profile is created and vehicle assigned */}
+       {isCreated && vehicleInspection && vehicleInspection.vehicle_id && (
+  <div className={`mb-6 rounded-2xl border-2 ${inspectionBadge.borderColor} overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl`}>
+    <div className={`p-5 ${inspectionBadge.color.replace('text', 'bg').replace('dark:text', 'dark:bg')} bg-opacity-10 dark:bg-opacity-10`}>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-12 h-12 rounded-full ${inspectionBadge.color} flex items-center justify-center shadow-md`}>
+            {inspectionBadge.icon ? (
+              <inspectionBadge.icon className="w-6 h-6" />
+            ) : (
+              <TruckIcon className="w-6 h-6" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Vehicle Inspection Status
+            </h3>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${inspectionBadge.color}`}>
+                {inspectionBadge.text}
+              </span>
+              {!isExpired && daysUntilDue !== null && daysUntilDue <= 15 && daysUntilDue > 0 && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                  <ClockIcon className="w-3 h-3" />
+                  Due in {daysUntilDue} days
+                </span>
+              )}
+              {isExpired && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                  <ExclamationTriangleIcon className="w-3 h-3" />
+                  Overdue by {Math.abs(daysUntilDue!)} days
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowInspectionDetails(!showInspectionDetails)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 20px',
+            height: '42px',
+            background: document.documentElement.classList.contains('dark') ? '#374151' : '#f3f4f6',
+            color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#374151',
+            fontWeight: '600',
+            fontSize: '14px',
+            borderRadius: '12px',
+            border: `1px solid ${document.documentElement.classList.contains('dark') ? '#4b5563' : '#e5e7eb'}`,
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+          }}
+          onMouseEnter={(e) => {
+            const isDark = document.documentElement.classList.contains('dark');
+            e.currentTarget.style.background = isDark ? '#4b5563' : '#e5e7eb';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            const isDark = document.documentElement.classList.contains('dark');
+            e.currentTarget.style.background = isDark ? '#374151' : '#f3f4f6';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 1px 2px 0 rgba(0, 0, 0, 0.05)';
+          }}
+        >
+          <EyeIcon style={{ width: '18px', height: '18px' }} />
+          {showInspectionDetails ? "Hide Details" : "View Details"}
+        </button>
+      </div>
+    </div>
+    
+    {/* Inspection Details - Expandable */}
+    {showInspectionDetails && (
+      <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm">
+            <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+              <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Inspection Date</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                {formatDate(vehicleInspection.inspection_reviewed_at)}
+              </p>
+              {vehicleInspection.inspection_reviewed_at && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
+                  <CheckBadgeIcon className="w-3 h-3" />
+                  Vehicle was inspected on this date
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm">
+            <div className={`w-8 h-8 rounded-full ${isExpired ? 'bg-red-100 dark:bg-red-900/30' : isDueSoon ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-green-100 dark:bg-green-900/30'} flex items-center justify-center shrink-0`}>
+              <CalendarIcon className={`w-4 h-4 ${isExpired ? 'text-red-600 dark:text-red-400' : isDueSoon ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Next Inspection Due Date</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                {formatDate(nextInspectionDate)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Due 15 days after last inspection
+              </p>
+              {isDueSoon && daysUntilDue !== null && daysUntilDue > 0 && (
+                <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
+                  <ClockIcon className="w-3 h-3" />
+                  ⚠️ Vehicle inspection due in {daysUntilDue} days. Please schedule an inspection.
+                </p>
+              )}
+              {isExpired && daysUntilDue !== null && (
+                <p className="text-xs text-red-600 dark:text-red-400 mt-2 flex items-center gap-1">
+                  <ExclamationTriangleIcon className="w-3 h-3" />
+                  ❌ Vehicle inspection is overdue by {Math.abs(daysUntilDue)} days! Please get your vehicle inspected immediately.
+                </p>
+              )}
+              {vehicleInspection.inspection_status === 'approved' && !isDueSoon && !isExpired && daysUntilDue !== null && daysUntilDue > 15 && (
+                <p className="text-xs text-green-600 dark:text-green-400 mt-2 flex items-center gap-1">
+                  <ShieldCheckIcon className="w-3 h-3" />
+                  ✅ Vehicle inspection is valid for {daysUntilDue} more days
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {vehicleInspection.inspection_reason && (
+            <div className="flex items-start gap-3 md:col-span-2 p-3 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
+                <DocumentCheckIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inspection Rejected Reason</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                  {vehicleInspection.inspection_reason}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {vehicleInspection.inspection_created_at && (
+            <div className="flex items-start gap-3 md:col-span-2 p-3 rounded-xl bg-white/50 dark:bg-gray-800/30 backdrop-blur-sm">
+              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                <ClockIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Inspection Request Date</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white mt-1">
+                  {formatDate(vehicleInspection.inspection_created_at)}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+      
+      </div>
+    )}
+  </div>
+)}
+
+          {/* No Vehicle Assigned Message */}
+          {isCreated && (!vehicleInspection || !vehicleInspection.vehicle_id) && !loadingInspection && (
+            <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-5 text-center">
+              <TruckIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No Vehicle Assigned</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                No vehicle has been assigned to you yet. Please contact the administrator.
+              </p>
+            </div>
+          )}
 
           {/* Main Profile Card */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -516,7 +855,7 @@ const ProfileSetup: React.FC = () => {
                         placeholder="Enter your full name"
                         className="w-full pl-11 pr-4 py-3 rounded-xl 
                                    border border-gray-300 dark:border-gray-600 
-                                   bg-white dark:bg-gray-400 
+                                   bg-white dark:bg-gray-700 
                                    text-gray-900 dark:text-gray-100 
                                    placeholder-gray-400 dark:placeholder-gray-500
                                    focus:outline-none
@@ -542,7 +881,7 @@ const ProfileSetup: React.FC = () => {
                         placeholder="Enter your phone number"
                         className="w-full pl-11 pr-4 py-3 rounded-xl 
                                    border border-gray-300 dark:border-gray-600 
-                                   bg-white dark:bg-gray-400 
+                                   bg-white dark:bg-gray-700 
                                    text-gray-900 dark:text-white 
                                    placeholder-gray-400 dark:placeholder-gray-400
                                    focus:outline-none
@@ -724,7 +1063,7 @@ const ProfileSetup: React.FC = () => {
           )}
         </div>
 
-        <IonLoading isOpen={loading} message="Saving profile..." />
+        <IonLoading isOpen={loading || loadingInspection} message="Loading..." />
         <IonToast
           isOpen={!!toastMsg}
           message={toastMsg}
