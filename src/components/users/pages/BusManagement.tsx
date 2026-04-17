@@ -612,7 +612,7 @@ const DriverVehicle: React.FC = () => {
                           value={formVehicle[field]}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                                   bg-white dark:bg-gray-500 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
@@ -626,7 +626,7 @@ const DriverVehicle: React.FC = () => {
                         value={formVehicle.has_ac}
                         onChange={handleChange}
                         className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                                 bg-white dark:bg-gray-500 text-gray-900 dark:text-white
                                  focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                  transition-all duration-200 cursor-pointer"
                       >
@@ -645,7 +645,7 @@ const DriverVehicle: React.FC = () => {
                         onChange={(e) => setRegistrationValidTill(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                 bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                                 bg-white dark:bg-gray-500 text-gray-900 dark:text-white
                                  focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                  transition-all duration-200"
                       />

@@ -13,7 +13,9 @@ import {
   ExclamationTriangleIcon,
   MinusIcon,
   PlusIcon,
-  CalendarIcon
+  CalendarIcon,
+  HomeIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
@@ -41,6 +43,7 @@ const VehicleRegistration: React.FC = () => {
     vehicle_name: '',
     registration_number: '',
     registration_valid_till: '',
+    ownership_type: '',
   });
 
   const [rearPhoto, setRearPhoto] = useState<File | null>(null);
@@ -52,7 +55,8 @@ const VehicleRegistration: React.FC = () => {
   const [toastMsg, setToastMsg] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [serverError, setServerError] = useState<string | null>(null);
-
+  const [authorizationFile, setAuthorizationFile] = useState<File | null>(null);
+    const [authorizationPreview, setAuthorizationPreview] = useState<string | null>(null);
   // Load token on mount
   useEffect(() => {
     const loadToken = async () => {
@@ -78,7 +82,7 @@ const VehicleRegistration: React.FC = () => {
     }));
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: 'rear' | 'rc') => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: 'rear' | 'rc' | 'authorization') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -87,9 +91,12 @@ const VehicleRegistration: React.FC = () => {
     if (type === 'rear') {
       setRearPhoto(file);
       setRearPreview(url);
-    } else {
+    } else if (type === 'rc') {
       setRcFile(file);
       setRcPreview(url);
+    } else if (type === 'authorization') {
+      setAuthorizationFile(file);
+      setAuthorizationPreview(url);
     }
   };
 
@@ -136,6 +143,11 @@ const VehicleRegistration: React.FC = () => {
       formData.append("vehicle_name", vehicle.vehicle_name);
       formData.append("registration_number", vehicle.registration_number);
       formData.append("registration_valid_till", vehicle.registration_valid_till);
+       formData.append("ownership_type", vehicle.ownership_type);
+         // Only append authorization_file for rented vehicles
+      if (authorizationFile && vehicle.ownership_type === 'rented') {
+        formData.append("authentication_file", authorizationFile); // Note: backend expects 'authentication_file'
+      }
       if (rearPhoto) formData.append("rear_photo", rearPhoto);
       if (rcFile) formData.append("rc_file", rcFile);
 
@@ -423,6 +435,124 @@ const VehicleRegistration: React.FC = () => {
     Select the date when your vehicle registration expires
   </p>
 </div>
+   {/* Ownership Type Selection */}
+              <div className="space-y-3 pt-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Ownership Type <span className="text-red-500">*</span>
+                </label>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setVehicle({ ...vehicle, ownership_type: 'self' })}
+                    className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
+                              ${vehicle.ownership_type === 'self' 
+                                ? 'border-black dark:border-white bg-black/5 dark:bg-white/10 shadow-lg transform scale-[1.02]' 
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'bg-black dark:bg-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                        <HomeIcon className={`w-5 h-5 transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'text-white dark:text-black' : 'text-gray-600 dark:text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                          Self-Owned
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Vehicle is personally owned by you. No additional authorization document required.
+                        </p>
+                      </div>
+                      {vehicle.ownership_type === 'self' && (
+                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                      )}
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVehicle({ ...vehicle, ownership_type: 'rented' })}
+                    className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
+                              ${vehicle.ownership_type === 'rented' 
+                                ? 'border-black dark:border-white bg-black/5 dark:bg-white/10 shadow-lg transform scale-[1.02]' 
+                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'bg-black dark:bg-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                        <KeyIcon className={`w-5 h-5 transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'text-white dark:text-black' : 'text-gray-600 dark:text-gray-400'}`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                          Rented/Leased
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Vehicle is rented or leased. Authorization document from owner is required.
+                        </p>
+                      </div>
+                      {vehicle.ownership_type === 'rented' && (
+                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                      )}
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Authorization Document Upload (Only for rented vehicles) */}
+              {vehicle.ownership_type === 'rented' && (
+                <div className="space-y-3 animate-fadeInUp">
+                  <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                      Authorization Document <span className="text-red-500">*</span>
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      <DocumentTextIcon className="inline w-4 h-4 mr-2" />
+                      Owner Authorization Letter/Agreement
+                    </label>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <label className="flex-1 max-w-md px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 
+                                      rounded-xl bg-gray-50 dark:bg-gray-800/50 
+                                      flex items-center justify-between cursor-pointer
+                                      hover:border-black dark:hover:border-white hover:bg-gray-100 dark:hover:bg-gray-700
+                                      transition-all duration-200 group">
+                        <input 
+                          type="file" 
+                          accept="image/*,application/pdf" 
+                          onChange={(e) => handleFileChange(e, "authorization")} 
+                          className="hidden" 
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-300">
+                          {authorizationPreview ? "File selected: " + (authorizationFile?.name || "Document") : "Click to upload authorization document"}
+                        </span>
+                        {authorizationPreview && (
+                          <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        )}
+                      </label>
+                      {authorizationPreview && (
+                        <button
+                          onClick={() => {
+                            setAuthorizationFile(null);
+                            setAuthorizationPreview(null);
+                          }}
+                          className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 transition"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Upload rental agreement or authorization letter from vehicle owner. Supported formats: JPG, PNG, PDF (Max 5MB)
+                    </p>
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-2">
+                        <ExclamationTriangleIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5" />
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          This document is mandatory for rented vehicles. It should clearly state the owner's consent for using the vehicle for shuttle services.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Document Uploads */}
               <div className="space-y-4 pt-4">

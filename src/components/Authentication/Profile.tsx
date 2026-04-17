@@ -691,7 +691,7 @@ const ProfileSetup: React.FC = () => {
             <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-5 text-center">
               <TruckIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No Vehicle Assigned</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500 dark:text-gray-600">
                 No vehicle has been assigned to you yet. Please contact the administrator.
               </p>
             </div>
