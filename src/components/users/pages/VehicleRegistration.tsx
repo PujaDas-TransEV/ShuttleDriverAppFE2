@@ -15,7 +15,12 @@ import {
   PlusIcon,
   CalendarIcon,
   HomeIcon,
-  KeyIcon
+  KeyIcon,
+  ArrowRightIcon,
+  DocumentDuplicateIcon,
+  XMarkIcon,
+  PhotoIcon,
+  CloudArrowUpIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
@@ -29,6 +34,20 @@ const getToken = async (): Promise<string | null> => {
     console.error('Error getting token:', error);
     return null;
   }
+};
+
+// RC Number Validation Function
+const isValidRCNumber = (value: string): boolean => {
+  if (!value || typeof value !== 'string') return false;
+  
+  const raw = value.trim().toUpperCase();
+  if (!raw) return false;
+  
+  const normalized = raw.replace(/[\s-]/g, '');
+  const standardPattern = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{4}$/;
+  const bhPattern = /^\d{2}BH\d{4}[A-HJ-NP-Z]{1,2}$/;
+  
+  return standardPattern.test(normalized) || bhPattern.test(normalized);
 };
 
 const VehicleRegistration: React.FC = () => {
@@ -46,17 +65,41 @@ const VehicleRegistration: React.FC = () => {
     ownership_type: '',
   });
 
+  // Owner details for rented vehicles
+  const [ownerName, setOwnerName] = useState<string>('');
+  
+  // File states
   const [rearPhoto, setRearPhoto] = useState<File | null>(null);
   const [rcFile, setRcFile] = useState<File | null>(null);
+  const [authorizationFile, setAuthorizationFile] = useState<File | null>(null);
+  const [frontPhoto, setFrontPhoto] = useState<File | null>(null);
+  const [interiorPhoto, setInteriorPhoto] = useState<File | null>(null);
+  const [leftSidePhoto, setLeftSidePhoto] = useState<File | null>(null);
+  const [rightSidePhoto, setRightSidePhoto] = useState<File | null>(null);
+  const [insuranceDocument, setInsuranceDocument] = useState<File | null>(null);
+  const [pollutionDocument, setPollutionDocument] = useState<File | null>(null);
+  const [ownerAadhaarCard, setOwnerAadhaarCard] = useState<File | null>(null);
+  
+  // Preview states
   const [rearPreview, setRearPreview] = useState<string | null>(null);
   const [rcPreview, setRcPreview] = useState<string | null>(null);
+  const [authorizationPreview, setAuthorizationPreview] = useState<string | null>(null);
+  const [frontPreview, setFrontPreview] = useState<string | null>(null);
+  const [interiorPreview, setInteriorPreview] = useState<string | null>(null);
+  const [leftSidePreview, setLeftSidePreview] = useState<string | null>(null);
+  const [rightSidePreview, setRightSidePreview] = useState<string | null>(null);
+  const [insurancePreview, setInsurancePreview] = useState<string | null>(null);
+  const [pollutionPreview, setPollutionPreview] = useState<string | null>(null);
+  const [aadhaarPreview, setAadhaarPreview] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [serverError, setServerError] = useState<string | null>(null);
-  const [authorizationFile, setAuthorizationFile] = useState<File | null>(null);
-    const [authorizationPreview, setAuthorizationPreview] = useState<string | null>(null);
+  const [rcValidationError, setRcValidationError] = useState<string>('');
+  const [isRcValid, setIsRcValid] = useState<boolean>(false);
+  const [isHovered, setIsHovered] = useState(false);
+
   // Load token on mount
   useEffect(() => {
     const loadToken = async () => {
@@ -72,7 +115,29 @@ const VehicleRegistration: React.FC = () => {
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setVehicle({ ...vehicle, [name]: name === 'seat_count' ? Number(value) : value });
+    
+    if (name === 'registration_number') {
+      const formattedValue = value.toUpperCase();
+      setVehicle({ ...vehicle, registration_number: formattedValue });
+      
+      if (formattedValue && formattedValue.trim()) {
+        const isValid = isValidRCNumber(formattedValue);
+        if (!isValid) {
+          setRcValidationError('Invalid registration number format');
+          setIsRcValid(false);
+        } else {
+          setRcValidationError('');
+          setIsRcValid(true);
+        }
+      } else {
+        setRcValidationError('');
+        setIsRcValid(false);
+      }
+    } else if (name === 'hasAc') {
+      setVehicle({ ...vehicle, hasAc: value });
+    } else {
+      setVehicle({ ...vehicle, [name]: name === 'seat_count' ? Number(value) : value });
+    }
   };
 
   const handleSeatCountChange = (increment: boolean) => {
@@ -82,21 +147,58 @@ const VehicleRegistration: React.FC = () => {
     }));
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: 'rear' | 'rc' | 'authorization') => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: string) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('File size must be less than 5MB', 'error');
+      return;
+    }
+
     const url = URL.createObjectURL(file);
 
-    if (type === 'rear') {
-      setRearPhoto(file);
-      setRearPreview(url);
-    } else if (type === 'rc') {
-      setRcFile(file);
-      setRcPreview(url);
-    } else if (type === 'authorization') {
-      setAuthorizationFile(file);
-      setAuthorizationPreview(url);
+    switch(type) {
+      case 'rear':
+        setRearPhoto(file);
+        setRearPreview(url);
+        break;
+      case 'rc':
+        setRcFile(file);
+        setRcPreview(url);
+        break;
+      case 'authorization':
+        setAuthorizationFile(file);
+        setAuthorizationPreview(url);
+        break;
+      case 'front':
+        setFrontPhoto(file);
+        setFrontPreview(url);
+        break;
+      case 'interior':
+        setInteriorPhoto(file);
+        setInteriorPreview(url);
+        break;
+      case 'left':
+        setLeftSidePhoto(file);
+        setLeftSidePreview(url);
+        break;
+      case 'right':
+        setRightSidePhoto(file);
+        setRightSidePreview(url);
+        break;
+      case 'insurance':
+        setInsuranceDocument(file);
+        setInsurancePreview(url);
+        break;
+      case 'pollution':
+        setPollutionDocument(file);
+        setPollutionPreview(url);
+        break;
+      case 'aadhaar':
+        setOwnerAadhaarCard(file);
+        setAadhaarPreview(url);
+        break;
     }
   };
 
@@ -105,91 +207,273 @@ const VehicleRegistration: React.FC = () => {
     setToastMsg(message);
   };
 
-  const submitVehicle = async () => {
+  const removeFile = (type: string) => {
+    switch(type) {
+      case 'rear':
+        setRearPhoto(null);
+        setRearPreview(null);
+        break;
+      case 'rc':
+        setRcFile(null);
+        setRcPreview(null);
+        break;
+      case 'authorization':
+        setAuthorizationFile(null);
+        setAuthorizationPreview(null);
+        break;
+      case 'front':
+        setFrontPhoto(null);
+        setFrontPreview(null);
+        break;
+      case 'interior':
+        setInteriorPhoto(null);
+        setInteriorPreview(null);
+        break;
+      case 'left':
+        setLeftSidePhoto(null);
+        setLeftSidePreview(null);
+        break;
+      case 'right':
+        setRightSidePhoto(null);
+        setRightSidePreview(null);
+        break;
+      case 'insurance':
+        setInsuranceDocument(null);
+        setInsurancePreview(null);
+        break;
+      case 'pollution':
+        setPollutionDocument(null);
+        setPollutionPreview(null);
+        break;
+      case 'aadhaar':
+        setOwnerAadhaarCard(null);
+        setAadhaarPreview(null);
+        break;
+    }
+  };
+
+  const handleRegisterAndSubmit = async () => {
+    console.log("🚀 Register button clicked!");
     setServerError(null);
 
     if (!token) {
+      console.log("❌ No token found");
       setServerError("Session expired. Please login again.");
       showToast("Session expired. Please login again.", 'error');
       return;
     }
 
-    if (!vehicle.hasAc || !vehicle.vehicle_name || !vehicle.registration_number || !vehicle.vehicle_model) {
-      setServerError("Please fill all required fields.");
-      showToast("Please fill all required fields.", 'error');
+    console.log("✅ Token found:", token);
+
+    // Basic validations
+    if (!vehicle.hasAc) {
+      console.log("❌ Vehicle type not selected");
+      setServerError("Please select vehicle type.");
+      showToast("Please select vehicle type.", 'error');
+      return;
+    }
+
+    if (!vehicle.vehicle_name) {
+      console.log("❌ Vehicle name not entered");
+      setServerError("Please enter vehicle name.");
+      showToast("Please enter vehicle name.", 'error');
+      return;
+    }
+
+    if (!vehicle.registration_number) {
+      console.log("❌ Registration number not entered");
+      setServerError("Please enter registration number.");
+      showToast("Please enter registration number.", 'error');
+      return;
+    }
+
+    if (!vehicle.vehicle_model) {
+      console.log("❌ Vehicle model not entered");
+      setServerError("Please enter vehicle model.");
+      showToast("Please enter vehicle model.", 'error');
       return;
     }
 
     if (vehicle.seat_count <= 0) {
+      console.log("❌ Invalid seat count");
       setServerError("Seat count must be greater than 0.");
       showToast("Seat count must be greater than 0.", 'error');
       return;
     }
 
     if (!vehicle.registration_valid_till) {
+      console.log("❌ Registration valid till date not selected");
       setServerError("Registration valid till date is required.");
       showToast("Please select registration valid till date.", 'error');
       return;
     }
 
+    if (!vehicle.ownership_type) {
+      console.log("❌ Ownership type not selected");
+      setServerError("Please select ownership type.");
+      showToast("Please select ownership type.", 'error');
+      return;
+    }
+
+    if (!isValidRCNumber(vehicle.registration_number)) {
+      console.log("❌ Invalid RC number format");
+      setServerError("Invalid registration number format.");
+      showToast("Invalid registration number format.", 'error');
+      return;
+    }
+
+    if (!rcFile) {
+      console.log("❌ RC document not uploaded");
+      setServerError("RC document is required.");
+      showToast("Please upload RC document.", 'error');
+      return;
+    }
+
+    if (!rearPhoto) {
+      console.log("❌ Rear photo not uploaded");
+      setServerError("Rear photo is required.");
+      showToast("Please upload rear photo.", 'error');
+      return;
+    }
+
+    // Rented vehicle validations
+    if (vehicle.ownership_type === 'rented') {
+      if (!ownerName) {
+        console.log("❌ Owner name not entered for rented vehicle");
+        setServerError("Owner name is required for rented vehicle.");
+        showToast("Please enter owner name.", 'error');
+        return;
+      }
+      if (!ownerAadhaarCard) {
+        console.log("❌ Owner Aadhaar not uploaded for rented vehicle");
+        setServerError("Owner Aadhaar card is required for rented vehicle.");
+        showToast("Please upload owner's Aadhaar card.", 'error');
+        return;
+      }
+      if (!authorizationFile) {
+        console.log("❌ Authorization document not uploaded for rented vehicle");
+        setServerError("Authorization document is required for rented vehicle.");
+        showToast("Please upload authorization document.", 'error');
+        return;
+      }
+    }
+
+    // Self-owned vehicle validation
+    if (vehicle.ownership_type === 'self' && authorizationFile) {
+      console.log("❌ Authorization file uploaded for self-owned vehicle");
+      setServerError("Authorization document should not be uploaded for self-owned vehicle.");
+      showToast("Authorization document not allowed for self-owned vehicle.", 'error');
+      return;
+    }
+
+    console.log("✅ All validations passed!");
     setLoading(true);
 
     try {
+      // Step 1: Register Vehicle with all documents
       const formData = new FormData();
       formData.append("has_ac", vehicle.hasAc);
       formData.append("seat_count", String(vehicle.seat_count));
-      formData.append("color", vehicle.color);
+      formData.append("color", vehicle.color || '');
       formData.append("vehicle_model", vehicle.vehicle_model);
       formData.append("vehicle_name", vehicle.vehicle_name);
-      formData.append("registration_number", vehicle.registration_number);
+      formData.append("registration_number", vehicle.registration_number.toUpperCase());
       formData.append("registration_valid_till", vehicle.registration_valid_till);
-       formData.append("ownership_type", vehicle.ownership_type);
-         // Only append authorization_file for rented vehicles
+      formData.append("ownership_type", vehicle.ownership_type);
+      
+      if (ownerName) formData.append("owner_name", ownerName);
+      
+      // Required files
+      formData.append("rear_photo", rearPhoto);
+      formData.append("rc_file", rcFile);
+      
+      // Optional vehicle photos
+      if (frontPhoto) formData.append("front_photo", frontPhoto);
+      if (interiorPhoto) formData.append("interior_photo", interiorPhoto);
+      if (leftSidePhoto) formData.append("left_side_photo", leftSidePhoto);
+      if (rightSidePhoto) formData.append("right_side_photo", rightSidePhoto);
+      
+      // Documents
       if (authorizationFile && vehicle.ownership_type === 'rented') {
-        formData.append("authentication_file", authorizationFile); // Note: backend expects 'authentication_file'
+        formData.append("authentication_file", authorizationFile);
       }
-      if (rearPhoto) formData.append("rear_photo", rearPhoto);
-      if (rcFile) formData.append("rc_file", rcFile);
+      if (insuranceDocument) formData.append("insurance_document", insuranceDocument);
+      if (pollutionDocument) formData.append("pollution_document", pollutionDocument);
+      if (ownerAadhaarCard && vehicle.ownership_type === 'rented') {
+        formData.append("owner_aadhaar_card", ownerAadhaarCard);
+      }
 
-      const patchRes = await fetch(`${API_BASE}/driver/vehicle/register`, {
+      console.log("📝 Calling Register API: /driver/vehicle/register");
+      
+      const registerRes = await fetch(`${API_BASE}/driver/vehicle/register`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 
-      const patchData = await patchRes.json();
+      const registerData = await registerRes.json();
 
-      if (!patchRes.ok) {
-        setServerError(patchData.detail || "Vehicle update failed. Complete KYC first.");
-        showToast(patchData.detail || "Vehicle update failed. Complete KYC first.", 'error');
+      if (!registerRes.ok) {
+        console.error("❌ Register API failed:", registerData);
+        setServerError(registerData.detail || "Vehicle registration failed.");
+        showToast(registerData.detail || "Vehicle registration failed.", 'error');
+        setLoading(false);
         return;
       }
 
-      const postRes = await fetch(`${API_BASE}/driver/vehicle/submit`, {
+      console.log("✅ Register API success:", registerData);
+      showToast("Vehicle registered successfully! Submitting for approval...", 'success');
+
+      // Step 2: Submit Vehicle for approval
+      console.log("📝 Calling Submit API: /driver/vehicle/submit");
+      
+      const submitRes = await fetch(`${API_BASE}/driver/vehicle/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ registration_number: vehicle.registration_number }),
+        body: JSON.stringify({ registration_number: vehicle.registration_number.toUpperCase() }),
       });
 
-      const postData = await postRes.json();
+      const submitData = await submitRes.json();
 
-      if (postRes.ok) {
-        showToast("Vehicle registered successfully! Redirecting...", 'success');
+      if (submitRes.ok) {
+        console.log("✅ Submit API success:", submitData);
+        showToast("Vehicle submitted for approval successfully! Redirecting...", 'success');
         setTimeout(() => history.push("/bus-and-trip-management"), 1500);
       } else {
-        setServerError(postData.detail || "Vehicle submission failed.");
-        showToast(postData.detail || "Vehicle submission failed.", 'error');
+        console.error("❌ Submit API failed:", submitData);
+        setServerError(submitData.detail || "Vehicle submission failed.");
+        showToast(submitData.detail || "Vehicle submission failed.", 'error');
       }
     } catch (err) {
-      console.error(err);
-      setServerError("Unexpected error occurred. Try again later.");
-      showToast("Unexpected error occurred. Try again later.", 'error');
+      console.error("❌ Network Error:", err);
+      setServerError("Network error. Please check your connection and try again.");
+      showToast("Network error. Please check your connection and try again.", 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const isFormValid = () => {
+    const baseValid = 
+      vehicle.hasAc &&
+      vehicle.vehicle_name &&
+      vehicle.registration_number &&
+      vehicle.vehicle_model &&
+      vehicle.seat_count > 0 &&
+      vehicle.registration_valid_till &&
+      vehicle.ownership_type &&
+      isRcValid &&
+      rcFile &&
+      rearPhoto;
+    
+    if (vehicle.ownership_type === 'rented') {
+      return baseValid && ownerName && ownerAadhaarCard && authorizationFile;
+    }
+    
+    return baseValid;
   };
 
   return (
@@ -205,7 +489,7 @@ const VehicleRegistration: React.FC = () => {
               <TruckIcon className="w-4 h-4" />
               <span>Vehicle Registration</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-900 to-gray-800 dark:from-white dark:to-gray-800 bg-clip-text text-transparent mb-3">
+            <h1 className="text-4xl md:text-5xl font-bold bg-linear-to-r from-gray-800 to-gray-800 dark:from-white dark:to-gray-600 bg-clip-text text-transparent mb-3">
               Register Your Vehicle
             </h1>
             <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
@@ -234,7 +518,7 @@ const VehicleRegistration: React.FC = () => {
             </div>
 
             {/* Form Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               
               {/* Registration Number */}
               <div className="space-y-2">
@@ -248,15 +532,25 @@ const VehicleRegistration: React.FC = () => {
                     name="registration_number"
                     value={vehicle.registration_number}
                     onChange={handleChange}
-                    placeholder="e.g., WB 01 AB 1234"
-                    className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                             bg-white dark:bg-white-700 
-                             text-gray-900 dark:text-white
+                    placeholder="e.g., WB01AB1234"
+                    className={`w-full px-4 py-3 pl-10 rounded-xl border-2 transition-all duration-200
+                             bg-white dark:bg-white-800 
+                             text-gray-900 dark:text-white uppercase
                              placeholder:text-gray-400 dark:placeholder:text-gray-500
-                             focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
-                             transition-all duration-200"
+                             focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                             ${rcValidationError 
+                               ? 'border-red-500 focus:border-red-500' 
+                               : isRcValid && vehicle.registration_number
+                                 ? 'border-green-500 focus:border-green-500'
+                                 : 'border-gray-200 dark:border-gray-700 focus:border-black dark:focus:border-white'}`}
                   />
                 </div>
+                {rcValidationError && (
+                  <div className="flex items-start gap-2 mt-1">
+                    <ExclamationTriangleIcon className="w-4 h-4 text-red-500 mt-0.5" />
+                    <p className="text-sm text-red-600 dark:text-red-400">{rcValidationError}</p>
+                  </div>
+                )}
               </div>
 
               {/* Two Column Layout */}
@@ -276,9 +570,9 @@ const VehicleRegistration: React.FC = () => {
                              focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
                              transition-all duration-200 cursor-pointer"
                   >
-                    <option value="" disabled className="text-gray-500 dark:text-gray-400">Select type</option>
-                    <option value="true" className="text-gray-900 dark:text-black">❄️ AC Bus</option>
-                    <option value="false" className="text-gray-900 dark:text-black">☀️ Non-AC Bus</option>
+                    <option value="" disabled>Select type</option>
+                    <option value="true">❄️ AC Bus</option>
+                    <option value="false">☀️ Non-AC Bus</option>
                   </select>
                 </div>
 
@@ -292,7 +586,7 @@ const VehicleRegistration: React.FC = () => {
                       type="button"
                       onClick={() => handleSeatCountChange(false)}
                       className="w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                               bg-white dark:bg-gray-800 text-white-900 dark:text-white
+                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
                                hover:border-black dark:hover:border-white hover:bg-gray-50 dark:hover:bg-gray-700
                                transition-all duration-200 flex items-center justify-center
                                disabled:opacity-50 disabled:cursor-not-allowed"
@@ -381,7 +675,7 @@ const VehicleRegistration: React.FC = () => {
               {/* Color */}
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Vehicle Color
+                  Vehicle Color <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-3 items-center">
                   <input
@@ -406,36 +700,32 @@ const VehicleRegistration: React.FC = () => {
                 </div>
               </div>
 
-             {/* Registration Valid Till Date */}
-<div className="space-y-2">
-  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-    Registration Valid Till <span className="text-red-500">*</span>
-  </label>
-  <div className="relative">
-    <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-    <input
-      type="date"
-      name="registration_valid_till"
-      value={vehicle.registration_valid_till}
-      onChange={handleChange}
-      min={new Date().toISOString().split('T')[0]}
-      className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-600 
-               bg-white dark:bg-white 
-               text-gray-900 dark:text-gray-900
-               focus:border-black dark:focus:border-gray-400 focus:ring-2 focus:ring-black/20 dark:focus:ring-gray-400/20
-               transition-all duration-200
-               dark:scheme-light"
-      required
-      style={{
-        colorScheme: 'light'
-      }}
-    />
-  </div>
-  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-    Select the date when your vehicle registration expires
-  </p>
-</div>
-   {/* Ownership Type Selection */}
+              {/* Registration Valid Till Date */}
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Registration Valid Till <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <CalendarIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="date"
+                    name="registration_valid_till"
+                    value={vehicle.registration_valid_till}
+                    onChange={handleChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-gray-200 dark:border-gray-700 
+                             bg-white dark:bg-gray-400 
+                             text-gray-900 dark:text-white
+                             focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
+                             transition-all duration-200"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Select the date when your vehicle registration expires
+                </p>
+              </div>
+
+              {/* Ownership Type Selection */}
               <div className="space-y-3 pt-2">
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
                   Ownership Type <span className="text-red-500">*</span>
@@ -444,17 +734,31 @@ const VehicleRegistration: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setVehicle({ ...vehicle, ownership_type: 'self' })}
-                    className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
-                              ${vehicle.ownership_type === 'self' 
-                                ? 'border-black dark:border-white bg-black/5 dark:bg-white/10 shadow-lg transform scale-[1.02]' 
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'}`}
+                    className={`relative p-5 rounded-xl border-2 transition-all duration-300 text-left w-full
+                      ${vehicle.ownership_type === 'self' 
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg scale-[1.02] ring-2 ring-green-500/20' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                      }`}
+                    style={{ minHeight: '120px' }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'bg-black dark:bg-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                        <HomeIcon className={`w-5 h-5 transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'text-white dark:text-black' : 'text-gray-600 dark:text-gray-400'}`} />
+                      <div className={`p-2.5 rounded-lg transition-all duration-200
+                        ${vehicle.ownership_type === 'self' 
+                          ? 'bg-green-500 dark:bg-green-600' 
+                          : 'bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                        <HomeIcon className={`w-5 h-5 transition-all duration-200
+                          ${vehicle.ownership_type === 'self' 
+                            ? 'text-white' 
+                            : 'text-gray-600 dark:text-gray-400'
+                          }`} />
                       </div>
                       <div className="flex-1">
-                        <h3 className={`font-semibold transition-all duration-200 ${vehicle.ownership_type === 'self' ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <h3 className={`font-semibold transition-all duration-200 text-base
+                          ${vehicle.ownership_type === 'self' 
+                            ? 'text-green-700 dark:text-green-400' 
+                            : 'text-gray-700 dark:text-gray-300'
+                          }`}>
                           Self-Owned
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -462,7 +766,9 @@ const VehicleRegistration: React.FC = () => {
                         </p>
                       </div>
                       {vehicle.ownership_type === 'self' && (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        <div className="bg-green-500 rounded-full p-1">
+                          <CheckCircleIcon className="w-5 h-5 text-white" />
+                        </div>
                       )}
                     </div>
                   </button>
@@ -470,17 +776,31 @@ const VehicleRegistration: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setVehicle({ ...vehicle, ownership_type: 'rented' })}
-                    className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left
-                              ${vehicle.ownership_type === 'rented' 
-                                ? 'border-black dark:border-white bg-black/5 dark:bg-white/10 shadow-lg transform scale-[1.02]' 
-                                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'}`}
+                    className={`relative p-5 rounded-xl border-2 transition-all duration-300 text-left w-full
+                      ${vehicle.ownership_type === 'rented' 
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-lg scale-[1.02] ring-2 ring-green-500/20' 
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                      }`}
+                    style={{ minHeight: '120px' }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'bg-black dark:bg-white' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                        <KeyIcon className={`w-5 h-5 transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'text-white dark:text-black' : 'text-gray-600 dark:text-gray-400'}`} />
+                      <div className={`p-2.5 rounded-lg transition-all duration-200
+                        ${vehicle.ownership_type === 'rented' 
+                          ? 'bg-green-500 dark:bg-green-600' 
+                          : 'bg-gray-100 dark:bg-gray-800'
+                        }`}>
+                        <KeyIcon className={`w-5 h-5 transition-all duration-200
+                          ${vehicle.ownership_type === 'rented' 
+                            ? 'text-white' 
+                            : 'text-gray-600 dark:text-gray-400'
+                          }`} />
                       </div>
                       <div className="flex-1">
-                        <h3 className={`font-semibold transition-all duration-200 ${vehicle.ownership_type === 'rented' ? 'text-black dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <h3 className={`font-semibold transition-all duration-200 text-base
+                          ${vehicle.ownership_type === 'rented' 
+                            ? 'text-green-700 dark:text-green-400' 
+                            : 'text-gray-700 dark:text-gray-300'
+                          }`}>
                           Rented/Leased
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -488,168 +808,359 @@ const VehicleRegistration: React.FC = () => {
                         </p>
                       </div>
                       {vehicle.ownership_type === 'rented' && (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                        <div className="bg-green-500 rounded-full p-1">
+                          <CheckCircleIcon className="w-5 h-5 text-white" />
+                        </div>
                       )}
                     </div>
                   </button>
                 </div>
               </div>
 
-              {/* Authorization Document Upload (Only for rented vehicles) */}
+              {/* Rented Vehicle Additional Fields */}
               {vehicle.ownership_type === 'rented' && (
-                <div className="space-y-3 animate-fadeInUp">
-                  <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+                <div className="space-y-4 animate-fadeInUp">
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                      Authorization Document <span className="text-red-500">*</span>
+                      Owner Information <span className="text-red-500">*</span>
                     </h3>
                   </div>
-                  <div className="space-y-3">
+                  
+                  <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
-                      <DocumentTextIcon className="inline w-4 h-4 mr-2" />
-                      Owner Authorization Letter/Agreement
+                      Owner Name <span className="text-red-500">*</span>
                     </label>
-                    <div className="flex items-center gap-4 flex-wrap">
-                      <label className="flex-1 max-w-md px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 
-                                      rounded-xl bg-gray-50 dark:bg-gray-800/50 
-                                      flex items-center justify-between cursor-pointer
-                                      hover:border-black dark:hover:border-white hover:bg-gray-100 dark:hover:bg-gray-700
-                                      transition-all duration-200 group">
-                        <input 
-                          type="file" 
-                          accept="image/*,application/pdf" 
-                          onChange={(e) => handleFileChange(e, "authorization")} 
-                          className="hidden" 
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-300">
-                          {authorizationPreview ? "File selected: " + (authorizationFile?.name || "Document") : "Click to upload authorization document"}
-                        </span>
-                        {authorizationPreview && (
-                          <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                    <input
+                      type="text"
+                      value={ownerName}
+                      onChange={(e) => setOwnerName(e.target.value)}
+                      placeholder="Enter vehicle owner's full name"
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
+                               bg-white dark:bg-gray-200 text-gray-900 dark:text-white
+                               focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
+                               transition-all duration-200"
+                      style={{ height: '48px' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Owner Aadhaar Card <span className="text-red-500">*</span>
+                    </label>
+                    {aadhaarPreview && (
+                      <div className="mb-2 relative inline-block">
+                        {aadhaarPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                          <img src={aadhaarPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        ) : (
+                          <div className="w-24 h-24 rounded-lg border-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                            <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                          </div>
                         )}
-                      </label>
-                      {authorizationPreview && (
                         <button
-                          onClick={() => {
-                            setAuthorizationFile(null);
-                            setAuthorizationPreview(null);
-                          }}
-                          className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 transition"
+                          onClick={() => removeFile('aadhaar')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                          Remove
+                          <XMarkIcon className="w-3 h-3" />
                         </button>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Upload rental agreement or authorization letter from vehicle owner. Supported formats: JPG, PNG, PDF (Max 5MB)
-                    </p>
-                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-start gap-2">
-                        <ExclamationTriangleIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5" />
-                        <p className="text-xs text-blue-700 dark:text-blue-300">
-                          This document is mandatory for rented vehicles. It should clearly state the owner's consent for using the vehicle for shuttle services.
-                        </p>
                       </div>
-                    </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                      style={{ height: '44px', minWidth: '160px' }}
+                    >
+                      <CloudArrowUpIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Aadhaar Card</span>
+                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'aadhaar')} className="hidden" />
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Upload owner's Aadhaar card (JPG, PNG, PDF - Max 5MB)</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Authorization Document <span className="text-red-500">*</span>
+                    </label>
+                    {authorizationPreview && (
+                      <div className="mb-2 relative inline-block">
+                        {authorizationPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                          <img src={authorizationPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        ) : (
+                          <div className="w-24 h-24 rounded-lg border-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                            <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        <button
+                          onClick={() => removeFile('authorization')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                      style={{ height: '44px', minWidth: '180px' }}
+                    >
+                      <DocumentDuplicateIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Authorization Letter</span>
+                      <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'authorization')} className="hidden" />
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Upload rental agreement or authorization letter (JPG, PNG, PDF - Max 5MB)</p>
                   </div>
                 </div>
               )}
 
-              {/* Document Uploads */}
-              <div className="space-y-4 pt-4">
-                <div className="border-t border-gray-200 dark:border-gray-800 pt-4">
+              {/* Vehicle Photos Section */}
+              <div className="space-y-4">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                   <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                    Document Uploads
+                    Vehicle Photos <span className="text-red-500">*</span>
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <CameraIcon className="inline w-4 h-4 mr-2" />
+                      Front Photo
+                    </label>
+                    {frontPreview && (
+                      <div className="mb-2 relative inline-block">
+                        <img src={frontPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        <button
+                          onClick={() => removeFile('front')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition w-full"
+                      style={{ height: '44px' }}
+                    >
+                      <PhotoIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Front Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'front')} className="hidden" />
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <CameraIcon className="inline w-4 h-4 mr-2" />
+                      Interior Photo
+                    </label>
+                    {interiorPreview && (
+                      <div className="mb-2 relative inline-block">
+                        <img src={interiorPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        <button
+                          onClick={() => removeFile('interior')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition w-full"
+                      style={{ height: '44px' }}
+                    >
+                      <PhotoIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Interior Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'interior')} className="hidden" />
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <CameraIcon className="inline w-4 h-4 mr-2" />
+                      Left Side Photo
+                    </label>
+                    {leftSidePreview && (
+                      <div className="mb-2 relative inline-block">
+                        <img src={leftSidePreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        <button
+                          onClick={() => removeFile('left')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition w-full"
+                      style={{ height: '44px' }}
+                    >
+                      <PhotoIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Left Side Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'left')} className="hidden" />
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <CameraIcon className="inline w-4 h-4 mr-2" />
+                      Right Side Photo
+                    </label>
+                    {rightSidePreview && (
+                      <div className="mb-2 relative inline-block">
+                        <img src={rightSidePreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                        <button
+                          onClick={() => removeFile('right')}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                          style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                    <label
+                      className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition w-full"
+                      style={{ height: '44px' }}
+                    >
+                      <PhotoIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                      <span className="text-sm text-gray-700 dark:text-gray-200">Upload Right Side Photo</span>
+                      <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'right')} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Required Documents */}
+              <div className="space-y-4">
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                    Required Documents <span className="text-red-500">*</span>
                   </h3>
                 </div>
 
-                {/* Rear Photo */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     <CameraIcon className="inline w-4 h-4 mr-2" />
-                    Rear Photo
+                    Rear Photo <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <label className="relative w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 
-                                    rounded-xl bg-gray-50 dark:bg-gray-800/50 
-                                    flex flex-col items-center justify-center cursor-pointer
-                                    hover:border-black dark:hover:border-white hover:bg-gray-100 dark:hover:bg-gray-700
-                                    transition-all duration-200 overflow-hidden group">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => handleFileChange(e, "rear")} 
-                        className="hidden" 
-                      />
-                      {rearPreview ? (
-                        <>
-                          <img src={rearPreview} className="w-full h-full object-cover" alt="Rear preview" />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="text-white text-xs font-medium">Change</span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <CameraIcon className="w-8 h-8 text-gray-400 mb-2" />
-                          <span className="text-xs text-gray-500 dark:text-gray-400 text-center px-2">
-                            Click to upload
-                          </span>
-                        </>
-                      )}
-                    </label>
-                    {rearPreview && (
+                  {rearPreview && (
+                    <div className="mb-2 relative inline-block">
+                      <img src={rearPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
                       <button
-                        onClick={() => {
-                          setRearPhoto(null);
-                          setRearPreview(null);
-                        }}
-                        className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 transition"
+                        onClick={() => removeFile('rear')}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                        style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        Remove
+                        <XMarkIcon className="w-3 h-3" />
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  <label
+                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                    style={{ height: '44px', minWidth: '140px' }}
+                  >
+                    <PhotoIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">Upload Rear Photo</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'rear')} className="hidden" />
+                  </label>
                 </div>
 
-                {/* RC Document */}
-                <div className="space-y-3">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                     <DocumentTextIcon className="inline w-4 h-4 mr-2" />
-                    RC Document
+                    RC Document <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-4 flex-wrap">
-                    <label className="flex-1 max-w-md px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 
-                                    rounded-xl bg-gray-50 dark:bg-gray-800/50 
-                                    flex items-center justify-between cursor-pointer
-                                    hover:border-black dark:hover:border-white hover:bg-gray-100 dark:hover:bg-gray-700
-                                    transition-all duration-200 group">
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf" 
-                        onChange={(e) => handleFileChange(e, "rc")} 
-                        className="hidden" 
-                      />
-                      <span className="text-sm text-gray-600 dark:text-gray-300">
-                        {rcPreview ? "File selected: " + (rcFile?.name || "Document") : "Click to upload RC document"}
-                      </span>
-                      {rcPreview && (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                  {rcPreview && (
+                    <div className="mb-2 relative inline-block">
+                      {rcPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                        <img src={rcPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg border-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                          <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                        </div>
                       )}
-                    </label>
-                    {rcPreview && (
                       <button
-                        onClick={() => {
-                          setRcFile(null);
-                          setRcPreview(null);
-                        }}
-                        className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 transition"
+                        onClick={() => removeFile('rc')}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                        style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        Remove
+                        <XMarkIcon className="w-3 h-3" />
                       </button>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Supported formats: JPG, PNG, PDF (Max 5MB)
-                  </p>
+                    </div>
+                  )}
+                  <label
+                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                    style={{ height: '44px', minWidth: '140px' }}
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">Upload RC Document</span>
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'rc')} className="hidden" />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <DocumentTextIcon className="inline w-4 h-4 mr-2" />
+                    Insurance Document <span className="text-red-500">*</span>
+                  </label>
+                  {insurancePreview && (
+                    <div className="mb-2 relative inline-block">
+                      {insurancePreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                        <img src={insurancePreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg border-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                          <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeFile('insurance')}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                        style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <XMarkIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <label
+                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                    style={{ height: '44px', minWidth: '160px' }}
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">Upload Insurance</span>
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'insurance')} className="hidden" />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    <DocumentTextIcon className="inline w-4 h-4 mr-2" />
+                    Pollution Certificate (Optional)
+                  </label>
+                  {pollutionPreview && (
+                    <div className="mb-2 relative inline-block">
+                      {pollutionPreview.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                        <img src={pollutionPreview} className="w-24 h-24 object-cover rounded-lg border-2" alt="Preview" />
+                      ) : (
+                        <div className="w-24 h-24 rounded-lg border-2 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                          <DocumentTextIcon className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                      <button
+                        onClick={() => removeFile('pollution')}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                        style={{ width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <XMarkIcon className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                  <label
+                    className="inline-flex items-center justify-center px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
+                    style={{ height: '44px', minWidth: '170px' }}
+                  >
+                    <DocumentDuplicateIcon className="w-4 h-4 mr-2 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm text-gray-700 dark:text-gray-200">Upload Pollution Certificate</span>
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, 'pollution')} className="hidden" />
+                  </label>
                 </div>
               </div>
 
@@ -659,36 +1170,45 @@ const VehicleRegistration: React.FC = () => {
                 <span>Required fields</span>
               </div>
 
-               {/* Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 pt-6">
-                 <button
-                  onClick={submitVehicle}
+                <button
+                  onClick={handleRegisterAndSubmit}
+                  disabled={!isFormValid() || loading}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
                   style={{
                     height: '56px',
                     width: '100%',
-                    borderRadius: '12px',
-                    backgroundColor: '#000000',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
                     color: '#ffffff',
                     fontWeight: 600,
+                    fontSize: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s ease',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.2)',
-                    cursor: 'pointer',
-                    border: 'none'
-                  }}
-                  className="dark:bg-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 transform hover:scale-[1.02] active:scale-98"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1f2937';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#000000';
+                    gap: '12px',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    cursor: (!isFormValid() || loading) ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    opacity: (!isFormValid() || loading) ? 0.6 : 1,
+                    transform: isHovered && isFormValid() && !loading ? 'translateY(-2px)' : 'translateY(0)'
                   }}
                 >
-                  <TruckIcon className="w-5 h-5" />
-                  Register Vehicle
+                  {loading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Registering Vehicle...</span>
+                    </>
+                  ) : (
+                    <>
+                      <TruckIcon className="w-5 h-5" />
+                      <span>Register Vehicle</span>
+                      <ArrowRightIcon className="w-4 h-4" style={{ transition: 'transform 0.3s ease', transform: isHovered ? 'translateX(4px)' : 'translateX(0)' }} />
+                    </>
+                  )}
                 </button>
                 
                 <button
@@ -705,18 +1225,18 @@ const VehicleRegistration: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <IonLoading isOpen={loading} message="Registering vehicle..." />
-        
-        <IonToast
-          isOpen={!!toastMsg}
-          message={toastMsg}
-          duration={3000}
-          onDidDismiss={() => setToastMsg("")}
-          color={toastType === 'success' ? 'success' : 'danger'}
-          position="top"
-        />
       </IonContent>
+
+      <IonLoading isOpen={loading} message="Registering vehicle..." />
+      
+      <IonToast
+        isOpen={!!toastMsg}
+        message={toastMsg}
+        duration={3000}
+        onDidDismiss={() => setToastMsg("")}
+        color={toastType === 'success' ? 'success' : 'danger'}
+        position="top"
+      />
 
       <style>{`
         @keyframes fadeInUp {
@@ -743,6 +1263,16 @@ const VehicleRegistration: React.FC = () => {
           transform: scale(0.98);
         }
         
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        
         /* Hide number input spinners */
         input[type="number"]::-webkit-outer-spin-button,
         input[type="number"]::-webkit-inner-spin-button {
@@ -754,54 +1284,36 @@ const VehicleRegistration: React.FC = () => {
           -moz-appearance: textfield;
         }
         
-        /* Dark mode styles for date picker */
-        .dark input[type="date"] {
-          color-scheme: dark;
-          color: #ffffff !important;
-          background-color: #1f2937 !important;
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
         }
         
-        .dark input[type="date"]::-webkit-calendar-picker-indicator {
-          filter: invert(1);
-          cursor: pointer;
+        ::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
         }
         
-        .dark input[type="date"]::-webkit-datetime-edit {
-          color: #ffffff !important;
+        ::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
         }
         
-        .dark input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-          color: #ffffff !important;
+        ::-webkit-scrollbar-thumb:hover {
+          background: #555;
         }
         
-        .dark input[type="date"]::-webkit-datetime-edit-text {
-          color: #9ca3af !important;
+        .dark ::-webkit-scrollbar-track {
+          background: #1f2937;
         }
         
-        .dark input[type="date"]::-webkit-datetime-edit-month-field,
-        .dark input[type="date"]::-webkit-datetime-edit-day-field,
-        .dark input[type="date"]::-webkit-datetime-edit-year-field,
-        .dark input[type="date"]::-webkit-datetime-edit-hour-field,
-        .dark input[type="date"]::-webkit-datetime-edit-minute-field {
-          color: #ffffff !important;
+        .dark ::-webkit-scrollbar-thumb {
+          background: #4b5563;
         }
         
-        /* Dark mode styles for select options */
-        .dark select option {
-          background-color: #1f2937 !important;
-          color: #ffffff !important;
-        }
-        
-        /* Dark mode styles for input placeholders */
-        .dark input::placeholder {
-          color: #9ca3af !important;
-        }
-        
-        /* Dark mode styles for disabled inputs */
-        .dark input:disabled,
-        .dark select:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
+        .dark ::-webkit-scrollbar-thumb:hover {
+          background: #6b7280;
         }
       `}</style>
     </IonPage>
