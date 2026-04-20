@@ -1100,13 +1100,13 @@ const FineManagement: React.FC = () => {
                 {fines.items.length > 0 && (
                   <div className="mt-6 p-4 bg-linear-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/30 rounded-2xl border border-slate-200 dark:border-slate-700">
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Total Fines Amount</span>
+                      <span className="text-sm text-slate-800 dark:text-slate-800">Total Fines Amount</span>
                       <span className="text-xl font-bold text-slate-800 dark:text-slate-200">
                         ₹{parseFloat(fines.page_total_amount).toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-slate-600 dark:text-slate-400">Total Count</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-800">Total Count</span>
                       <span className="text-lg font-semibold text-slate-800 dark:text-slate-200">
                         {fines.count} fines
                       </span>
