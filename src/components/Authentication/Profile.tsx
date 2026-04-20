@@ -1685,13 +1685,13 @@ const ProfileSetup: React.FC = () => {
                           {inspectionBadge.text}
                         </span>
                         {!isExpired && daysUntilDue !== null && daysUntilDue <= 15 && daysUntilDue > 0 && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-700">
                             <ClockIcon className="w-3 h-3" />
                             Due in {daysUntilDue} days
                           </span>
                         )}
                         {isExpired && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-700">
                             <ExclamationTriangleIcon className="w-3 h-3" />
                             Overdue by {Math.abs(daysUntilDue!)} days
                           </span>
