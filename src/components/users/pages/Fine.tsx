@@ -544,6 +544,8 @@ const FineManagement: React.FC = () => {
         count: 2,
         page_total_amount: "1500"
       });
+
+      
     }
   };
 
