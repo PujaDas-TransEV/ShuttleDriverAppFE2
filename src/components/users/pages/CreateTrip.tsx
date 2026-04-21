@@ -410,7 +410,7 @@ const CreateTripPage = () => {
 
 {showErrorPopup && (
   <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm animate-fadeIn">
-    <div className={`flex items-center gap-3 p-5 rounded-2xl shadow-2xl min-w-[320px] max-w-[400px] mx-4
+    <div className={`flex items-center gap-3 p-5 rounded-2xl shadow-2xl min-w-[320px] max-w-100 mx-4
       ${isSuccess 
         ? 'bg-green-50 dark:bg-green-900/95 border-2 border-green-200 dark:border-green-700' 
         : 'bg-red-50 dark:bg-red-900/95 border-2 border-red-200 dark:border-red-700'}`}

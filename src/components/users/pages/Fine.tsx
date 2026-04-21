@@ -1045,7 +1045,7 @@ const FineManagement: React.FC = () => {
         )}
         <span className="text-sm">{status.label}</span>
         <div className={`
-          relative flex items-center justify-center rounded-full px-1.5 min-w-[22px] h-5 text-xs font-bold
+          relative flex items-center justify-center rounded-full px-1.5 min-w-5.5 h-5 text-xs font-bold
           transition-all duration-300
           ${isActive 
             ? 'bg-white/25 text-white' 
@@ -1193,7 +1193,7 @@ const FineManagement: React.FC = () => {
         onDidDismiss={() => setShowFilterPopover(false)}
         className="filter-popover"
       >
-        <div className="p-5 min-w-[300px]">
+        <div className="p-5 min-w-75">
           <h3 className="font-bold text-lg text-slate-800 dark:text-slate-200 mb-4">Filter Fines</h3>
           
           <div className="mb-4">
