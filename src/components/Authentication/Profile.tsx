@@ -1327,11 +1327,7 @@ const ProfileSetup: React.FC = () => {
   // ======================
   // Handle form changes
   // ======================
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setProfile({ ...profile, [name]: value });
-  };
-
+ 
   // ======================
   // Handle image upload
   // ======================
@@ -1640,7 +1636,10 @@ const ProfileSetup: React.FC = () => {
       </IonPage>
     );
   }
-
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
+  setProfile(prev => ({ ...prev, [name]: value }));
+};
   return (
     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
       <NavbarSidebar />
@@ -1685,13 +1684,13 @@ const ProfileSetup: React.FC = () => {
                           {inspectionBadge.text}
                         </span>
                         {!isExpired && daysUntilDue !== null && daysUntilDue <= 15 && daysUntilDue > 0 && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-700">
                             <ClockIcon className="w-3 h-3" />
                             Due in {daysUntilDue} days
                           </span>
                         )}
                         {isExpired && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-700">
                             <ExclamationTriangleIcon className="w-3 h-3" />
                             Overdue by {Math.abs(daysUntilDue!)} days
                           </span>
@@ -2032,10 +2031,14 @@ const ProfileSetup: React.FC = () => {
 
                   {/* Residential Address Section */}
                   <div className="pt-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <HomeIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Residential Address</h3>
-                    </div>
+                   <div>
+  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+    Residential Address
+  </h3>
+  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+    This address must match the address linked to your bank account.
+  </p>
+</div>
                     
                     <div className="space-y-4">
                       {/* Street Line 1 */}
@@ -2168,7 +2171,7 @@ const ProfileSetup: React.FC = () => {
                             />
                           </div>
                         </div>
-                        <div>
+                        {/* <div>
                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                             Country
                           </label>
@@ -2191,7 +2194,39 @@ const ProfileSetup: React.FC = () => {
                                          transition-all duration-200"
                             />
                           </div>
-                        </div>
+                        </div> */}
+                        <div>
+  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+    Country
+  </label>
+  <div className="relative">
+    <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+    <select
+      name="residential_country"
+      value={profile.residential_country}   // expects country code like "IN"
+      onChange={handleChange}
+      className="w-full pl-11 pr-4 py-3 rounded-xl 
+                 border border-gray-300 dark:border-gray-600 
+                 bg-white dark:bg-gray-700 
+                 text-gray-900 dark:text-gray-100 
+                 focus:outline-none
+                 focus:border-gray-500 dark:focus:border-gray-400
+                 focus:ring-2 focus:ring-gray-500/20 dark:focus:ring-gray-400/20
+                 transition-all duration-200
+                 appearance-none"   // removes default arrow if you want a custom one (optional)
+    >
+      <option value="IN">India (IN)</option>
+      <option value="US">United States (US)</option>
+      <option value="GB">United Kingdom (GB)</option>
+      <option value="CA">Canada (CA)</option>
+      <option value="AU">Australia (AU)</option>
+      <option value="DE">Germany (DE)</option>
+      <option value="FR">France (FR)</option>
+      <option value="JP">Japan (JP)</option>
+      {/* add more countries as needed */}
+    </select>
+  </div>
+</div>
                       </div>
                     </div>
                   </div>

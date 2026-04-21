@@ -90,29 +90,7 @@ const NavbarSidebar: React.FC = () => {
     return `${API_BASE}/${normalizedPath}`;
   };
 
-  // ======================
-  // Fetch unread fines count
-  // ======================
-  const fetchUnreadFinesCount = async () => {
-    if (!token) return;
-    
-    try {
-      const response = await fetch(`${API_BASE}/fines/unread-count`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setFineUnreadCount(data.unread_count || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching unread fines count:', error);
-    }
-  };
-
+ 
   // ======================
   // Fetch unread count
   // ======================
@@ -208,7 +186,7 @@ const NavbarSidebar: React.FC = () => {
 
         // Handle fine-related notifications
         if (payload?.type === 'fine_created' || payload?.type === 'fine_updated') {
-          fetchUnreadFinesCount();
+          // fetchUnreadFinesCount();
           fetchUnreadCount();
         }
       } catch (error) {
@@ -276,7 +254,7 @@ const NavbarSidebar: React.FC = () => {
     if (token) {
       fetchProfile();
       fetchUnreadCount();
-      fetchUnreadFinesCount(); // Fetch unread fines count
+      // fetchUnreadFinesCount(); // Fetch unread fines count
       connectWebSocket();
       requestNotificationPermission();
     }
@@ -299,7 +277,7 @@ const NavbarSidebar: React.FC = () => {
     const interval = setInterval(() => {
       if (token && document.visibilityState === 'visible') {
         fetchUnreadCount();
-        fetchUnreadFinesCount();
+        // fetchUnreadFinesCount();
       }
     }, 30000);
     
@@ -310,7 +288,7 @@ const NavbarSidebar: React.FC = () => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && token) {
         fetchUnreadCount();
-        fetchUnreadFinesCount();
+        // fetchUnreadFinesCount();
       }
     };
     
@@ -323,6 +301,7 @@ const NavbarSidebar: React.FC = () => {
 
   const menuItems = [
     { name: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
+      { name: 'Profile', icon: UserCircleIcon, path: '/profile-setup' },
     { 
       name: 'Trip Management', 
       icon: MapIcon, 
@@ -348,7 +327,7 @@ const NavbarSidebar: React.FC = () => {
     { name: 'Analytics', icon: ChartBarIcon, path: '/analytics' },
     { name: 'Notifications', icon: BellIcon, path: '/notification' },
     { name: 'Support', icon: QuestionMarkCircleIcon, path: '/support' },
-    { name: 'Profile', icon: UserCircleIcon, path: '/profile-setup' },
+  
   ];
 
   const handleMenuClick = (idx: number, item: any) => {
