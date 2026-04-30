@@ -1920,7 +1920,7 @@ const Dashboard: React.FC = () => {
                 
                 <Marker position={driverPos} icon={driverIcon}>
                   <Popup>
-                    <div className="text-center min-w-[180px]">
+                    <div className="text-center min-w-45">
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <div className="w-10 h-10 bg-linear-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-lg animate-bounce">
                           <span className="text-xl">🚗</span>
