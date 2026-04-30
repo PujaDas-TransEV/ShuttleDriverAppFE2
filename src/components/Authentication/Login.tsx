@@ -5,7 +5,7 @@
 //   IonLoading,
 //   IonToast,
 // } from '@ionic/react';
-// import { useHistory } from 'react-router-dom';
+// import { useHistory, useLocation } from 'react-router-dom';
 // import {
 //   EnvelopeIcon,
 //   ArrowRightIcon,
@@ -15,12 +15,16 @@
 //   ExclamationTriangleIcon,
 //   ClockIcon
 // } from '@heroicons/react/24/outline';
-// import { Preferences } from '@capacitor/preferences'; // Changed from @ionic/storage
+// import { Preferences } from '@capacitor/preferences';
+
+
+// import { setTokens, isSessionExpired, getAccessToken } from '../../utils/session';
 
 // const API_BASE = "https://be.shuttleapp.transev.site";
 
 // const Login: React.FC = () => {
 //   const history = useHistory();
+//   const location = useLocation();
 
 //   const [email, setEmail] = useState('');
 //   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -33,6 +37,31 @@
 //   const [focusedOtpIndex, setFocusedOtpIndex] = useState<number | null>(null);
 //   const [errorMessage, setErrorMessage] = useState<string>('');
 //   const [showErrorPopup, setShowErrorPopup] = useState(false);
+
+  
+//   useEffect(() => {
+//     const checkAlreadyLoggedIn = async () => {
+//       const expired = await isSessionExpired();
+//       const token = await getAccessToken();
+      
+//       if (!expired && token) {
+//         console.log('User already logged in, redirecting to dashboard');
+//         history.replace('/dashboard');
+//       }
+//     };
+    
+//     checkAlreadyLoggedIn();
+//   }, [history]);
+
+ 
+//   useEffect(() => {
+//     const params = new URLSearchParams(location.search);
+//     if (params.get('session') === 'expired') {
+//       showNotification('Your session has expired. Please login again.', 'error');
+     
+//       history.replace('/login');
+//     }
+//   }, [location, history]);
 
 //   useEffect(() => {
 //     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -65,26 +94,15 @@
 //     setTimeout(() => setShowErrorPopup(false), 5000);
 //   };
 
-//   // Save token using Capacitor Preferences (works in APK)
-//   const saveTokens = async (accessToken: string, refreshToken?: string) => {
+
+//   const saveTokensToStorage = async (accessToken: string, expiresAt: string, refreshToken?: string) => {
 //     try {
-//       await Preferences.set({
-//         key: 'access_token',
-//         value: accessToken
-//       });
+    
+//       await setTokens(accessToken, expiresAt, refreshToken);
       
-//       if (refreshToken) {
-//         await Preferences.set({
-//           key: 'refresh_token',
-//           value: refreshToken
-//         });
-//       }
-      
-//       console.log('Tokens saved successfully with Preferences');
-      
-//       // Verify tokens were saved
-//       const { value: savedToken } = await Preferences.get({ key: 'access_token' });
-//       console.log('Verification - Token saved:', savedToken ? 'Yes' : 'No');
+//       console.log('Tokens and login timestamp saved successfully');
+//       console.log('Access Token:', accessToken.substring(0, 20) + '...');
+//       console.log('Expires at:', expiresAt);
       
 //       return true;
 //     } catch (error) {
@@ -247,14 +265,24 @@
 //         throw new Error(errorMsg);
 //       }
 
-//       // Save tokens using Preferences
-//       const saved = await saveTokens(data.access_token, data.refresh_token);
+      
+//       const { access_token, expires_at, refresh_token, token_type, user } = data;
+      
+//       console.log('Login response:', { 
+//         access_token: access_token?.substring(0, 20) + '...', 
+//         expires_at, 
+//         token_type,
+//         user: user?.email 
+//       });
+      
+      
+//       const saved = await saveTokensToStorage(access_token, expires_at, refresh_token);
       
 //       if (saved) {
-//         showNotification('Login successful! Redirecting...', 'success');
+//         showNotification(`Welcome ${user?.email || 'Driver'}! Redirecting to dashboard...`, 'success');
         
 //         setTimeout(() => {
-//           history.push('/dashboard');
+//           history.replace('/dashboard');
 //         }, 1500);
 //       } else {
 //         showErrorModal('Storage Error', 'Failed to save login information');
@@ -784,7 +812,7 @@
 
 // export default Login;
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   IonPage,
   IonContent,
@@ -802,7 +830,6 @@ import {
   ClockIcon
 } from '@heroicons/react/24/outline';
 import { Preferences } from '@capacitor/preferences';
-
 
 import { setTokens, isSessionExpired, getAccessToken } from '../../utils/session';
 
@@ -824,7 +851,9 @@ const Login: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [showErrorPopup, setShowErrorPopup] = useState(false);
 
-  
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const autoVerifyTimeoutRef = useRef<number | null>(null);
+
   useEffect(() => {
     const checkAlreadyLoggedIn = async () => {
       const expired = await isSessionExpired();
@@ -839,12 +868,10 @@ const Login: React.FC = () => {
     checkAlreadyLoggedIn();
   }, [history]);
 
- 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('session') === 'expired') {
       showNotification('Your session has expired. Please login again.', 'error');
-     
       history.replace('/login');
     }
   }, [location, history]);
@@ -868,6 +895,24 @@ const Login: React.FC = () => {
     };
   }, [resendTimer]);
 
+  // Auto-focus first OTP input when OTP form shows
+  useEffect(() => {
+    if (showOtpForm && otpInputRefs.current[0]) {
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 100);
+    }
+  }, [showOtpForm]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoVerifyTimeoutRef.current) {
+        clearTimeout(autoVerifyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const showNotification = (message: string, color: 'success' | 'error' | 'info' = 'success') => {
     setToastMsg(message);
     setToastColor(color);
@@ -880,10 +925,8 @@ const Login: React.FC = () => {
     setTimeout(() => setShowErrorPopup(false), 5000);
   };
 
-
   const saveTokensToStorage = async (accessToken: string, expiresAt: string, refreshToken?: string) => {
     try {
-    
       await setTokens(accessToken, expiresAt, refreshToken);
       
       console.log('Tokens and login timestamp saved successfully');
@@ -1004,23 +1047,38 @@ const Login: React.FC = () => {
       newOtp[index] = value;
       setOtp(newOtp);
       
+      // Auto-focus next input if current has value
       if (value && index < 5) {
-        const nextInput = document.getElementById(`otp-input-${index + 1}`);
-        nextInput?.focus();
+        otpInputRefs.current[index + 1]?.focus();
+      }
+      
+      // Clear any existing auto-verify timeout
+      if (autoVerifyTimeoutRef.current) {
+        clearTimeout(autoVerifyTimeoutRef.current);
+        autoVerifyTimeoutRef.current = null;
+      }
+      
+      // Check if OTP is complete (6 digits)
+      const otpValue = newOtp.join('');
+      if (otpValue.length === 6) {
+        // Small delay to show the last digit being entered
+        autoVerifyTimeoutRef.current = setTimeout(() => {
+          handleOtpSubmit(otpValue);
+        }, 100);
       }
     }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-input-${index - 1}`);
-      prevInput?.focus();
+      otpInputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handleOtpSubmit = async () => {
-    const otpValue = otp.join('');
-    if (otpValue.length !== 6) {
+  const handleOtpSubmit = async (otpValue?: string) => {
+    const finalOtpValue = otpValue || otp.join('');
+    
+    if (finalOtpValue.length !== 6) {
       showErrorModal('Invalid OTP', 'Please enter complete 6-digit OTP');
       return;
     }
@@ -1030,7 +1088,7 @@ const Login: React.FC = () => {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpValue }),
+        body: JSON.stringify({ email, otp: finalOtpValue }),
       });
 
       const data = await res.json();
@@ -1051,7 +1109,6 @@ const Login: React.FC = () => {
         throw new Error(errorMsg);
       }
 
-      
       const { access_token, expires_at, refresh_token, token_type, user } = data;
       
       console.log('Login response:', { 
@@ -1060,7 +1117,6 @@ const Login: React.FC = () => {
         token_type,
         user: user?.email 
       });
-      
       
       const saved = await saveTokensToStorage(access_token, expires_at, refresh_token);
       
@@ -1076,8 +1132,17 @@ const Login: React.FC = () => {
 
     } catch (error: any) {
       console.error('OTP verification error:', error);
+      // Clear OTP on error to allow re-entry
+      setOtp(['', '', '', '', '', '']);
+      if (otpInputRefs.current[0]) {
+        otpInputRefs.current[0]?.focus();
+      }
     } finally {
       setLoading(false);
+      if (autoVerifyTimeoutRef.current) {
+        clearTimeout(autoVerifyTimeoutRef.current);
+        autoVerifyTimeoutRef.current = null;
+      }
     }
   };
 
@@ -1085,6 +1150,37 @@ const Login: React.FC = () => {
     setShowOtpForm(false);
     setOtp(['', '', '', '', '', '']);
     setErrorMessage('');
+    if (autoVerifyTimeoutRef.current) {
+      clearTimeout(autoVerifyTimeoutRef.current);
+      autoVerifyTimeoutRef.current = null;
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text');
+    const pastedNumbers = pastedData.replace(/\D/g, '').slice(0, 6);
+    
+    if (pastedNumbers.length > 0) {
+      const newOtp = [...otp];
+      for (let i = 0; i < pastedNumbers.length && i < 6; i++) {
+        newOtp[i] = pastedNumbers[i];
+      }
+      setOtp(newOtp);
+      
+      // Focus the next empty input or last filled
+      const nextIndex = Math.min(pastedNumbers.length, 5);
+      if (nextIndex <= 5) {
+        otpInputRefs.current[nextIndex]?.focus();
+      }
+      
+      // Auto-verify if we have all 6 digits
+      if (pastedNumbers.length === 6) {
+        autoVerifyTimeoutRef.current = setTimeout(() => {
+          handleOtpSubmit(pastedNumbers);
+        }, 100);
+      }
+    }
   };
 
   const styles = getStyles(isDarkMode);
@@ -1180,11 +1276,13 @@ const Login: React.FC = () => {
                       <input
                         key={index}
                         id={`otp-input-${index}`}
+                        ref={(el) => { otpInputRefs.current[index] = el; }}
                         type="text"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
                         onKeyDown={(e) => handleKeyDown(index, e)}
+                        onPaste={handlePaste}
                         onFocus={() => setFocusedOtpIndex(index)}
                         onBlur={() => setFocusedOtpIndex(null)}
                         style={{
@@ -1192,12 +1290,17 @@ const Login: React.FC = () => {
                           ...(digit && styles.otpBoxFilled),
                           ...(focusedOtpIndex === index && styles.otpBoxFocused)
                         }}
-                        autoFocus={index === 0}
+                        inputMode="numeric"
+                        pattern="\d*"
                       />
                     ))}
                   </div>
                   
-                  <button onClick={handleOtpSubmit} style={styles.verifyButton} disabled={loading}>
+                  <button 
+                    onClick={() => handleOtpSubmit()} 
+                    style={styles.verifyButton} 
+                    disabled={loading || otp.join('').length !== 6}
+                  >
                     <span>Verify OTP</span>
                     <ArrowRightIcon style={styles.buttonIcon} />
                   </button>
