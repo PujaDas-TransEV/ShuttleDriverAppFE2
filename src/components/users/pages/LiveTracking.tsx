@@ -315,7 +315,7 @@ const DriverLiveTracking: React.FC = () => {
               {driverPos && driverPos[0] && driverPos[1] && (
                 <Marker position={driverPos} icon={driverIcon}>
                   <Popup autoPan={true}>
-                    <div className="text-center min-w-[140px]">
+                    <div className="text-center min-w-35">
                       <div className="flex items-center gap-2 mb-2">
                         <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
                           <span className="text-lg">🚗</span>
@@ -357,7 +357,7 @@ const DriverLiveTracking: React.FC = () => {
                           }}
                         >
                           <Popup autoPan={true}>
-                            <div className="min-w-[200px] p-2">
+                            <div className="min-w-50 p-2">
                               <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                                   isFirst ? "bg-blue-100" : isLast ? "bg-purple-100" : "bg-green-100"

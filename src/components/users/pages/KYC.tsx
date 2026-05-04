@@ -651,7 +651,7 @@ const KYCRegistration: React.FC = () => {
                         </a>
                       )}
                       {item.file && (
-                        <span className="text-sm text-gray-600 dark:text-gray-400 max-w-[150px] truncate">
+                        <span className="text-sm text-gray-600 dark:text-gray-400 max-w-37.5 truncate">
                           {item.file.name}
                         </span>
                       )}
