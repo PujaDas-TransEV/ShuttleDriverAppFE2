@@ -384,7 +384,7 @@ const QRScannerComponent: React.FC<QRScannerComponentProps> = ({
           </div>
 
           {/* Scanner View */}
-          <div className="relative bg-black rounded-xl h-[350px] overflow-hidden">
+          <div className="relative bg-black rounded-xl h-87.5 overflow-hidden">
             <div id="scanner-container" className="w-full h-full"></div>
 
             {/* Scanner Frame Overlay */}
