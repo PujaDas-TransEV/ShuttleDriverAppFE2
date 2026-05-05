@@ -1677,12 +1677,12 @@ const Dashboard: React.FC = () => {
   const setupCards = driverVerified
     ? [
         { icon: <UserCircleIcon className="w-6 h-6" />, title: 'Profile', path: '/profile-setup', color: 'from-blue-500 to-blue-600' },
-        { icon: <IdentificationIcon className="w-6 h-6" />, title: 'KYC', path: '/kyc-verification', color: 'from-purple-500 to-purple-600' },
+        { icon: <IdentificationIcon className="w-6 h-6" />, title: 'Identity Check', path: '/kyc-verification', color: 'from-purple-500 to-purple-600' },
         { icon: <TruckIcon className="w-6 h-6" />, title: 'Vehicle', path: '/vehicle-registration', color: 'from-green-500 to-green-600' }
       ]
     : [
         { icon: <UserCircleIcon className="w-6 h-6" />, title: 'Profile Setup', path: '/profile-setup', color: 'from-blue-500 to-blue-600' },
-        { icon: <IdentificationIcon className="w-6 h-6" />, title: 'KYC', path: '/kyc-verification', color: 'from-purple-500 to-purple-600' },
+        { icon: <IdentificationIcon className="w-6 h-6" />, title: 'Identity Check', path: '/kyc-verification', color: 'from-purple-500 to-purple-600' },
         { icon: <TruckIcon className="w-6 h-6" />, title: 'Vehicle', path: '/vehicle-registration', color: 'from-green-500 to-green-600' }
       ];
 
