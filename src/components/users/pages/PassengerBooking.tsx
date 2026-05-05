@@ -1082,7 +1082,7 @@ const BookingDetails: React.FC = () => {
               Booking Details
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2">
-              View and manage passenger bookings with drop-off tracking
+              View and manage passenger bookings with drop=off tracking
             </p>
           </div>
 
