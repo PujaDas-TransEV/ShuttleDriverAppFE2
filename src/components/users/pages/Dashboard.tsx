@@ -2358,6 +2358,17 @@ const Dashboard: React.FC = () => {
               <div className={`p-5 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'} flex gap-3 sticky bottom-0 ${isDark ? 'bg-gray-800' : 'bg-white'}`}>
                 <button
                   onClick={downloadEarningsReport}
+                    style={{
+                      width: '100%',
+                      marginTop: '12px',
+                      backgroundColor: '#10b981',
+                      color: '#ffffff',
+                      padding: '10px 0',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
                   disabled={downloading}
                   className="flex-1 bg-emerald-500 text-white py-2 rounded-xl font-semibold hover:bg-emerald-600 transition disabled:opacity-50"
                 >
@@ -2366,7 +2377,17 @@ const Dashboard: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowEarningsModal(false)}
-                  style={{ height: '45px', width: '120px' }}
+                  style={{
+                      width: '100%',
+                      marginTop: '12px',
+                      backgroundColor: '#10b981',
+                      color: '#ffffff',
+                      padding: '10px 0',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      border: 'none',
+                      cursor: 'pointer'
+                    }}
                   className={`flex-1 py-2 rounded-xl font-semibold transition ${
                     isDark 
                       ? 'bg-gray-700 text-white hover:bg-gray-600' 
