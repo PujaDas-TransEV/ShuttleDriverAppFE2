@@ -568,7 +568,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
           </div>
 
           {/* Vehicle Inspection Card - Only show when profile is created and vehicle assigned */}
-          {isCreated && vehicleInspection && vehicleInspection.vehicle_id && (
+          {/* {isCreated && vehicleInspection && vehicleInspection.vehicle_id && (
             <div className={`mb-6 rounded-2xl border-2 ${inspectionBadge.borderColor} overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl`}>
               <div className={`p-5 ${inspectionBadge.color.replace('text', 'bg').replace('dark:text', 'dark:bg')} bg-opacity-10 dark:bg-opacity-10`}>
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -640,7 +640,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                 </div>
               </div>
               
-              {/* Inspection Details - Expandable */}
+           
               {showInspectionDetails && (
                 <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -728,7 +728,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
             </div>
           )}
 
-          {/* No Vehicle Assigned Message */}
+
           {isCreated && (!vehicleInspection || !vehicleInspection.vehicle_id) && !loadingInspection && (
             <div className="mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-5 text-center">
               <TruckIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -737,7 +737,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                 No vehicle has been assigned to you yet. Please contact the administrator.
               </p>
             </div>
-          )}
+          )} */}
 
           {/* Main Profile Card */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
