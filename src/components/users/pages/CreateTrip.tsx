@@ -361,7 +361,7 @@ const CreateTripPage = () => {
 
       showErrorModal("Success", "✅ Trip Created Successfully!", true);
       setTimeout(() => {
-        history.push(`/trip-management`);
+        history.push(`/current-trips`);
       }, 1500);
     } catch (err: any) {
       console.error(err);
