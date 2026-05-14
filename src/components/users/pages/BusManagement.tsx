@@ -1875,11 +1875,15 @@ import {
   XMarkIcon,
   CloudArrowUpIcon,
   TruckIcon,
-  UserIcon,
-  IdentificationIcon,
   ShieldCheckIcon,
   ExclamationTriangleIcon,
-  CheckBadgeIcon
+  CheckBadgeIcon,
+  CpuChipIcon,
+  InformationCircleIcon,
+  MinusIcon,
+  PlusIcon,
+  WifiIcon,
+  DevicePhoneMobileIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE = "https://be.shuttleapp.transev.site";
@@ -1932,6 +1936,13 @@ interface VehicleData {
   insurance_document?: string;
   pollution_document?: string;
   owner_aadhaar_card?: string;
+  enable_rfid_reservation?: boolean;
+  default_rfid_reserved_seat_count?: number;
+}
+
+interface RfidConfig {
+  allow_driver_rfid_seat_reservation: boolean;
+  message?: string;
 }
 
 const DriverVehicle: React.FC = () => {
@@ -1942,6 +1953,15 @@ const DriverVehicle: React.FC = () => {
   const [messageType, setMessageType] = useState<'success' | 'error'>('error');
   const [isEditing, setIsEditing] = useState(false);
   const [formVehicle, setFormVehicle] = useState<any>({});
+  
+  // RFID Configuration from API
+  const [rfidConfig, setRfidConfig] = useState<RfidConfig | null>(null);
+  const [loadingRfidConfig, setLoadingRfidConfig] = useState(false);
+  const [showRfidInfo, setShowRfidInfo] = useState(false);
+  
+  // RFID Edit States
+  const [enableRfidReservation, setEnableRfidReservation] = useState(false);
+  const [rfidReservedSeatCount, setRfidReservedSeatCount] = useState(0);
   
   // Vehicle Inspection State
   const [vehicleInspection, setVehicleInspection] = useState<VehicleInspection | null>(null);
@@ -1987,10 +2007,46 @@ const DriverVehicle: React.FC = () => {
       if (!accessToken) {
         setServerMsg("Session expired. Please login again.");
         setMessageType('error');
+      } else {
+        fetchRfidConfig(accessToken);
       }
     };
     loadToken();
   }, []);
+
+  // Fetch RFID Configuration from API
+  const fetchRfidConfig = async (accessToken: string) => {
+    setLoadingRfidConfig(true);
+    
+    try {
+      console.log("📡 Fetching RFID configuration...");
+      const response = await fetch(`${API_BASE}/driver/rfid/allow-seat-reservation`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch RFID config: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log("✅ RFID Configuration received:", data);
+      
+      setRfidConfig({
+        allow_driver_rfid_seat_reservation: data.allow_driver_rfid_seat_reservation || false,
+        message: data.message
+      });
+      
+    } catch (error) {
+      console.error("❌ Error fetching RFID config:", error);
+      setRfidConfig({ allow_driver_rfid_seat_reservation: false, message: "RFID feature unavailable" });
+    } finally {
+      setLoadingRfidConfig(false);
+    }
+  };
 
   // Fetch vehicle and inspection when token is available
   useEffect(() => {
@@ -2055,6 +2111,11 @@ const DriverVehicle: React.FC = () => {
       });
       setOwnershipType(data.ownership_type || '');
       setOwnerName(data.owner_name || '');
+      
+      // Set RFID data from vehicle
+      setEnableRfidReservation(data.enable_rfid_reservation || false);
+      setRfidReservedSeatCount(data.default_rfid_reserved_seat_count || 0);
+      
       if (data.registration_valid_till) {
         setRegistrationValidTill(data.registration_valid_till.split('T')[0]);
       }
@@ -2069,6 +2130,25 @@ const DriverVehicle: React.FC = () => {
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormVehicle({ ...formVehicle, [name]: value });
+    
+    // When seat count changes, adjust RFID reserved seats if needed
+    if (name === 'seat_count' && enableRfidReservation) {
+      const newSeatCount = parseInt(value) || 0;
+      if (rfidReservedSeatCount > newSeatCount) {
+        setRfidReservedSeatCount(newSeatCount);
+      }
+    }
+  };
+
+  const handleRfidSeatCountChange = (increment: boolean) => {
+    const seatCount = formVehicle.seat_count || vehicleData?.seat_count || 0;
+    setRfidReservedSeatCount(prev => {
+      if (increment) {
+        return Math.min(seatCount, prev + 1);
+      } else {
+        return Math.max(0, prev - 1);
+      }
+    });
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>, type: string) => {
@@ -2172,8 +2252,8 @@ const DriverVehicle: React.FC = () => {
     }
   };
 
-  // ======================
-  // Inspection Helper Functions
+//   // ======================
+//   // Inspection Helper Functions
   // ======================
   const getNextInspectionDueDate = (): string | null => {
     if (!vehicleInspection?.inspection_reviewed_at) return null;
@@ -2264,7 +2344,7 @@ const DriverVehicle: React.FC = () => {
     }
   };
 
-  // Update Vehicle PATCH
+  // Update Vehicle PATCH with RFID support
   const handleUpdate = async () => {
     if (!token) {
       setServerMsg("Session expired. Please login again.");
@@ -2283,6 +2363,16 @@ const DriverVehicle: React.FC = () => {
       fd.append("seat_count", String(formVehicle.seat_count));
       fd.append("has_ac", formVehicle.has_ac);
       fd.append("ownership_type", ownershipType);
+      
+      // Send RFID data if API allows it
+      if (rfidConfig?.allow_driver_rfid_seat_reservation) {
+        fd.append("enable_rfid_reservation", String(enableRfidReservation));
+        if (enableRfidReservation) {
+          fd.append("default_rfid_reserved_seat_count", String(rfidReservedSeatCount));
+        } else {
+          fd.append("default_rfid_reserved_seat_count", "0");
+        }
+      }
       
       if (ownerName) fd.append("owner_name", ownerName);
       
@@ -2447,6 +2537,10 @@ const DriverVehicle: React.FC = () => {
   const isExpired = daysUntilDue !== null && daysUntilDue < 0;
   const isDueSoon = daysUntilDue !== null && daysUntilDue >= 0 && daysUntilDue <= 15;
   const maxDays = 15;
+  
+  // Check if RFID edit is allowed
+  const isRfidEditAllowed = rfidConfig?.allow_driver_rfid_seat_reservation === true;
+  const hasRfidData = (vehicleData?.default_rfid_reserved_seat_count || 0) > 0;
 
   // Show loading while getting token
   if (token === null && loading) {
@@ -2501,8 +2595,8 @@ const DriverVehicle: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* ====================== VEHICLE INSPECTION SECTION ====================== */}
-              {vehicleInspection && vehicleInspection.vehicle_id && (
+               {/* ====================== VEHICLE INSPECTION SECTION ====================== */}
+               {vehicleInspection && vehicleInspection.vehicle_id && (
                 <div className={`rounded-2xl border-2 ${inspectionBadge.borderColor} overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl`}>
                   <div className={`p-5 ${inspectionBadge.color.replace('text', 'bg').replace('dark:text', 'dark:bg')} bg-opacity-10 dark:bg-opacity-10`}>
                     <div className="flex items-center justify-between flex-wrap gap-4">
@@ -3024,6 +3118,7 @@ const DriverVehicle: React.FC = () => {
                   </p>
                 </div>
               )}
+       
 
               {!isEditing ? (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
@@ -3044,13 +3139,41 @@ const DriverVehicle: React.FC = () => {
                         </div>
                       </div>
                       {(status === "REJECTED" || status === "DRAFT") && (
-                        <button
-                          onClick={() => setIsEditing(true)}
-                          className="px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 shadow-lg"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                          Edit Vehicle
-                        </button>
+                         <button
+  onClick={() => setIsEditing(true)}
+  style={{
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    backgroundColor: '#000000',
+    color: '#ffffff',
+    borderRadius: '12px',
+    fontWeight: '500',
+    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+    transition: 'all 0.2s ease',
+    cursor: 'pointer',
+    border: 'none',
+    fontSize: '14px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    minWidth: '140px',
+    height: '45px',
+    justifyContent: 'center'
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.backgroundColor = '#1f2937';
+    e.currentTarget.style.transform = 'scale(1.05)';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.backgroundColor = '#000000';
+    e.currentTarget.style.transform = 'scale(1)';
+  }}
+>
+  <PencilIcon style={{ width: '16px', height: '16px' }} />
+  Edit Vehicle
+</button>
                       )}
                     </div>
                   </div>
@@ -3188,13 +3311,27 @@ const DriverVehicle: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50">
-                          <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            Seat Count
+                        {/* Seat Configuration with RFID */}
+                        <div className="p-4 rounded-xl bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800">
+                          <label className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+                            <CpuChipIcon className="w-3 h-3" />
+                            Seat Configuration
                           </label>
-                          <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">
-                            {vehicleData.seat_count} Seats
-                          </p>
+                          <div className="grid grid-cols-2 gap-3 mt-2">
+                            <div>
+                              <p className="text-2xl font-bold text-gray-900 dark:text-white">{vehicleData.seat_count}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Total Seats</p>
+                            </div>
+                            {(vehicleData.default_rfid_reserved_seat_count || 0) > 0 && (
+                              <div className="border-l border-indigo-200 dark:border-indigo-700 pl-3">
+                                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{vehicleData.default_rfid_reserved_seat_count}</p>
+                                <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                  <WifiIcon className="w-3 h-3" />
+                                  RFID Reserved
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50">
@@ -3207,6 +3344,33 @@ const DriverVehicle: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* RFID Info Card */}
+                    {(vehicleData.default_rfid_reserved_seat_count || 0) > 0 && (
+                      <div className="rounded-xl bg-linear-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border-2 border-purple-200 dark:border-purple-800 overflow-hidden">
+                        <div className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                              <WifiIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div>
+                              <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+                                RFID Seat Reservation Active
+                              </h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                Pre-reserved seats for RFID card holders
+                              </p>
+                            </div>
+                          </div>
+                          <div className="mt-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                            <p className="text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+                              <CheckCircleIcon className="w-4 h-4" />
+                              ✓ {vehicleData.default_rfid_reserved_seat_count} seat(s) will be reserved for RFID card holders on each trip
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Vehicle Photos Section */}
                     {(vehicleData.front_photo_file_path || vehicleData.interior_photo_file_path || 
@@ -3269,14 +3433,14 @@ const DriverVehicle: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Documents Section */}
+                     {/* Documents Section */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <div className="w-1 h-6 bg-black dark:bg-white rounded-full"></div>
-                        Documents
+                         <div className="w-1 h-6 bg-black dark:bg-white rounded-full"></div>
+                         Documents
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {vehicleData.rear_photo_file_path && (
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         {vehicleData.rear_photo_file_path && (
                           <div className="group relative rounded-xl overflow-hidden shadow-lg border border-gray-200 dark:border-gray-700">
                             <p className="absolute top-2 left-2 z-10 text-xs bg-black/70 text-white px-2 py-1 rounded-md backdrop-blur-sm">
                               Rear Photo
@@ -3436,23 +3600,7 @@ const DriverVehicle: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Reviewed Information */}
-                    {vehicleData.reviewed_at && (
-                      <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
-                        <div className="flex items-center gap-3">
-                          <EyeIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                          <div>
-                            <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
-                              Reviewed by Admin
-                            </p>
-                            <p className="text-sm text-purple-600 dark:text-purple-400">
-                              {formatDateOnly(vehicleData.reviewed_at)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
+                                 
                     {/* Rejection Reason */}
                     {status === "REJECTED" && vehicleData.rejection_reason && (
                       <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800">
@@ -3463,27 +3611,27 @@ const DriverVehicle: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                // Edit Form (keeping your existing edit form code)
+                // Edit Form
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
-                  {/* Keep your existing edit form JSX here - it remains unchanged */}
                   <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-800">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Vehicle</h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Update your vehicle information</p>
                   </div>
-                    <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                     {/* Basic Information */}
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                       <div>
-                         <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
-                           Vehicle Name <span className="text-red-500">*</span>
-                         </label>
-                         <input
+                  
+                  <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    {/* Basic Information */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block font-medium mb-2 text-gray-700 dark:text-gray-300">
+                          Vehicle Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
                           type="text"
                           name="vehicle_name"
                           value={formVehicle.vehicle_name || ''}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-white-800 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
@@ -3498,7 +3646,7 @@ const DriverVehicle: React.FC = () => {
                           value={formVehicle.vehicle_model || ''}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-white-800 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
@@ -3513,7 +3661,7 @@ const DriverVehicle: React.FC = () => {
                           value={formVehicle.color || ''}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-white-800 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
@@ -3528,7 +3676,7 @@ const DriverVehicle: React.FC = () => {
                           value={formVehicle.seat_count || 0}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-white-800 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
@@ -3542,7 +3690,7 @@ const DriverVehicle: React.FC = () => {
                           value={formVehicle.has_ac || 'false'}
                           onChange={handleChange}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-white-800 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200 cursor-pointer"
                         >
@@ -3560,313 +3708,850 @@ const DriverVehicle: React.FC = () => {
                           onChange={(e) => setRegistrationValidTill(e.target.value)}
                           min={new Date().toISOString().split('T')[0]}
                           className="w-full p-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                                   bg-white dark:bg-gray-400 text-gray-900 dark:text-white
+                                   bg-white dark:bg-gray-300 text-gray-900 dark:text-white
                                    focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                    transition-all duration-200"
                         />
                       </div>
                     </div>
 
-                 {/* Ownership Type */}
-<div className="space-y-3">
-  <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
-    Ownership Type <span className="text-red-500">*</span>
-  </label>
-  <div className="grid md:grid-cols-2 gap-4">
-    <button
-      type="button"
-      onClick={() => setOwnershipType('self')}
-      className={`group relative p-5 rounded-xl border-2 transition-all duration-300 text-left
-                ${ownershipType === 'self' 
-                  ? 'border-green-500 bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 shadow-lg shadow-green-500/20' 
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md'}`}
-    >
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg transition-all duration-300 ${
-          ownershipType === 'self' 
-            ? 'bg-green-500 text-white' 
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'
-        }`}>
-          <HomeIcon className="w-5 h-5" />
-        </div>
-        <div className="flex-1">
-          <h3 className={`font-bold text-lg transition-colors duration-300 ${
-            ownershipType === 'self' 
-              ? 'text-green-700 dark:text-green-400' 
-              : 'text-gray-800 dark:text-gray-200'
-          }`}>
-            Self-Owned
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Vehicle is personally owned by you.
-          </p>
-        </div>
-        {ownershipType === 'self' && (
-          <div className="shrink-0">
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-        )}
-      </div>
-    </button>
-    
-    <button
-      type="button"
-      onClick={() => setOwnershipType('rented')}
-      className={`group relative p-5 rounded-xl border-2 transition-all duration-300 text-left
-                ${ownershipType === 'rented' 
-                  ? 'border-green-500 bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 shadow-lg shadow-green-500/20' 
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md'}`}
-    >
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-lg transition-all duration-300 ${
-          ownershipType === 'rented' 
-            ? 'bg-green-500 text-white' 
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'
-        }`}>
-          <KeyIcon className="w-5 h-5" />
-        </div>
-        <div className="flex-1">
-          <h3 className={`font-bold text-lg transition-colors duration-300 ${
-            ownershipType === 'rented' 
-              ? 'text-green-700 dark:text-green-400' 
-              : 'text-gray-800 dark:text-gray-200'
-          }`}>
-            Rented/Leased
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Vehicle is rented or leased.
-          </p>
-        </div>
-        {ownershipType === 'rented' && (
-          <div className="shrink-0">
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-          </div>
-        )}
-      </div>
-    </button>
-  </div>
-</div>
+                    {/* RFID Seat Reservation Section */}
+                    {isRfidEditAllowed && (
+                      <div className="space-y-4">
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                              <CpuChipIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+                                RFID Seat Reservation
+                              </h3>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowRfidInfo(!showRfidInfo)}
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+                            >
+                              <InformationCircleIcon className="w-5 h-5" />
+                            </button>
+                          </div>
+                          
+                          {showRfidInfo && (
+                            <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                              <p className="text-xs text-blue-700 dark:text-blue-300">
+                                Enable RFID seat reservation to automatically reserve a specific number of seats for RFID card holders. 
+                                These seats will be pre-reserved for passengers with RFID cards on each trip.
+                              </p>
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center justify-between p-4 rounded-xl bg-linear-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-800">
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                                <WifiIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                  Enable RFID Seat Reservation
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Reserve seats for RFID card holders
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEnableRfidReservation(!enableRfidReservation);
+                                if (!enableRfidReservation) {
+                                  const seatCount = formVehicle.seat_count || vehicleData?.seat_count || 0;
+                                  setRfidReservedSeatCount(Math.floor(seatCount / 4));
+                                } else {
+                                  setRfidReservedSeatCount(0);
+                                }
+                              }}
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                                ${enableRfidReservation ? 'bg-purple-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                                  ${enableRfidReservation ? 'translate-x-6' : 'translate-x-1'}`}
+                              />
+                            </button>
+                          </div>
+                        </div>
 
-{/* Rented Vehicle Fields */}
-{ownershipType === 'rented' && (
-  <div className="space-y-5 animate-slideDown">
-    <div className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-      <div className="space-y-5">
-        <div>
-          <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Owner Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={ownerName}
-            onChange={(e) => setOwnerName(e.target.value)}
-            placeholder="Enter owner's full name"
-            className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
-                     bg-white dark:bg-gray-400 text-gray-900 dark:text-gray-100
-                     placeholder-gray-400 dark:placeholder-gray-500
-                     focus:border-green-500 dark:focus:border-green-500 focus:ring-4 focus:ring-green-500/20 
-                     transition-all duration-200"
-          />
-        </div>
-        
-        <div>
-          <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Owner Aadhaar Card
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
-          </label>
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 dark:hover:border-green-500 transition-all duration-200">
-            {aadhaarPreview ? (
-              <div className="relative inline-block">
-                <img 
-                  src={aadhaarPreview} 
-                  className="w-28 h-28 object-cover rounded-lg border-2 border-green-500 shadow-lg" 
-                  alt="Aadhaar Preview" 
-                />
-                <button 
-                  onClick={() => removeFile('aadhaar')} 
-                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <input 
-                  type="file" 
-                  accept="image/*,application/pdf" 
-                  onChange={(e) => handleFileChange(e, 'aadhaar')}
-                  className="w-full text-sm text-gray-500 dark:text-gray-400
-                           file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
-                           file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-950/30
-                           file:text-green-700 dark:file:text-green-400
-                           hover:file:bg-green-100 dark:hover:file:bg-green-900/50
-                           cursor-pointer transition-all duration-200"
-                />
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                  Supported: JPG, PNG, PDF (Max 5MB)
-                </p>
-              </div>
-            )}
+                        {enableRfidReservation && (
+                          <div className="p-4 rounded-xl bg-purple-50/50 dark:bg-purple-900/10 border-2 border-purple-200 dark:border-purple-800">
+                            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                              <div className="flex items-center gap-2">
+                                <ShieldCheckIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                                <span>Default RFID Reserved Seats</span>
+                              </div>
+                            </label>
+                            
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => handleRfidSeatCountChange(false)}
+                                className="w-12 h-12 rounded-xl border-2 border-purple-200 dark:border-purple-700 
+                                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                                         hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20
+                                         transition-all duration-200 flex items-center justify-center
+                                         disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={rfidReservedSeatCount <= 0}
+                              >
+                                <MinusIcon className="w-5 h-5" />
+                              </button>
+                              
+                              <div className="flex-1 relative">
+                                <ShieldCheckIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-purple-400" />
+                                <input
+                                  type="number"
+                                  value={rfidReservedSeatCount}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    const seatCount = formVehicle.seat_count || vehicleData?.seat_count || 0;
+                                    setRfidReservedSeatCount(Math.min(seatCount, Math.max(0, val)));
+                                  }}
+                                  min="0"
+                                  max={formVehicle.seat_count || vehicleData?.seat_count || 0}
+                                  className="w-full px-4 py-3 pl-10 rounded-xl border-2 border-purple-200 dark:border-purple-700 
+                                           bg-white dark:bg-gray-300 
+                                           text-gray-900 dark:text-white text-center text-lg font-semibold
+                                           focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20
+                                           transition-all duration-200 [appearance:textfield]"
+                                />
+                              </div>
+                              
+                               <button
+                                type="button"
+                                onClick={() => handleRfidSeatCountChange(true)}
+                                className="w-12 h-12 rounded-xl border-2 border-purple-200 dark:border-purple-700 
+                                         bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                                         hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20
+                                         transition-all duration-200 flex items-center justify-center"
+                              >
+                                <PlusIcon className="w-5 h-5" />
+                              </button>
+                            </div>
+                            
+                            <div className="mt-3 grid grid-cols-2 gap-3">
+                              <div className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Total Seats</p>
+                                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                                  {formVehicle.seat_count || vehicleData?.seat_count || 0}
+                                </p>
+                              </div>
+                              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800">
+                                <p className="text-xs text-purple-600 dark:text-purple-400">RFID Reserved</p>
+                                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{rfidReservedSeatCount}</p>
+                              </div>
+                            </div>
+                            
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                              These seats will be automatically reserved for RFID card holders on every trip
+                            </p>
+                            
+                            {rfidReservedSeatCount > 0 && rfidReservedSeatCount <= (formVehicle.seat_count || vehicleData?.seat_count || 0) && (
+                              <div className="mt-2 p-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                                <p className="text-xs text-green-700 dark:text-green-300">
+                                  ✓ {rfidReservedSeatCount} seat(s) will be reserved for RFID card holders on each trip
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                     {/* Ownership Type */}
+                     <div className="space-y-3">
+                       <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                         Ownership Type <span className="text-red-500">*</span>
+                       </label>
+                       <div className="grid md:grid-cols-2 gap-4">
+                        <button
+                           type="button"
+                          onClick={() => setOwnershipType('self')}
+                          className={`group relative p-5 rounded-xl border-2 transition-all duration-300 text-left
+                                    ${ownershipType === 'self' 
+                                      ? 'border-green-500 bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 shadow-lg shadow-green-500/20' 
+                                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md'}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg transition-all duration-300 ${
+                              ownershipType === 'self' 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'
+                            }`}>
+                              <HomeIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className={`font-bold text-lg transition-colors duration-300 ${
+                                ownershipType === 'self' 
+                                  ? 'text-green-700 dark:text-green-400' 
+                                  : 'text-gray-800 dark:text-gray-200'
+                              }`}>
+                                Self-Owned
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Vehicle is personally owned by you.
+                              </p>
+                            </div>
+                            {ownershipType === 'self' && (
+                              <div className="shrink-0">
+                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
+                                  <CheckCircleIcon className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setOwnershipType('rented')}
+                          className={`group relative p-5 rounded-xl border-2 transition-all duration-300 text-left
+                                    ${ownershipType === 'rented' 
+                                      ? 'border-green-500 bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 shadow-lg shadow-green-500/20' 
+                                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:border-green-300 dark:hover:border-green-700 hover:shadow-md'}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`p-2 rounded-lg transition-all duration-300 ${
+                              ownershipType === 'rented' 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'
+                            }`}>
+                              <KeyIcon className="w-5 h-5" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className={`font-bold text-lg transition-colors duration-300 ${
+                                ownershipType === 'rented' 
+                                  ? 'text-green-700 dark:text-green-400' 
+                                  : 'text-gray-800 dark:text-gray-200'
+                              }`}>
+                                Rented/Leased
+                              </h3>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Vehicle is rented or leased.
+                              </p>
+                            </div>
+                            {ownershipType === 'rented' && (
+                              <div className="shrink-0">
+                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30">
+                                  <CheckCircleIcon className="w-4 h-4 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Rented Vehicle Fields */}
+                    {ownershipType === 'rented' && (
+                      <div className="space-y-5 animate-fadeIn">
+                        <div className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900/50 dark:to-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                          <div className="space-y-5">
+                            <div>
+                              <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                                Owner Name <span className="text-red-500">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={ownerName}
+                                onChange={(e) => setOwnerName(e.target.value)}
+                                placeholder="Enter owner's full name"
+                                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl 
+                                         bg-white dark:bg-white-800 text-gray-900 dark:text-gray-100
+                                         placeholder-gray-400 dark:placeholder-gray-500
+                                         focus:border-green-500 dark:focus:border-green-500 focus:ring-4 focus:ring-green-500/20 
+                                         transition-all duration-200"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                                Owner Aadhaar Card
+                                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+                              </label>
+                              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 dark:hover:border-green-500 transition-all duration-200">
+                                {aadhaarPreview ? (
+                                  <div className="relative inline-block">
+                                    <img 
+                                      src={aadhaarPreview} 
+                                      className="w-28 h-28 object-cover rounded-lg border-2 border-green-500 shadow-lg" 
+                                      alt="Aadhaar Preview" 
+                                    />
+                                    <button 
+                                      onClick={() => removeFile('aadhaar')} 
+                                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+                                    >
+                                      <XMarkIcon className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center">
+                                    <input 
+                                      type="file" 
+                                      accept="image/*,application/pdf" 
+                                      onChange={(e) => handleFileChange(e, 'aadhaar')}
+                                      className="w-full text-sm text-gray-500 dark:text-gray-400
+                                               file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                               file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-950/30
+                                               file:text-green-700 dark:file:text-green-400
+                                               hover:file:bg-green-100 dark:hover:file:bg-green-900/50
+                                               cursor-pointer transition-all duration-200"
+                                    />
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                                      Supported: JPG, PNG, PDF (Max 5MB)
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
+                                Authorization Document
+                                <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+                              </label>
+                              <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 dark:hover:border-green-500 transition-all duration-200">
+                                {authorizationPreview ? (
+                                  <div className="relative inline-block">
+                                    <img 
+                                      src={authorizationPreview} 
+                                      className="w-28 h-28 object-cover rounded-lg border-2 border-green-500 shadow-lg" 
+                                      alt="Authorization Preview" 
+                                    />
+                                    <button 
+                                      onClick={() => removeFile('authorization')} 
+                                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+                                    >
+                                      <XMarkIcon className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="text-center">
+                                    <input 
+                                      type="file" 
+                                      accept="image/*,application/pdf" 
+                                      onChange={(e) => handleFileChange(e, 'authorization')}
+                                      className="w-full text-sm text-gray-500 dark:text-gray-400
+                                               file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
+                                               file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-950/30
+                                               file:text-green-700 dark:file:text-green-400
+                                               hover:file:bg-green-100 dark:hover:file:bg-green-900/50
+                                               cursor-pointer transition-all duration-200"
+                                    />
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                                      Supported: JPG, PNG, PDF (Max 5MB)
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                      {/* Vehicle Photos Upload */}
+                   <div className="space-y-6">
+  <div className="flex items-center gap-3">
+    <div className="w-1 h-8 bg-linear-to-b from-green-500 to-emerald-500 rounded-full"></div>
+    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Vehicle Photos</h3>
+  </div>
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Front Photo */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Front Photo
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${frontPreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {frontPreview ? (
+          <div className="relative inline-block">
+            <img 
+              src={frontPreview} 
+              className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+              alt="Front Preview" 
+            />
+            <button 
+              onClick={() => removeFile('front')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-        </div>
-        
-        <div>
-          <label className="block font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            Authorization Document
-            <span className="text-sm font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
-          </label>
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-4 hover:border-green-500 dark:hover:border-green-500 transition-all duration-200">
-            {authorizationPreview ? (
-              <div className="relative inline-block">
-                <img 
-                  src={authorizationPreview} 
-                  className="w-28 h-28 object-cover rounded-lg border-2 border-green-500 shadow-lg" 
-                  alt="Authorization Preview" 
-                />
-                <button 
-                  onClick={() => removeFile('authorization')} 
-                  className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <div className="text-center">
-                <input 
-                  type="file" 
-                  accept="image/*,application/pdf" 
-                  onChange={(e) => handleFileChange(e, 'authorization')}
-                  className="w-full text-sm text-gray-500 dark:text-gray-400
-                           file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0
-                           file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-950/30
-                           file:text-green-700 dark:file:text-green-400
-                           hover:file:bg-green-100 dark:hover:file:bg-green-900/50
-                           cursor-pointer transition-all duration-200"
-                />
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                  Supported: JPG, PNG, PDF (Max 5MB)
-                </p>
-              </div>
-            )}
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleFileChange(e, 'front')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-green-500 file:to-emerald-500
+                       file:text-white file:shadow-md
+                       hover:file:from-green-600 hover:file:to-emerald-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG (Max 5MB)
+            </p>
           </div>
-        </div>
+        )}
+      </div>
+    </div>
+
+    {/* Interior Photo */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Interior Photo
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${interiorPreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {interiorPreview ? (
+          <div className="relative inline-block">
+            <img 
+              src={interiorPreview} 
+              className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+              alt="Interior Preview" 
+            />
+            <button 
+              onClick={() => removeFile('interior')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleFileChange(e, 'interior')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-green-500 file:to-emerald-500
+                       file:text-white file:shadow-md
+                       hover:file:from-green-600 hover:file:to-emerald-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG (Max 5MB)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Left Side Photo */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Left Side Photo
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${leftSidePreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {leftSidePreview ? (
+          <div className="relative inline-block">
+            <img 
+              src={leftSidePreview} 
+              className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+              alt="Left Side Preview" 
+            />
+            <button 
+              onClick={() => removeFile('left')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleFileChange(e, 'left')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-green-500 file:to-emerald-500
+                       file:text-white file:shadow-md
+                       hover:file:from-green-600 hover:file:to-emerald-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG (Max 5MB)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Right Side Photo */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Right Side Photo
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${rightSidePreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {rightSidePreview ? (
+          <div className="relative inline-block">
+            <img 
+              src={rightSidePreview} 
+              className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+              alt="Right Side Preview" 
+            />
+            <button 
+              onClick={() => removeFile('right')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleFileChange(e, 'right')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-green-500 file:to-emerald-500
+                       file:text-white file:shadow-md
+                       hover:file:from-green-600 hover:file:to-emerald-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG (Max 5MB)
+            </p>
+          </div>
+        )}
       </div>
     </div>
   </div>
-)}
- <div className="flex justify-center gap-4 pt-4">
-//                           <button
-//   onClick={handleUpdate}
-  style={{
-    paddingLeft: '32px',
-    paddingRight: '32px',
-    paddingTop: '12px',
-    paddingBottom: '12px',
-    backgroundColor: '#000000',
-    color: '#ffffff',
-    borderRadius: '12px',
-    fontWeight: '600',
-    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    transition: 'all 0.2s ease',
-    cursor: 'pointer',
-    border: 'none',
-    fontSize: '14px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    minWidth: '140px',
-    height: '48px',
-    justifyContent: 'center'
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.backgroundColor = '#1f2937';
-    e.currentTarget.style.transform = 'scale(1.05)';
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.backgroundColor = '#000000';
-    e.currentTarget.style.transform = 'scale(1)';
-  }}
->
-  💾 Save Changes
-</button>
+</div>
 
-                    <button
-  onClick={() => {
-    setIsEditing(false);
-    setRearPreview(null);
-    setRcPreview(null);
-    setFrontPreview(null);
-    setInteriorPreview(null);
-    setLeftSidePreview(null);
-    setRightSidePreview(null);
-    setAuthorizationPreview(null);
-    setInsurancePreview(null);
-    setPollutionPreview(null);
-    setAadhaarPreview(null);
-    setRearPhoto(null);
-    setRcFile(null);
-    setFrontPhoto(null);
-    setInteriorPhoto(null);
-    setLeftSidePhoto(null);
-    setRightSidePhoto(null);
-    setAuthorizationFile(null);
-    setInsuranceDocument(null);
-    setPollutionDocument(null);
-    setOwnerAadhaarCard(null);
-    if (vehicleData?.registration_valid_till) {
-      setRegistrationValidTill(vehicleData.registration_valid_till.split('T')[0]);
-    }
-    setOwnershipType(vehicleData?.ownership_type || '');
-    setOwnerName(vehicleData?.owner_name || '');
-  }}
-  className="group relative px-8 py-3 bg-linear-to-r from-gray-500 to-gray-600 text-white rounded-xl font-semibold hover:from-gray-600 hover:to-gray-700 transform hover:scale-105 transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl overflow-hidden"
-  style={{
-    paddingLeft: '32px',
-    paddingRight: '32px',
-    paddingTop: '12px',
-    paddingBottom: '12px',
-    borderRadius: '12px',
-    fontWeight: '600',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-    border: 'none',
-    fontSize: '14px',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    minWidth: '140px',
-    height: '48px',
-    justifyContent: 'center',
-    position: 'relative'
-  }}
->
-  {/* Shine effect on hover */}
-  <span className="absolute inset-0 w-full h-full bg-linear-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+{/* Required Documents Upload */}
+<div className="space-y-6 mt-8">
+  <div className="flex items-center gap-3">
+    <div className="w-1 h-8 bg-linear-to-b from-red-500 to-orange-500 rounded-full"></div>
+    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Required Documents</h3>
+  </div>
   
-  {/* Icon with animation */}
-  <svg 
-    className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" 
-    fill="none" 
-    stroke="currentColor" 
-    viewBox="0 0 24 24"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-  
-  <span className="relative">Cancel</span>
-</button>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    {/* Rear Photo */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Rear Photo 
+        <span className="text-red-500 text-sm ml-1">*</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${rearPreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-red-300 dark:border-red-800 hover:border-green-400 dark:hover:border-green-500 bg-red-50/10 dark:bg-red-950/10'}`}>
+        {rearPreview ? (
+          <div className="relative inline-block">
+            <img 
+              src={rearPreview} 
+              className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+              alt="Rear Preview" 
+            />
+            <button 
+              onClick={() => removeFile('rear')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={(e) => handleFileChange(e, 'rear')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-red-500 file:to-orange-500
+                       file:text-white file:shadow-md
+                       hover:file:from-red-600 hover:file:to-orange-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG (Required)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* RC Document */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        RC Document 
+        <span className="text-red-500 text-sm ml-1">*</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${rcPreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-red-300 dark:border-red-800 hover:border-green-400 dark:hover:border-green-500 bg-red-50/10 dark:bg-red-950/10'}`}>
+        {rcPreview ? (
+          <div className="relative inline-block">
+            {rcPreview.match(/\.(jpg|jpeg|png)$/i) ? (
+              <img 
+                src={rcPreview} 
+                className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+                alt="RC Preview" 
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-md">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+            )}
+            <button 
+              onClick={() => removeFile('rc')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*,application/pdf" 
+              onChange={(e) => handleFileChange(e, 'rc')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-red-500 file:to-orange-500
+                       file:text-white file:shadow-md
+                       hover:file:from-red-600 hover:file:to-orange-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG, PDF (Required)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Insurance Document */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Insurance Document
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${insurancePreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {insurancePreview ? (
+          <div className="relative inline-block">
+            {insurancePreview.match(/\.(jpg|jpeg|png)$/i) ? (
+              <img 
+                src={insurancePreview} 
+                className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+                alt="Insurance Preview" 
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-md">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+            )}
+            <button 
+              onClick={() => removeFile('insurance')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*,application/pdf" 
+              onChange={(e) => handleFileChange(e, 'insurance')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-blue-500 file:to-indigo-500
+                       file:text-white file:shadow-md
+                       hover:file:from-blue-600 hover:file:to-indigo-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG, PDF (Max 5MB)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Pollution Certificate */}
+    <div className="group">
+      <label className="block font-semibold mb-2 text-gray-700 dark:text-gray-300">
+        Pollution Certificate
+        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Optional)</span>
+      </label>
+      <div className={`border-2 border-dashed rounded-xl p-4 transition-all duration-300
+        ${pollutionPreview 
+          ? 'border-green-500 bg-green-50/30 dark:bg-green-950/20' 
+          : 'border-gray-300 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500 bg-gray-50/30 dark:bg-gray-800/30'}`}>
+        {pollutionPreview ? (
+          <div className="relative inline-block">
+            {pollutionPreview.match(/\.(jpg|jpeg|png)$/i) ? (
+              <img 
+                src={pollutionPreview} 
+                className="w-32 h-32 object-cover rounded-lg shadow-md border-2 border-white dark:border-gray-700" 
+                alt="Pollution Preview" 
+              />
+            ) : (
+              <div className="w-32 h-32 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-md">
+                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+            )}
+            <button 
+              onClick={() => removeFile('pollution')}
+              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-lg transition-all duration-200 hover:scale-110"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <input 
+              type="file" 
+              accept="image/*,application/pdf" 
+              onChange={(e) => handleFileChange(e, 'pollution')}
+              className="w-full text-sm text-gray-600 dark:text-gray-400
+                       file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                       file:text-sm file:font-semibold 
+                       file:bg-linear-to-r file:from-purple-500 file:to-pink-500
+                       file:text-white file:shadow-md
+                       hover:file:from-purple-600 hover:file:to-pink-600
+                       hover:file:shadow-lg
+                       cursor-pointer transition-all duration-200
+                       file:cursor-pointer"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              JPG, PNG, PDF (Max 5MB)
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+                    <div className="flex justify-center gap-4 pt-4">
+                      <button
+                        onClick={handleUpdate}
+                        className="px-8 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                        style={{
+                          minWidth: '140px',
+                          height: '48px',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        💾 Save Changes
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setIsEditing(false);
+                          setRearPreview(null);
+                          setRcPreview(null);
+                          setFrontPreview(null);
+                          setInteriorPreview(null);
+                          setLeftSidePreview(null);
+                          setRightSidePreview(null);
+                          setAuthorizationPreview(null);
+                          setInsurancePreview(null);
+                          setPollutionPreview(null);
+                          setAadhaarPreview(null);
+                          setRearPhoto(null);
+                          setRcFile(null);
+                          setFrontPhoto(null);
+                          setInteriorPhoto(null);
+                          setLeftSidePhoto(null);
+                          setRightSidePhoto(null);
+                          setAuthorizationFile(null);
+                          setInsuranceDocument(null);
+                          setPollutionDocument(null);
+                          setOwnerAadhaarCard(null);
+                          if (vehicleData?.registration_valid_till) {
+                            setRegistrationValidTill(vehicleData.registration_valid_till.split('T')[0]);
+                          }
+                          setOwnershipType(vehicleData?.ownership_type || '');
+                          setOwnerName(vehicleData?.owner_name || '');
+                          setEnableRfidReservation(vehicleData?.enable_rfid_reservation || false);
+                          setRfidReservedSeatCount(vehicleData?.default_rfid_reserved_seat_count || 0);
+                        }}
+                        className="px-8 py-3 bg-gray-500 text-white rounded-xl font-semibold hover:bg-gray-600 transform hover:scale-105 transition-all duration-200 flex items-center gap-2 shadow-lg"
+                        style={{
+                          minWidth: '140px',
+                          height: '48px',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <XMarkIcon className="w-5 h-5" />
+                        Cancel
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -3875,8 +4560,36 @@ const DriverVehicle: React.FC = () => {
           )}
         </div>
       </IonContent>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        input[type="number"] {
+          -moz-appearance: textfield;
+        }
+      `}</style>
     </IonPage>
   );
+
 };
 
 export default DriverVehicle;
