@@ -143,7 +143,7 @@ import CurrentTrips from './components/users/pages/CurrentTrips';
 import Analytics from './components/users/pages/Analytics';
 import LandingPage from './components/users/pages/LandingPage';
 import Fine from './components/users/pages/Fine';
-
+import RfidCardholders from './components/users/pages/RFIDCardHolders';
 /* Session Management Utils */
 import { isSessionExpired, getAccessToken } from './utils/session';
 
@@ -256,7 +256,7 @@ const AppRoutes: React.FC = () => {
   return (
     <IonRouterOutlet>
       <Switch>
-        {/* পাবলিক রাউট - সবসময় এক্সেসযোগ্য */}
+       
         <Route exact path="/signup">
           <Signup />
         </Route>
@@ -269,7 +269,7 @@ const AppRoutes: React.FC = () => {
           <Login />
         </Route>
 
-        {/* প্রটেক্টেড রাউট - শুধুমাত্র লগইন করা ইউজারদের জন্য */}
+     
         <Route exact path="/dashboard">
           <ProtectedRoute>
             <Dashboard />
@@ -360,7 +360,12 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         </Route>
 
-   
+        <Route exact path="/rfid-cardsholders">
+          <ProtectedRoute>
+            <RfidCardholders />
+          </ProtectedRoute>
+        </Route>
+
         <Route path="*">
           <Redirect to="/" />
         </Route>
