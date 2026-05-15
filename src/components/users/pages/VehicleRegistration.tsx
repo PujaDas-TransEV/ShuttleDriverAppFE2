@@ -5615,7 +5615,7 @@ const VehicleRegistration: React.FC = () => {
                       onChange={(e) => setOwnerName(e.target.value)}
                       placeholder="Enter vehicle owner's full name"
                       className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 
-                               bg-white dark:bg-gray-800 text-gray-900 dark:text-white
+                               bg-white dark:bg-gray-100 text-gray-900 dark:text-white
                                focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 
                                transition-all duration-200"
                       style={{ height: '48px' }}

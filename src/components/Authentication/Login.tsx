@@ -907,7 +907,7 @@ import {
 import { Preferences } from '@capacitor/preferences';
 
 import { setTokens, isSessionExpired, getAccessToken } from '../../utils/session';
-
+import { NOTIFICATION_SESSION_STARTED_EVENT } from '../../components/users/pages/NotificationSessionProvider';
 const API_BASE = "https://be.shuttleapp.transev.site";
 
 const Login: React.FC = () => {
@@ -1205,9 +1205,11 @@ const Login: React.FC = () => {
       
       const saved = await saveTokensToStorage(access_token, expires_at, refresh_token);
       
-      if (saved) {
+      // if (saved) {
+      //   showNotification(`Welcome ${user?.email || 'Driver'}! Redirecting to dashboard...`, 'success');
+        if (saved) {
+        window.dispatchEvent(new Event(NOTIFICATION_SESSION_STARTED_EVENT));
         showNotification(`Welcome ${user?.email || 'Driver'}! Redirecting to dashboard...`, 'success');
-        
         setTimeout(() => {
           history.replace('/dashboard');
         }, 1500);
