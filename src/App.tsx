@@ -146,7 +146,7 @@ import Fine from './components/users/pages/Fine';
 import RfidCardholders from './components/users/pages/RFIDCardHolders';
 /* Session Management Utils */
 import { isSessionExpired, getAccessToken } from './utils/session';
-
+import { NotificationSessionProvider } from './components/users/pages/NotificationSessionProvider';
 /* Core CSS */
 import '@ionic/react/css/core.css';
 import '@ionic/react/css/normalize.css';
@@ -254,6 +254,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
+     <NotificationSessionProvider>
     <IonRouterOutlet>
       <Switch>
        
@@ -371,6 +372,7 @@ const AppRoutes: React.FC = () => {
         </Route>
       </Switch>
     </IonRouterOutlet>
+     </NotificationSessionProvider>
   );
 };
 
