@@ -504,7 +504,7 @@ const RfidPassengers: React.FC = () => {
 
             {/* Selected Route Info */}
             {selectedRouteName && (
-              <div className="p-3 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-800">
+              <div className="p-3 rounded-lg bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-800">
                 <p className="text-xs text-gray-500 dark:text-gray-400">Selected Route</p>
                 <div className="flex items-center gap-2 mt-1">
                   <BusIcon className="w-4 h-4 text-gray-600 dark:text-gray-400" />
@@ -584,22 +584,22 @@ const RfidPassengers: React.FC = () => {
           {/* Stats Cards */}
           {selectedTripId && scanEvents.length > 0 && (
             <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 border-b border-gray-200 dark:border-gray-800">
-              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-3 text-center border border-green-200 dark:border-green-800">
+              <div className="bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl p-3 text-center border border-green-200 dark:border-green-800">
                 <CheckBadgeIcon className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-green-700 dark:text-green-400">{stats.board}</p>
                 <p className="text-xs text-green-600 dark:text-green-500">Boarding Events</p>
               </div>
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-3 text-center border border-blue-200 dark:border-blue-800">
+              <div className="bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-3 text-center border border-blue-200 dark:border-blue-800">
                 <ShieldCheckIcon className="w-6 h-6 text-blue-600 dark:text-blue-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{stats.drop}</p>
                 <p className="text-xs text-blue-600 dark:text-blue-500">Drop-off Events</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-3 text-center border border-purple-200 dark:border-purple-800">
+              <div className="bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-3 text-center border border-purple-200 dark:border-purple-800">
                 <UserCircleIcon className="w-6 h-6 text-purple-600 dark:text-purple-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">{stats.passengers}</p>
                 <p className="text-xs text-purple-600 dark:text-purple-500">Unique Passengers</p>
               </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-xl p-3 text-center border border-yellow-200 dark:border-yellow-800">
+              <div className="bg-linear-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-xl p-3 text-center border border-yellow-200 dark:border-yellow-800">
                 <CreditCardIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mx-auto mb-1" />
                 <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">₹{stats.totalFare.toFixed(2)}</p>
                 <p className="text-xs text-yellow-600 dark:text-yellow-500">Total Fare</p>
@@ -804,7 +804,7 @@ const RfidPassengers: React.FC = () => {
 
                           {/* Fare Details Card - Show only if drop event exists */}
                           {passenger.drop_event && (
-                            <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800">
+                            <div className="mt-4 p-3 rounded-lg bg-linear-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800">
                               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <div>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Fare Amount</p>
