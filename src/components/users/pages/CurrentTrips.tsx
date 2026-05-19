@@ -112,6 +112,12 @@
 //   const [toastColor, setToastColor] = useState("success");
 //   const [isDarkMode, setIsDarkMode] = useState(true);
   
+//   // Permission States
+//   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+//   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
+//   const [showPermissionModal, setShowPermissionModal] = useState(false);
+//   const [pendingAction, setPendingAction] = useState<'scan' | 'startTrip' | null>(null);
+  
 //   // OTP Verification State
 //   const [showOtpModal, setShowOtpModal] = useState(false);
 //   const [otpCode, setOtpCode] = useState("");
@@ -162,6 +168,7 @@
 //   useEffect(() => {
 //     if (token) {
 //       fetchTripDetails();
+//       checkLocationPermissionOnLoad();
 //     }
 //   }, [token]);
 
@@ -176,6 +183,220 @@
 //       stopLocationTracking();
 //     };
 //   }, [trip?.status, token, trip?.trip_id, trip?.id]);
+
+//   // Check camera permission
+//   const checkCameraPermission = async (): Promise<boolean> => {
+//     try {
+//       // Check if browser supports permissions API
+//       if (navigator.permissions && navigator.permissions.query) {
+//         const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+//         if (result.state === 'granted') {
+//           setHasCameraPermission(true);
+//           return true;
+//         } else if (result.state === 'denied') {
+//           setHasCameraPermission(false);
+//           return false;
+//         }
+//       }
+      
+//       // Try to actually access camera to check permission
+//       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+//       stream.getTracks().forEach(track => track.stop());
+//       setHasCameraPermission(true);
+//       return true;
+//     } catch (err: any) {
+//       console.error("Camera permission error:", err);
+//       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+//         setHasCameraPermission(false);
+//       }
+//       return false;
+//     }
+//   };
+
+//   // Check location permission
+//   const checkLocationPermission = async (): Promise<boolean> => {
+//     try {
+//       // Check if browser supports permissions API
+//       if (navigator.permissions && navigator.permissions.query) {
+//         const result = await navigator.permissions.query({ name: 'geolocation' });
+//         if (result.state === 'granted') {
+//           setHasLocationPermission(true);
+//           return true;
+//         } else if (result.state === 'denied') {
+//           setHasLocationPermission(false);
+//           return false;
+//         }
+//       }
+      
+//       // Try to get current position to check permission
+//       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+//         navigator.geolocation.getCurrentPosition(resolve, reject, {
+//           enableHighAccuracy: true,
+//           timeout: 5000
+//         });
+//       });
+      
+//       if (position) {
+//         setHasLocationPermission(true);
+//         return true;
+//       }
+//       return false;
+//     } catch (err: any) {
+//       console.error("Location permission error:", err);
+//       if (err.code === 1) { // PERMISSION_DENIED
+//         setHasLocationPermission(false);
+//       }
+//       return false;
+//     }
+//   };
+
+//   const checkLocationPermissionOnLoad = async () => {
+//     await checkLocationPermission();
+//   };
+
+//   // Request camera permission with user interaction
+//   const requestCameraPermission = async (): Promise<boolean> => {
+//     try {
+//       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+//       stream.getTracks().forEach(track => track.stop());
+//       setHasCameraPermission(true);
+//       showToastNotification('Camera access granted!', "success");
+//       return true;
+//     } catch (err: any) {
+//       console.error("Camera permission request error:", err);
+//       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+//         setHasCameraPermission(false);
+//         showToastNotification('Camera permission denied. Please enable camera access in your browser settings.', "danger");
+//       } else if (err.name === 'NotFoundError') {
+//         showToastNotification('No camera found on this device.', "danger");
+//       } else {
+//         showToastNotification('Failed to access camera. Please check your permissions.', "danger");
+//       }
+//       return false;
+//     }
+//   };
+
+//   // Request location permission with user interaction
+//   const requestLocationPermission = async (): Promise<boolean> => {
+//     try {
+//       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+//         navigator.geolocation.getCurrentPosition(resolve, reject, {
+//           enableHighAccuracy: true,
+//           timeout: 10000,
+//           maximumAge: 0
+//         });
+//       });
+      
+//       if (position) {
+//         setHasLocationPermission(true);
+//         showToastNotification('Location access granted!', "success");
+//         return true;
+//       }
+//       return false;
+//     } catch (err: any) {
+//       console.error("Location permission request error:", err);
+//       if (err.code === 1) {
+//         setHasLocationPermission(false);
+//         showToastNotification('Location permission denied. Please enable location access in your browser settings to start the trip.', "danger");
+//       } else {
+//         showToastNotification('Failed to get location. Please check your GPS settings.', "danger");
+//       }
+//       return false;
+//     }
+//   };
+
+//   // Handle Scan QR click with permission check
+//   const handleScanClick = async () => {
+//     if (!trip) {
+//       showToastNotification('No active trip found', "danger");
+//       return;
+//     }
+    
+//     const hasPermission = await checkCameraPermission();
+    
+//     if (!hasPermission) {
+//       setPendingAction('scan');
+//       setShowPermissionModal(true);
+//       return;
+//     }
+    
+//     // Permission granted, open scanner
+//     setShowScanner(true);
+//   };
+
+//   // Handle Start Trip with permission check
+//   const handleStartTripWithPermission = async (tripId: string) => {
+//     if (!tripId || !token) {
+//       showToastNotification('No trip ID found', "danger");
+//       return;
+//     }
+    
+//     const hasPermission = await checkLocationPermission();
+    
+//     if (!hasPermission) {
+//       setPendingAction('startTrip');
+//       setShowPermissionModal(true);
+//       return;
+//     }
+    
+//     // Permission granted, proceed with trip start
+//     await startTrip(tripId);
+//   };
+
+//   // Actual start trip function
+//   const startTrip = async (tripId: string) => {
+//     setLoading(true);
+//     try {
+//       const position = await getCurrentLocation();
+      
+//       const formData = new FormData();
+//       formData.append("lat", position.lat.toString());
+//       formData.append("lng", position.lng.toString());
+      
+//       const res = await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/start`, {
+//         method: "POST",
+//         headers: { Authorization: `Bearer ${token}` },
+//         body: formData,
+//       });
+      
+//       const data = await res.json();
+      
+//       if (!res.ok) {
+//         throw new Error(data.detail || data.error || data.message || "Failed to start trip");
+//       }
+      
+//       showToastNotification('Trip started successfully!', "success");
+      
+//       setTimeout(() => {
+//         fetchTripDetails();
+//       }, 1000);
+      
+//     } catch (err: any) {
+//       console.error("Start trip error:", err);
+//       showToastNotification(err.message || 'Unknown error', "danger");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Handle permission grant from modal
+//   const handleGrantPermission = async () => {
+//     setShowPermissionModal(false);
+    
+//     if (pendingAction === 'scan') {
+//       const granted = await requestCameraPermission();
+//       if (granted) {
+//         setShowScanner(true);
+//       }
+//     } else if (pendingAction === 'startTrip' && cancelTripId) {
+//       const granted = await requestLocationPermission();
+//       if (granted && cancelTripId) {
+//         await startTrip(cancelTripId);
+//       }
+//     }
+    
+//     setPendingAction(null);
+//   };
 
 //   const getCurrentLocation = (): Promise<{ lat: number; lng: number }> => {
 //     return new Promise((resolve, reject) => {
@@ -569,46 +790,6 @@
 //     }
 //   };
 
-//   const handleStartTrip = async (tripId: string) => {
-//     if (!tripId || !token) {
-//       showToastNotification('No trip ID found', "danger");
-//       return;
-//     }
-    
-//     setLoading(true);
-//     try {
-//       const position = await getCurrentLocation();
-      
-//       const formData = new FormData();
-//       formData.append("lat", position.lat.toString());
-//       formData.append("lng", position.lng.toString());
-      
-//       const res = await fetch(`${API_BASE}/driver/scheduled-trips/${tripId}/start`, {
-//         method: "POST",
-//         headers: { Authorization: `Bearer ${token}` },
-//         body: formData,
-//       });
-      
-//       const data = await res.json();
-      
-//       if (!res.ok) {
-//         throw new Error(data.detail || data.error || data.message || "Failed to start trip");
-//       }
-      
-//       showToastNotification('Trip started successfully!', "success");
-      
-//       setTimeout(() => {
-//         fetchTripDetails();
-//       }, 1000);
-      
-//     } catch (err: any) {
-//       console.error("Start trip error:", err);
-//       showToastNotification(err.message || 'Unknown error', "danger");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
 //   const handleEndTrip = async (tripId: string) => {
 //     if (!tripId || !token) return;
 //     setLoading(true);
@@ -852,7 +1033,10 @@
 //                       <FiKey style={styles.scanIcon} />
 //                       Enter OTP
 //                     </button>
-//                     <button onClick={() => setShowScanner(true)} style={styles.scanButton}>
+//                     <button 
+//                       onClick={handleScanClick} 
+//                       style={styles.scanButton}
+//                     >
 //                       <FiCamera style={styles.scanIcon} />
 //                       Scan QR
 //                     </button>
@@ -959,7 +1143,14 @@
 //                 <div style={styles.actionButtons}>
 //                   {trip.status === "scheduled" && (
 //                     <>
-//                       <button onClick={() => handleStartTrip(trip.trip_id || trip.id)} style={styles.startButton} disabled={loading}>
+//                       <button 
+//                         onClick={() => {
+//                           setCancelTripId(trip.trip_id || trip.id);
+//                           handleStartTripWithPermission(trip.trip_id || trip.id);
+//                         }} 
+//                         style={styles.startButton} 
+//                         disabled={loading}
+//                       >
 //                         <FiPlay style={styles.buttonIcon} />
 //                         {loading ? "Starting..." : "Start Trip"}
 //                       </button>
@@ -1174,6 +1365,47 @@
 //                 </div>
 //               )}
 //             </>
+//           )}
+          
+//           {/* Permission Request Modal */}
+//           {showPermissionModal && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContent}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={pendingAction === 'scan' ? styles.modalIconCamera : styles.modalIconLocation}>
+//                     {pendingAction === 'scan' ? (
+//                       <FiCamera style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                     ) : (
+//                       <FiMapPin style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                     )}
+//                   </div>
+//                   <h2 style={styles.modalTitle}>
+//                     {pendingAction === 'scan' ? 'Camera Access Required' : 'Location Access Required'}
+//                   </h2>
+//                   <button 
+//                     onClick={() => setShowPermissionModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+                
+//                 <p style={styles.permissionDescription}>
+//                   {pendingAction === 'scan' 
+//                     ? 'To scan QR codes for passenger verification, we need access to your camera. Please allow camera access when prompted.'
+//                     : 'To start the trip and track your journey, we need access to your location. Please allow location access when prompted.'}
+//                 </p>
+                
+//                 <div style={styles.modalButtons}>
+//                   <button onClick={handleGrantPermission} style={styles.permissionAllowButton}>
+//                     Allow Access
+//                   </button>
+//                   <button onClick={() => setShowPermissionModal(false)} style={styles.cancelModalButton}>
+//                     Cancel
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
 //           )}
           
 //           {/* Passenger Details Modal */}
@@ -1407,7 +1639,7 @@
 //             </div>
 //           )}
           
-//           {showScanner && trip && token && (
+//           {showScanner && trip && token && hasCameraPermission && (
 //             <QRScannerComponent
 //               onClose={() => setShowScanner(false)}
 //               onScanSuccess={handleScanSuccess}
@@ -1851,6 +2083,44 @@
 //   summaryTimeLabel: { fontSize: '10px', color: isDark ? '#9CA3AF' : '#6B7280', marginBottom: '2px' },
 //   summaryTimeValue: { fontSize: '14px', fontWeight: '600', color: isDark ? '#FFFFFF' : '#111827' },
   
+//   // Permission Modal Styles
+//   modalIconCamera: {
+//     width: '48px',
+//     height: '48px',
+//     borderRadius: '24px',
+//     background: '#000000',
+//     display: 'flex',
+//     alignItems: 'center',
+//     justifyContent: 'center'
+//   },
+//   modalIconLocation: {
+//     width: '48px',
+//     height: '48px',
+//     borderRadius: '24px',
+//     background: '#10B981',
+//     display: 'flex',
+//     alignItems: 'center',
+//     justifyContent: 'center'
+//   },
+//   permissionDescription: {
+//     fontSize: '14px',
+//     color: isDark ? '#9CA3AF' : '#6B7280',
+//     marginBottom: '24px',
+//     textAlign: 'center' as const,
+//     lineHeight: '1.5'
+//   },
+//   permissionAllowButton: {
+//     flex: 1,
+//     padding: '12px',
+//     background: '#10B981',
+//     border: 'none',
+//     borderRadius: '12px',
+//     color: '#FFFFFF',
+//     fontSize: '14px',
+//     fontWeight: '600',
+//     cursor: 'pointer'
+//   },
+  
 //   // Passenger Modal Styles
 //   modalContentLarge: {
 //     background: isDark ? '#111111' : '#FFFFFF',
@@ -2133,7 +2403,7 @@
 //   cancelModalButton: { flex: 1, padding: '12px', background: isDark ? '#1F1F1F' : '#F3F4F6', border: 'none', borderRadius: '12px', color: isDark ? '#FFFFFF' : '#111827', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }
 // });
 
-// // IMPORTANT: This is the default export - make sure this line exists!
+// // IMPORTANT: This is the default export
 // export default CurrentTrip;
 
 import React, { useEffect, useState, useCallback, useRef } from "react";
@@ -2165,7 +2435,8 @@ import {
   FiUsers,
   FiUser,
   FiDollarSign,
-  FiDownload
+  FiDownload,
+  FiGrid,
 } from "react-icons/fi";
 import QRScannerComponent from "../pages/ScannerComponent";
 
@@ -2215,6 +2486,7 @@ interface Passenger {
   booking_id: string;
   passenger_id: string;
   passenger_name: string;
+  seat_number?: number; // ADDED: seat_number field
   pickup_stop: {
     id: string;
     name: string;
@@ -2235,6 +2507,36 @@ interface StopPassengerDetails {
   boarding_passengers: Passenger[];
   drop_passengers: Passenger[];
 }
+
+// Helper function to format seat number display
+const getSeatDisplay = (seatNumber?: number | null): string => {
+  if (seatNumber && seatNumber > 0) {
+    return `Seat ${seatNumber}`;
+  }
+  return 'Seat —';
+};
+
+// Helper component for seat badge
+const SeatBadge: React.FC<{ seatNumber?: number | null }> = ({ seatNumber }) => {
+  if (!seatNumber || seatNumber <= 0) return null;
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '2px 8px',
+      background: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
+      borderRadius: '20px',
+      fontSize: '10px',
+      fontWeight: '600',
+      color: '#FFFFFF',
+      boxShadow: '0 2px 4px rgba(139, 92, 246, 0.3)'
+    }}>
+      <FiGrid size={10} />
+      {getSeatDisplay(seatNumber)}
+    </span>
+  );
+};
 
 const CurrentTrip: React.FC = () => {
   const [token, setToken] = useState<string | null>(null);
@@ -2260,6 +2562,7 @@ const CurrentTrip: React.FC = () => {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [lastVerifiedSeat, setLastVerifiedSeat] = useState<number | null>(null);
   
   // Near Stop Detection State
   const [nearStopInfo, setNearStopInfo] = useState<NearStopInfo>({
@@ -2325,7 +2628,6 @@ const CurrentTrip: React.FC = () => {
   // Check camera permission
   const checkCameraPermission = async (): Promise<boolean> => {
     try {
-      // Check if browser supports permissions API
       if (navigator.permissions && navigator.permissions.query) {
         const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
         if (result.state === 'granted') {
@@ -2337,7 +2639,6 @@ const CurrentTrip: React.FC = () => {
         }
       }
       
-      // Try to actually access camera to check permission
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       stream.getTracks().forEach(track => track.stop());
       setHasCameraPermission(true);
@@ -2354,7 +2655,6 @@ const CurrentTrip: React.FC = () => {
   // Check location permission
   const checkLocationPermission = async (): Promise<boolean> => {
     try {
-      // Check if browser supports permissions API
       if (navigator.permissions && navigator.permissions.query) {
         const result = await navigator.permissions.query({ name: 'geolocation' });
         if (result.state === 'granted') {
@@ -2366,7 +2666,6 @@ const CurrentTrip: React.FC = () => {
         }
       }
       
-      // Try to get current position to check permission
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -2381,7 +2680,7 @@ const CurrentTrip: React.FC = () => {
       return false;
     } catch (err: any) {
       console.error("Location permission error:", err);
-      if (err.code === 1) { // PERMISSION_DENIED
+      if (err.code === 1) {
         setHasLocationPermission(false);
       }
       return false;
@@ -2458,7 +2757,6 @@ const CurrentTrip: React.FC = () => {
       return;
     }
     
-    // Permission granted, open scanner
     setShowScanner(true);
   };
 
@@ -2477,7 +2775,6 @@ const CurrentTrip: React.FC = () => {
       return;
     }
     
-    // Permission granted, proceed with trip start
     await startTrip(tripId);
   };
 
@@ -2595,7 +2892,7 @@ const CurrentTrip: React.FC = () => {
     }
   };
 
-  // OTP Verification Function
+  // OTP Verification Function - UPDATED with seat_number handling
   const verifyOtp = async () => {
     const tripId = trip?.trip_id || trip?.id;
     if (!tripId || !token) {
@@ -2631,9 +2928,21 @@ const CurrentTrip: React.FC = () => {
         throw new Error(data.detail || data.message || "OTP verification failed");
       }
 
-      showToastNotification('✅ Passenger verified successfully!', "success");
+      // ✅ UPDATED: Show seat number in success message if available
+      const seatNumber = data.seat_number;
+      setLastVerifiedSeat(seatNumber || null);
+      
+      const successMessage = seatNumber 
+        ? `✅ Passenger verified! Seat ${seatNumber} - ${data.scan_type === 'board' ? 'Boarded' : 'Dropped off'} successfully`
+        : `✅ Passenger verified! ${data.scan_type === 'board' ? 'Boarded' : 'Dropped off'} successfully`;
+      
+      showToastNotification(successMessage, "success");
       setShowOtpModal(false);
       setOtpCode("");
+      
+      // Clear seat after 3 seconds
+      setTimeout(() => setLastVerifiedSeat(null), 3000);
+      
       fetchTripDetails();
       
     } catch (err: any) {
@@ -2879,7 +3188,9 @@ const CurrentTrip: React.FC = () => {
     if (data.error) {
       showToastNotification(data.error, "danger");
     } else {
-      showToastNotification("Passenger verified successfully!", "success");
+      // ✅ UPDATED: Show seat number if available in scan result
+      const seatMsg = data.seat_number ? ` (Seat ${data.seat_number})` : '';
+      showToastNotification(`Passenger verified successfully${seatMsg}!`, "success");
     }
     setTimeout(() => setScanResult(null), 5000);
     fetchTripDetails();
@@ -3103,6 +3414,25 @@ const CurrentTrip: React.FC = () => {
           
           {trip && (
             <>
+              {/* Last Verified Seat Toast */}
+              {lastVerifiedSeat && (
+                <div style={{
+                  background: isDarkMode ? '#064E3B' : '#D1FAE5',
+                  border: `1px solid ${isDarkMode ? '#10B981' : '#059669'}`,
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <FiUserCheck size={20} color="#10B981" />
+                  <span style={{ fontWeight: '600', color: isDarkMode ? '#FFFFFF' : '#064E3B' }}>
+                    Last verified: Seat {lastVerifiedSeat}
+                  </span>
+                </div>
+              )}
+              
               {/* Near Stop Detection Card */}
               {trip.status === "in_progress" && nearStopInfo.isNear && nearStopInfo.stop && (
                 <div style={nearStopInfo.distance_meters === 0 ? styles.arrivedStopCard : styles.nearStopCard}>
@@ -3546,7 +3876,7 @@ const CurrentTrip: React.FC = () => {
             </div>
           )}
           
-          {/* Passenger Details Modal */}
+          {/* Passenger Details Modal - UPDATED with seat_number display */}
           {showPassengerModal && passengerDetails && (
             <div style={styles.modalOverlay}>
               <div style={styles.modalContentLarge}>
@@ -3591,6 +3921,7 @@ const CurrentTrip: React.FC = () => {
                 
                 {(passengerDetails.boarding_passengers.length > 0 || passengerDetails.drop_passengers.length > 0) ? (
                   <div style={styles.passengerLists}>
+                    {/* Boarding Passengers Section - UPDATED with seat_number */}
                     {passengerDetails.boarding_passengers.length > 0 && (
                       <div style={styles.passengerSection}>
                         <h3 style={styles.passengerSectionTitle}>
@@ -3604,19 +3935,23 @@ const CurrentTrip: React.FC = () => {
                                 <div style={styles.passengerAvatar}>
                                   <FiUser size={16} />
                                 </div>
-                                <div>
-                                  <p style={styles.passengerName}>{passenger.passenger_name}</p>
-                                  <p style={styles.passengerId}>ID: {passenger.passenger_id.slice(0, 8)}...</p>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' as const }}>
+                                    <p style={styles.passengerName}>{passenger.passenger_name}</p>
+                                    {/* ✅ ADDED: Seat number badge for boarding passengers */}
+                                    <SeatBadge seatNumber={passenger.seat_number} />
+                                  </div>
+                                  <p style={styles.passengerId}>ID: {passenger.passenger_id?.slice(0, 8)}...</p>
                                 </div>
                               </div>
                               <div style={styles.passengerDetails}>
                                 <div style={styles.passengerStop}>
                                   <FiMapPin size={12} style={{ color: '#10B981' }} />
-                                  <span>Pickup: {passenger.pickup_stop.name}</span>
+                                  <span>Pickup: {passenger.pickup_stop?.name || 'N/A'}</span>
                                 </div>
                                 <div style={styles.passengerStop}>
                                   <FiFlag size={12} style={{ color: '#EF4444' }} />
-                                  <span>Drop: {passenger.dropoff_stop.name}</span>
+                                  <span>Drop: {passenger.dropoff_stop?.name || 'N/A'}</span>
                                 </div>
                                 <div style={styles.passengerFare}>
                                   <FiDollarSign size={12} style={{ color: '#F59E0B' }} />
@@ -3634,6 +3969,7 @@ const CurrentTrip: React.FC = () => {
                       </div>
                     )}
                     
+                    {/* Dropping Passengers Section - UPDATED with seat_number */}
                     {passengerDetails.drop_passengers.length > 0 && (
                       <div style={styles.passengerSection}>
                         <h3 style={styles.passengerSectionTitle}>
@@ -3647,19 +3983,24 @@ const CurrentTrip: React.FC = () => {
                                 <div style={styles.passengerAvatar}>
                                   <FiUser size={16} />
                                 </div>
-                                <div>
-                                  <p style={styles.passengerName}>{passenger.passenger_name}</p>
-                                  <p style={styles.passengerId}>ID: {passenger.passenger_id.slice(0, 8)}...</p>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' as const }}>
+                                    <p style={styles.passengerName}>{passenger.passenger_name}</p>
+                                    {/* ✅ ADDED: Seat number badge for dropping passengers */}
+                                    <SeatBadge seatNumber={passenger.seat_number} />
+                                   
+                                  </div>
+                                  <p style={styles.passengerId}>ID: {passenger.passenger_id?.slice(0, 8)}...</p>
                                 </div>
                               </div>
                               <div style={styles.passengerDetails}>
                                 <div style={styles.passengerStop}>
                                   <FiMapPin size={12} style={{ color: '#10B981' }} />
-                                  <span>Pickup: {passenger.pickup_stop.name}</span>
+                                  <span>Pickup: {passenger.pickup_stop?.name || 'N/A'}</span>
                                 </div>
                                 <div style={styles.passengerStop}>
                                   <FiFlag size={12} style={{ color: '#EF4444' }} />
-                                  <span>Drop: {passenger.dropoff_stop.name}</span>
+                                  <span>Drop: {passenger.dropoff_stop?.name || 'N/A'}</span>
                                 </div>
                                 <div style={styles.passengerFare}>
                                   <FiDollarSign size={12} style={{ color: '#F59E0B' }} />
@@ -3694,7 +4035,7 @@ const CurrentTrip: React.FC = () => {
             </div>
           )}
           
-          {/* OTP Verification Modal */}
+          {/* OTP Verification Modal - UPDATED with seat number display after verification */}
           {showOtpModal && (
             <div style={styles.modalOverlay}>
               <div style={styles.modalContent}>
@@ -3770,7 +4111,11 @@ const CurrentTrip: React.FC = () => {
                 {scanResult.error ? <FiAlertCircle style={{ color: '#EF4444', fontSize: '24px' }} /> : <FiUserCheck style={{ color: '#10B981', fontSize: '24px' }} />}
                 <div>
                   <p style={styles.scanResultTitle}>{scanResult.error ? "Verification Failed" : "Passenger Verified"}</p>
-                  <p style={styles.scanResultText}>{scanResult.error ? scanResult.error : "Passenger has been successfully verified"}</p>
+                  <p style={styles.scanResultText}>
+                    {scanResult.error ? scanResult.error : 
+                     scanResult.seat_number ? `Passenger (Seat ${scanResult.seat_number}) has been successfully verified` : 
+                     "Passenger has been successfully verified"}
+                  </p>
                 </div>
                 <button onClick={() => setScanResult(null)} style={styles.scanResultClose}><FiX /></button>
               </div>
@@ -3873,6 +4218,17 @@ const CurrentTrip: React.FC = () => {
           50% {
             transform: scale(1.02);
             box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
       `}</style>

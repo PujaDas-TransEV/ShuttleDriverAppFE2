@@ -615,7 +615,7 @@ const DriverTripManagement = () => {
                     backgroundColor: document.documentElement.classList.contains('dark') ? '#450a0a' : '#fef2f2',
                     borderLeft: '4px solid #ef4444'
                   }}>
-                    <strong className="text-sm text-red-700 dark:text-red-300">Reason:</strong> {trip.cancel_reason || trip.premature_end_reason || "No reason provided"}
+                    <strong className="text-sm text-red-700 dark:text-red-300">Reason:</strong> {trip.cancellation_reason || trip.premature_end_reason || "No reason provided"}
                   </div>
                 )}
 
