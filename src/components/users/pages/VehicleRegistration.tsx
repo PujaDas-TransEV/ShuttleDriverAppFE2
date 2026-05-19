@@ -5255,7 +5255,7 @@ const VehicleRegistration: React.FC = () => {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total number of seats including driver seat
+                    Total number of seats excluding driver seat
                   </p>
                 </div>
               </div>
