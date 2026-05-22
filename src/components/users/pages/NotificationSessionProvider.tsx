@@ -34,6 +34,8 @@ interface NotificationSessionContextValue {
   lastNotification: AppNotificationMessage | null;
   refreshUnreadCount: () => Promise<void>;
   sendMarkReadOverSocket: (notificationId: string) => void;
+  markNotificationAsRead: (notificationId: string) => Promise<boolean>;
+  markAllNotificationsAsRead: () => Promise<boolean>;
   endNotificationSession: () => void;
 }
 
@@ -42,6 +44,8 @@ const NotificationSessionContext = createContext<NotificationSessionContextValue
   lastNotification: null,
   refreshUnreadCount: async () => {},
   sendMarkReadOverSocket: () => {},
+  markNotificationAsRead: async () => false,
+  markAllNotificationsAsRead: async () => false,
   endNotificationSession: () => {},
 });
 
@@ -145,6 +149,90 @@ export const NotificationSessionProvider: React.FC<{ children: React.ReactNode }
     }
   }, [endNotificationSession]);
 
+  // Mark a single notification as read
+  const markNotificationAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
+    const token = tokenRef.current || await getToken();
+    
+    if (!token) {
+      console.error('No token available for marking notification as read');
+      return false;
+    }
+
+    try {
+      // Send via WebSocket for real-time update
+      const ws = wsRef.current;
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'mark_read',
+          notification_id: notificationId,
+        }));
+      }
+
+      // Also call HTTP endpoint to ensure it's marked on server
+      const response = await fetch(`${API_BASE}/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Immediately decrease unread count locally without waiting for server
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Refresh from server to ensure accuracy (but don't show loading)
+        setTimeout(() => {
+          refreshUnreadCount();
+        }, 500);
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+  }, [refreshUnreadCount]);
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = useCallback(async (): Promise<boolean> => {
+    const token = tokenRef.current || await getToken();
+    
+    if (!token) {
+      console.error('No token available for marking all as read');
+      return false;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/notifications/read-all`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        // Immediately set unread count to 0 locally
+        setUnreadCount(0);
+        
+        // Refresh from server to ensure accuracy
+        setTimeout(() => {
+          refreshUnreadCount();
+        }, 500);
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
+  }, [refreshUnreadCount]);
+
   const connectWebSocket = useCallback(async () => {
     const token = await getToken();
 
@@ -220,6 +308,8 @@ export const NotificationSessionProvider: React.FC<{ children: React.ReactNode }
         }
 
         if (payload?.message === 'Notification marked as read.') {
+          // When server confirms a notification was marked as read
+          console.log('Server confirmed notification marked as read:', payload.notification_id);
           void refreshUnreadCount();
           return;
         }
@@ -351,6 +441,8 @@ export const NotificationSessionProvider: React.FC<{ children: React.ReactNode }
         lastNotification,
         refreshUnreadCount,
         sendMarkReadOverSocket,
+        markNotificationAsRead,
+        markAllNotificationsAsRead,
         endNotificationSession,
       }}
     >

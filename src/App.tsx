@@ -144,7 +144,7 @@ import Analytics from './components/users/pages/Analytics';
 import LandingPage from './components/users/pages/LandingPage';
 import Fine from './components/users/pages/Fine';
 import RfidCardholders from './components/users/pages/RFIDCardHolders';
-
+import Settings from './components/users/pages/Settings';
 /* Session Management Utils */
 import { isSessionExpired, getAccessToken } from './utils/session';
 import { NotificationSessionProvider } from './components/users/pages/NotificationSessionProvider';
@@ -365,6 +365,12 @@ const AppRoutes: React.FC = () => {
         <Route exact path="/rfid-cardsholders">
           <ProtectedRoute>
             <RfidCardholders />
+          </ProtectedRoute>
+        </Route>
+
+        <Route exact path="/settings">
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         </Route>
 
