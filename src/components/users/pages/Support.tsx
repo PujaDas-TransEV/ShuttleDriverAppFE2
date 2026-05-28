@@ -215,7 +215,7 @@ const HelpSupport: React.FC = () => {
         <div style={{ padding: "20px", maxWidth: "700px", margin: "0 auto" }}>
           
           {/* Header Section */}
-          <div style={{ marginTop: "50px", marginBottom: "32px", textAlign: "center" }}>
+          <div style={{ marginTop: "56px", marginBottom: "32px", textAlign: "center" }}>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',

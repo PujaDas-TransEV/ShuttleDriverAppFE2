@@ -502,30 +502,29 @@ const DriverLiveTracking: React.FC = () => {
             </div>
           )}
 
-          {/* Header Overlay */}
-          <div className="absolute top-0 left-0 right-0 z-10 p-4 bg-linear-to-b from-black/80 to-transparent pointer-events-none">
-            <div className="flex items-center justify-between pointer-events-auto">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center">
-                  <span className="text-xl">📍</span>
-                </div>
-                <div>
-                  <h1 className="text-white font-bold text-lg">Live Tracking</h1>
-                  <p className="text-white/70 text-xs">
-                    {routeDetails ? routeDetails.name : "Select a route"}
-                  </p>
-                </div>
-              </div>
-              {driverPos && !locationError && (
-                <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-white text-xs font-medium">Live</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <div className="absolute top-11 left-0 right-0 z-10 p-4 bg-linear-to-b from-black/60 to-transparent pointer-events-none">
+  <div className="flex items-center justify-between pointer-events-auto">
+    <div className="flex items-center gap-2">
+      <div className="w-10 h-10 rounded-full bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center">
+        <span className="text-xl">📍</span>
+      </div>
+      <div>
+        <h1 className="text-white font-bold text-lg">Live Tracking</h1>
+        <p className="text-white/70 text-xs">
+          {routeDetails ? routeDetails.name : "Select a route"}
+        </p>
+      </div>
+    </div>
+    {driverPos && !locationError && (
+      <div className="bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <span className="text-white text-xs font-medium">Live</span>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
 
           {/* Route Info Overlay */}
           {routeDetails && (
@@ -902,3 +901,4 @@ const DriverLiveTracking: React.FC = () => {
 };
 
 export default DriverLiveTracking;
+
