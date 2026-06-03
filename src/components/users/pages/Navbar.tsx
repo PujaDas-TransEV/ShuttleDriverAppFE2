@@ -1797,6 +1797,7 @@ const NavbarSidebar: React.FC = () => {
   const menuItems = [
     { name: 'Dashboard', icon: HomeIcon, path: '/dashboard' },
     { name: 'Profile', icon: UserCircleIcon, path: '/profile-setup' },
+       { name: 'Vehicle Management', icon: TruckIcon, path: '/bus-and-trip-management' },
     { 
       name: 'Trip Management', 
       icon: MapIcon, 
@@ -1807,14 +1808,8 @@ const NavbarSidebar: React.FC = () => {
         { name: 'Manage Trips', path: '/trip-management', icon: MapIcon },
       ] 
     },
-    { name: 'Vehicle Management', icon: TruckIcon, path: '/bus-and-trip-management' },
-    { 
-      name: 'Fine Management',
-      icon: DocumentTextIcon,
-      path: '/fines',
-      hasBadge: true,
-      badgeCount: fineUnreadCount,
-    },
+ 
+   
     { 
       name: 'Passenger Management', 
       icon: UsersIcon,
@@ -1825,6 +1820,13 @@ const NavbarSidebar: React.FC = () => {
       ] 
     },
     { name: 'Live Tracking', icon: MapIcon, path: '/live-tracking' },
+     { 
+      name: 'Fine Management',
+      icon: DocumentTextIcon,
+      path: '/fines',
+      hasBadge: true,
+      badgeCount: fineUnreadCount,
+    },
     { name: 'Revenue & Payments', icon: CurrencyRupeeIcon, path: '/revenue-payments' },
     { name: 'Analytics', icon: ChartBarIcon, path: '/analytics' },
     { name: 'Notifications', icon: BellIcon, path: '/notification' },
