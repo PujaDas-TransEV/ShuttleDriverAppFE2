@@ -13957,7 +13957,6 @@
 // import React, { useEffect, useState, useCallback, useRef } from "react";
 // import { IonPage, IonContent, IonLoading, IonToast } from "@ionic/react";
 // import { Preferences } from '@capacitor/preferences';
-// // REMOVE: import { useQueryClient } from "@tanstack/react-query";
 // import NavbarSidebar from "./Navbar";
 // import { 
 //   FiCamera, 
@@ -14529,7 +14528,6 @@
 // // ============================================================
 
 // const CurrentTrip: React.FC = () => {
-//   // REMOVED: const queryClient = useQueryClient();
   
 //   // ============================================================
 //   // State
@@ -14615,7 +14613,7 @@
 //   const [isDeparting, setIsDeparting] = useState(false);
 
 //   // ============================================================
-//   // WebSocket Setup - UPDATED without QueryClient
+//   // WebSocket Setup
 //   // ============================================================
   
 //   useEffect(() => {
@@ -14652,14 +14650,12 @@
 //         setActionState((prev) => reduceDriverRefreshEvent(prev, event));
 //       },
 //       onRefreshBatch: (events) => {
-//         // UPDATED: Simply trigger a refresh instead of using queryClient
 //         const hasConnected = events.some((e) => e.event === "channel.connected");
 //         if (hasConnected && !isInitialSyncRef.current) {
 //           isInitialSyncRef.current = true;
 //           setActionState((prev) => ({ ...prev, socketSynchronized: true }));
 //           fetchTripDetails();
 //         } else {
-//           // For other events, just refresh trip details
 //           const hasTripEvent = events.some((e) => 
 //             e.event === "trip.created" || 
 //             e.event === "trip.started" || 
@@ -14701,16 +14697,11 @@
 //   };
 
 //   // ============================================================
-//   // Derived Action Eligibility - buttons are DISABLED by default
+//   // Derived Action Eligibility
 //   // ============================================================
   
 //   const getCanStart = useCallback(() => {
 //     const currentTripId = trip?.trip_id || trip?.id;
-//     // Only enabled when ALL conditions are met:
-//     // 1. Socket is synchronized
-//     // 2. start.allowed === true from WebSocket
-//     // 3. tripId matches current trip
-//     // 4. trip status is "scheduled"
 //     return (
 //       actionState.socketSynchronized &&
 //       actionState.start?.allowed === true &&
@@ -14724,12 +14715,8 @@
 //     const activeStop = calculatedStops.find(
 //       (s) => s.arrival_time && !s.departure_time
 //     );
-//     // Only enabled when ALL conditions are met:
-//     // 1. Socket is synchronized
-//     // 2. departure.allowed === true from WebSocket
-//     // 3. tripId matches current trip
-//     // 4. stopId matches active stop
-//     // 5. trip status is "in_progress"
+//     // For first stop, always allow departure after arrival
+//     const isFirstStop = activeStop?.sequence === 1;
 //     return (
 //       actionState.socketSynchronized &&
 //       actionState.departure?.allowed === true &&
@@ -15017,7 +15004,6 @@
 //       return;
 //     }
     
-//     // Check if WebSocket says start is allowed - if not, button should be disabled, but double-check
 //     if (!getCanStart()) {
 //       showToastNotification('Start is not currently allowed. Please wait for the scheduled time.', "warning");
 //       return;
@@ -15061,7 +15047,6 @@
       
 //       showToastNotification('Trip started successfully!', "success");
       
-//       // Clear start eligibility
 //       setActionState((prev) => ({
 //         ...prev,
 //         start: null,
@@ -15120,6 +15105,7 @@
 //     setTimeout(() => setShowToast(false), 4000);
 //   };
 
+//   // FIXED: View Passengers - fetches and shows passenger details in popup
 //   const fetchStopPassengerDetails = async (stopId: string) => {
 //     const tripId = trip?.trip_id || trip?.id;
 //     if (!tripId || !token) {
@@ -15464,6 +15450,7 @@
 //     fetchCurrentTripPassengers();
 //   };
 
+//   // FIXED: handleStopAction - Now allows departure for first stop without time check
 //   const handleStopAction = async (stop_id: string, mode: "arrive" | "depart") => {
 //     if (!trip || !token) return;
     
@@ -15505,7 +15492,6 @@
 //       if (mode === "arrive") {
 //         lastNotifiedStopIdRef.current = null;
 //         setNearStopInfo(prev => ({ ...prev, hasNotified: false }));
-//         // Clear departure state until new one arrives
 //         setActionState((prev) => {
 //           const currentTripId = trip.trip_id || trip.id;
 //           if (prev.departure && prev.departure.tripId === currentTripId) {
@@ -15522,14 +15508,15 @@
 //       }
       
 //       if (mode === "depart") {
-//         // Clear departure state
 //         setActionState((prev) => ({
 //           ...prev,
 //           departure: null
 //         }));
 //       }
       
+//       // Refresh trip details after action
 //       fetchTripDetails();
+      
 //     } catch (err: any) {
 //       console.error("Stop action error:", err);
 //       showToastNotification(err.message || 'Failed to update stop', "danger");
@@ -15540,6 +15527,7 @@
 //     }
 //   };
 
+//   // FIXED: handleEndTrip - Normal end trip
 //   const handleEndTrip = async (tripId: string) => {
 //     if (!tripId || !token) return;
 //     setLoading(true);
@@ -15576,6 +15564,7 @@
 //     }
 //   };
 
+//   // FIXED: submitEmergencyStop - Emergency end with API call
 //   const submitEmergencyStop = async () => {
 //     if (!emergencyTripId || !emergencyReason || !token) {
 //       showToastNotification('Please provide a reason for emergency stop!', "danger");
@@ -15596,6 +15585,13 @@
 //       formData.append("lng", position.lng.toString());
 //       formData.append("actual_end_at", new Date().toISOString());
       
+//       console.log("Emergency stop API call:", {
+//         tripId: emergencyTripId,
+//         reason: emergencyReason,
+//         lat: position.lat,
+//         lng: position.lng
+//       });
+      
 //       const res = await fetch(`${API_BASE}/driver/scheduled-trips/${emergencyTripId}/emergency-end`, {
 //         method: "POST",
 //         headers: { Authorization: `Bearer ${token}` },
@@ -15603,6 +15599,7 @@
 //       });
       
 //       const data = await res.json();
+//       console.log("Emergency stop response:", data);
       
 //       if (!res.ok) {
 //         let errorMsg = data.detail?.message || data.detail?.error || data.error || "Emergency stop failed";
@@ -15613,15 +15610,17 @@
 //       showToastNotification('Emergency stop completed successfully!', "success");
 //       setShowEmergencyModal(false);
       
+//       // Clear all trip states
 //       clearTripStates();
       
+//       // Refresh trip details
 //       setTimeout(() => {
 //         fetchTripDetails();
 //       }, 500);
       
 //     } catch (err: any) {
 //       console.error("Emergency stop error:", err);
-//       showToastNotification(err.message, "danger");
+//       showToastNotification(err.message || 'Failed to complete emergency stop', "danger");
 //     } finally {
 //       setLoading(false);
 //     }
@@ -15854,7 +15853,7 @@
 //                 </div>
 //               )}
               
-//               {/* Ready to Start Card - ONLY when WebSocket says start is allowed */}
+//               {/* Ready to Start Card */}
 //               {trip.status === "scheduled" && getCanStart() && (
 //                 <div style={styles.readyToStartCard}>
 //                   <div style={styles.readyToStartHeader}>
@@ -15908,7 +15907,7 @@
 //                 </div>
 //               )}
               
-//               {/* Scheduled but not yet eligible - DISABLED state shown here */}
+//               {/* Scheduled but not yet eligible */}
 //               {trip.status === "scheduled" && !getCanStart() && !timeRemaining && (
 //                 <div style={styles.waitingCard}>
 //                   <div style={styles.waitingContent}>
@@ -16109,7 +16108,6 @@
 //                         }} 
 //                         style={{
 //                           ...styles.startButton,
-//                           // DISABLED by default - only enabled when getCanStart() returns true
 //                           opacity: (!getCanStart() || isStartingTrip) ? 0.5 : 1,
 //                           cursor: (!getCanStart() || isStartingTrip) ? 'not-allowed' : 'pointer',
 //                           background: (!getCanStart() || isStartingTrip) ? '#6B7280' : '#10B981',
@@ -16177,9 +16175,11 @@
 //                       const isNearThisStop = nearStopInfo.isNear && nearStopInfo.stop?.name === stop.name;
 //                       const hasArrivedAtStop = nearStopInfo.isNear && nearStopInfo.stop?.name === stop.name && nearStopInfo.distance_meters === 0;
                       
-//                       // Check if this stop is the active departure stop
 //                       const isDepartureStop = actionState.departure?.stopId === stop.stop_id;
 //                       const canDepartThisStop = isDepartureStop && actionState.departure?.allowed;
+                      
+//                       // For first stop, departure is always allowed after arrival
+//                       const isFirstStopDeparture = isFirstStop && isArrived && !isDeparted;
                       
 //                       return (
 //                         <div 
@@ -16188,7 +16188,7 @@
 //                             ...styles.stopCard,
 //                             ...(isNearThisStop ? styles.stopCardNear : {}),
 //                             ...(hasArrivedAtStop ? styles.stopCardArrived : {}),
-//                             ...(canDepartThisStop ? styles.stopCardDepartReady : {}),
+//                             ...(canDepartThisStop || isFirstStopDeparture ? styles.stopCardDepartReady : {}),
 //                           }}
 //                         >
 //                           <div style={styles.stopCardInner}>
@@ -16215,7 +16215,7 @@
 //                                     ARRIVED
 //                                   </span>
 //                                 )}
-//                                 {canDepartThisStop && (
+//                                 {(canDepartThisStop || isFirstStopDeparture) && (
 //                                   <span style={styles.departReadyBadge}>
 //                                     <FiArrowRightCircle size={10} />
 //                                     DEPART READY
@@ -16273,7 +16273,7 @@
 //                                 {stop.deboarding_allowed && <span style={styles.deboardingBadge}>✓ Deboarding</span>}
 //                                 {isArrived && !isDeparted && <span style={styles.arrivedBadge}>📍 Arrived</span>}
 //                                 {isDeparted && <span style={styles.completedBadge}>✓ Completed</span>}
-//                                 {canDepartThisStop && (
+//                                 {(canDepartThisStop || isFirstStopDeparture) && (
 //                                   <span style={styles.departAllowedBadge}>
 //                                     <FiArrowRightCircle size={10} />
 //                                     Depart Allowed
@@ -16305,18 +16305,17 @@
 //                                       </button>
 //                                     )}
                                     
-//                                     {/* Depart button - DISABLED by default, only enabled when WebSocket says so */}
+//                                     {/* Depart button - For first stop, always enabled after arrival */}
 //                                     {!isLastStop && isArrived && !isDeparted && (
 //                                       <button 
 //                                         onClick={() => handleStopAction(stop.stop_id, "depart")} 
 //                                         style={{
 //                                           ...styles.departStopButton,
-//                                           // DISABLED by default - only enabled when canDepartThisStop is true
-//                                           opacity: (!canDepartThisStop || isDeparting) ? 0.5 : 1,
-//                                           cursor: (!canDepartThisStop || isDeparting) ? 'not-allowed' : 'pointer',
-//                                           background: (!canDepartThisStop || isDeparting) ? '#6B7280' : '#3B82F6',
+//                                           opacity: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 0.5 : 1,
+//                                           cursor: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 'not-allowed' : 'pointer',
+//                                           background: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? '#6B7280' : '#3B82F6',
 //                                         }}
-//                                         disabled={!canDepartThisStop || isDeparting}
+//                                         disabled={!(canDepartThisStop || isFirstStopDeparture) || isDeparting}
 //                                       >
 //                                         <FiArrowRightCircle />
 //                                         {isDeparting ? 'Departing...' : 'Mark Departure'}
@@ -16330,17 +16329,17 @@
 //                                       </button>
 //                                     )}
                                     
-//                                     {/* Complete Trip button - also DISABLED by default */}
+//                                     {/* Complete Trip button */}
 //                                     {isLastStop && isArrived && !isDeparted && (
 //                                       <button 
 //                                         onClick={() => handleStopAction(stop.stop_id, "depart")} 
 //                                         style={{
 //                                           ...styles.completeTripButton,
-//                                           opacity: (!canDepartThisStop || isDeparting) ? 0.5 : 1,
-//                                           cursor: (!canDepartThisStop || isDeparting) ? 'not-allowed' : 'pointer',
-//                                           background: (!canDepartThisStop || isDeparting) ? '#6B7280' : '#8B5CF6',
+//                                           opacity: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 0.5 : 1,
+//                                           cursor: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 'not-allowed' : 'pointer',
+//                                           background: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? '#6B7280' : '#8B5CF6',
 //                                         }}
-//                                         disabled={!canDepartThisStop || isDeparting}
+//                                         disabled={!(canDepartThisStop || isFirstStopDeparture) || isDeparting}
 //                                       >
 //                                         <FiFlag />
 //                                         {isDeparting ? 'Completing...' : 'Complete Trip'}
@@ -16391,8 +16390,464 @@
 //             </>
 //           )}
           
-//           {/* Modals remain the same - they are not shown here for brevity */}
-//           {/* ... (Permission Modal, Passengers Manifest, Passenger Details, OTP, Cancel, Emergency modals) ... */}
+//           {/* ============================================================ */}
+//           {/* ALL MODALS */}
+//           {/* ============================================================ */}
+          
+//           {/* Permission Request Modal */}
+//           {showPermissionModal && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContent}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={pendingAction === 'scan' ? styles.modalIconCamera : styles.modalIconLocation}>
+//                     {pendingAction === 'scan' ? (
+//                       <FiCamera style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                     ) : (
+//                       <FiMapPin style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                     )}
+//                   </div>
+//                   <h2 style={styles.modalTitle}>
+//                     {pendingAction === 'scan' ? 'Camera Access Required' : 'Location Access Required'}
+//                   </h2>
+//                   <button 
+//                     onClick={() => setShowPermissionModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+                
+//                 <p style={styles.permissionDescription}>
+//                   {pendingAction === 'scan' 
+//                     ? 'To scan QR codes for passenger verification, we need access to your camera. Please allow camera access when prompted.'
+//                     : 'To start the trip and track your journey, we need access to your location. Please allow location access when prompted.'}
+//                 </p>
+                
+//                 <div style={styles.modalButtons}>
+//                   <button onClick={handleGrantPermission} style={styles.permissionAllowButton}>
+//                     Allow Access
+//                   </button>
+//                   <button onClick={() => setShowPermissionModal(false)} style={styles.cancelModalButton}>
+//                     Cancel
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* Passengers Manifest Modal */}
+//           {showPassengersManifest && currentTripPassengers && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContentLarge}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={styles.modalIconPassengers}>
+//                     <FiUsers style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                   </div>
+//                   <h2 style={styles.modalTitle}>All Passengers</h2>
+//                   <button 
+//                     onClick={() => setShowPassengersManifest(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+                
+//                 <div style={styles.passengerStats}>
+//                   <div style={styles.statCard}>
+//                     <div style={styles.statIconBoarding}>
+//                       <FiUser size={20} />
+//                     </div>
+//                     <div>
+//                       <p style={styles.statLabel}>Total Passengers</p>
+//                       <p style={styles.statValue}>{currentTripPassengers.total_passengers}</p>
+//                     </div>
+//                   </div>
+//                 </div>
+                
+//                 {currentTripPassengers.passengers.length > 0 ? (
+//                   <div style={styles.passengerLists}>
+//                     <div style={styles.passengerSection}>
+//                       <h3 style={styles.passengerSectionTitle}>
+//                         <FiUser size={16} />
+//                         Passengers List ({currentTripPassengers.total_passengers})
+//                       </h3>
+//                       <div style={styles.passengerList}>
+//                         {currentTripPassengers.passengers.map((passenger) => {
+//                           const displayName = getDisplayName(passenger);
+//                           const contactInfo = getContactInfo(passenger);
+//                           return (
+//                             <div key={passenger.booking_id} style={styles.passengerCard}>
+//                               <div style={styles.passengerHeader}>
+//                                 <div style={styles.passengerAvatar}>
+//                                   <FiUser size={16} />
+//                                 </div>
+//                                 <div style={{ flex: 1 }}>
+//                                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' as const }}>
+//                                     <p style={styles.passengerName}>{displayName}</p>
+//                                     <SeatBadge seatNumber={passenger.seat_number} />
+//                                   </div>
+//                                   <p style={styles.passengerId}>ID: {passenger.passenger_id?.slice(0, 8)}...</p>
+//                                 </div>
+//                               </div>
+                              
+//                               {(contactInfo.phone || contactInfo.email) && (
+//                                 <div style={styles.contactInfo as React.CSSProperties}>
+//                                   {contactInfo.phone && (
+//                                     <div style={styles.contactItem as React.CSSProperties}>
+//                                       <FiPhone size={12} />
+//                                       <span>{contactInfo.phone}</span>
+//                                     </div>
+//                                   )}
+//                                   {contactInfo.email && (
+//                                     <div style={styles.contactItem as React.CSSProperties}>
+//                                       <FiMail size={12} />
+//                                       <span>{contactInfo.email}</span>
+//                                     </div>
+//                                   )}
+//                                 </div>
+//                               )}
+                              
+//                               {passenger.traveller_relationship_label && (
+//                                 <div style={styles.relationshipLabel as React.CSSProperties}>
+//                                   {passenger.traveller_relationship_label}
+//                                 </div>
+//                               )}
+                              
+//                               <div style={styles.passengerDetails}>
+//                                 <div style={styles.passengerStop}>
+//                                   <FiMapPin size={12} style={{ color: '#10B981' }} />
+//                                   <span>Pickup: {passenger.pickup_stop?.name || 'N/A'}</span>
+//                                 </div>
+//                                 <div style={styles.passengerStop}>
+//                                   <FiFlag size={12} style={{ color: '#EF4444' }} />
+//                                   <span>Drop: {passenger.dropoff_stop?.name || 'N/A'}</span>
+//                                 </div>
+//                                 <div style={styles.passengerFare}>
+//                                   <FiDollarSign size={12} style={{ color: '#F59E0B' }} />
+//                                   <span>Fare: ₹{passenger.fare_amount}</span>
+//                                 </div>
+//                               </div>
+                              
+//                               <div style={styles.passengerStatus}>
+//                                 <span style={styles.statusBadgeBoarding}>
+//                                   {passenger.status || passenger.booking_status || 'Booked'}
+//                                 </span>
+//                               </div>
+//                             </div>
+//                           );
+//                         })}
+//                       </div>
+//                     </div>
+//                   </div>
+//                 ) : (
+//                   <div style={styles.noPassengersMessage}>
+//                     <FiUsers size={48} style={{ color: isDarkMode ? '#374151' : '#9CA3AF', marginBottom: '16px' }} />
+//                     <p style={styles.noPassengersText}>No passengers found</p>
+//                     <p style={styles.noPassengersSubtext}>No bookings for this trip</p>
+//                   </div>
+//                 )}
+                
+//                 <div style={styles.modalButtons}>
+//                   <button onClick={() => setShowPassengersManifest(false)} style={styles.closeModalButton}>
+//                     Close
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* Passenger Details Modal (Stop-specific) - FIXED: Shows passenger details in popup */}
+//           {showPassengerModal && passengerDetails && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContentLarge}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={styles.modalIconPassengers}>
+//                     <FiUsers style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                   </div>
+//                   <h2 style={styles.modalTitle}>Passenger Details</h2>
+//                   <button 
+//                     onClick={() => setShowPassengerModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+                
+//                 <div style={styles.stopInfoSection}>
+//                   <FiMapPin style={{ color: '#10B981', fontSize: '18px' }} />
+//                   <span style={styles.stopInfoText}>Stop: {calculatedStops.find(s => s.stop_id === passengerDetails.stop_id)?.name || passengerDetails.stop_id}</span>
+//                 </div>
+                
+//                 <div style={styles.passengerStats}>
+//                   <div style={styles.statCard}>
+//                     <div style={styles.statIconBoarding}>
+//                       <FiUserPlus size={20} />
+//                     </div>
+//                     <div>
+//                       <p style={styles.statLabel}>Boarding</p>
+//                       <p style={styles.statValue}>{passengerDetails.boarding_count}</p>
+//                     </div>
+//                   </div>
+//                   <div style={styles.statCard}>
+//                     <div style={styles.statIconDropping}>
+//                       <FiUser size={20} />
+//                     </div>
+//                     <div>
+//                       <p style={styles.statLabel}>Dropping</p>
+//                       <p style={styles.statValue}>{passengerDetails.drop_count}</p>
+//                     </div>
+//                   </div>
+//                 </div>
+                
+//                 {(passengerDetails.boarding_passengers.length > 0 || passengerDetails.drop_passengers.length > 0) ? (
+//                   <div style={styles.passengerLists}>
+//                     {passengerDetails.boarding_passengers.length > 0 && (
+//                       <div style={styles.passengerSection}>
+//                         <h3 style={styles.passengerSectionTitle}>
+//                           <FiUserPlus size={16} />
+//                           Boarding Passengers ({passengerDetails.boarding_count})
+//                         </h3>
+//                         <div style={styles.passengerList}>
+//                           {passengerDetails.boarding_passengers.map((passenger) => (
+//                             <PassengerCard key={passenger.booking_id} passenger={passenger} type="boarding" styles={styles} />
+//                           ))}
+//                         </div>
+//                       </div>
+//                     )}
+                    
+//                     {passengerDetails.drop_passengers.length > 0 && (
+//                       <div style={styles.passengerSection}>
+//                         <h3 style={styles.passengerSectionTitle}>
+//                           <FiUser size={16} />
+//                           Dropping Passengers ({passengerDetails.drop_count})
+//                         </h3>
+//                         <div style={styles.passengerList}>
+//                           {passengerDetails.drop_passengers.map((passenger) => (
+//                             <PassengerCard key={passenger.booking_id} passenger={passenger} type="dropping" styles={styles} />
+//                           ))}
+//                         </div>
+//                       </div>
+//                     )}
+//                   </div>
+//                 ) : (
+//                   <div style={styles.noPassengersMessage}>
+//                     <FiUsers size={48} style={{ color: isDarkMode ? '#374151' : '#9CA3AF', marginBottom: '16px' }} />
+//                     <p style={styles.noPassengersText}>No passengers for this stop</p>
+//                     <p style={styles.noPassengersSubtext}>No boarding or dropping passengers at this location</p>
+//                   </div>
+//                 )}
+                
+//                 <div style={styles.modalButtons}>
+//                   <button onClick={() => setShowPassengerModal(false)} style={styles.closeModalButton}>
+//                     Close
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* OTP Verification Modal */}
+//           {showOtpModal && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContent}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={styles.modalIconOtp}>
+//                     <FiKey style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                   </div>
+//                   <h2 style={styles.modalTitle}>Verify Passenger</h2>
+//                   <button 
+//                     onClick={() => setShowOtpModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+                
+//                 <p style={styles.otpDescription}>
+//                   Enter the 6-digit OTP provided by the passenger to verify their boarding.
+//                 </p>
+                
+//                 <div style={styles.otpInputContainer}>
+//                   <input
+//                     type="text"
+//                     maxLength={6}
+//                     pattern="[0-9]*"
+//                     inputMode="numeric"
+//                     placeholder="••••••"
+//                     value={otpCode}
+//                     onChange={(e) => {
+//                       const value = e.target.value.replace(/[^0-9]/g, '');
+//                       setOtpCode(value);
+//                     }}
+//                     style={styles.otpInput}
+//                     autoFocus
+//                   />
+//                 </div>
+                
+//                 <div style={styles.modalButtons}>
+//                   <button 
+//                     onClick={verifyOtp} 
+//                     disabled={!otpCode || otpCode.length !== 6 || verifyingOtp} 
+//                     style={{ 
+//                       ...styles.otpSubmitButton, 
+//                       opacity: (!otpCode || otpCode.length !== 6 || verifyingOtp) ? 0.5 : 1 
+//                     }}
+//                   >
+//                     {verifyingOtp ? (
+//                       <>
+//                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-2"></div>
+//                         Verifying...
+//                       </>
+//                     ) : (
+//                       <>
+//                         <FiUserCheck size={18} />
+//                         Verify Passenger
+//                       </>
+//                     )}
+//                   </button>
+//                   <button onClick={() => setShowOtpModal(false)} style={styles.cancelModalButton}>
+//                     Cancel
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* Scan Result Toast */}
+//           {scanResult && (
+//             <div style={styles.scanResultCard}>
+//               <div style={{
+//                 ...styles.scanResultContent,
+//                 background: scanResult.error ? (isDarkMode ? '#7F1D1D' : '#FEE2E2') : (isDarkMode ? '#064E3B' : '#D1FAE5')
+//               }}>
+//                 {scanResult.error ? <FiAlertCircle style={{ color: '#EF4444', fontSize: '24px' }} /> : <FiUserCheck style={{ color: '#10B981', fontSize: '24px' }} />}
+//                 <div>
+//                   <p style={styles.scanResultTitle}>{scanResult.error ? "Verification Failed" : "Passenger Verified"}</p>
+//                   <p style={styles.scanResultText}>
+//                     {scanResult.error ? scanResult.error : 
+//                      scanResult.seat_number ? `Passenger (Seat ${scanResult.seat_number}) has been successfully verified` : 
+//                      "Passenger has been successfully verified"}
+//                   </p>
+//                 </div>
+//                 <button onClick={() => setScanResult(null)} style={styles.scanResultClose}><FiX /></button>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* QR Scanner */}
+//           {showScanner && trip && token && hasCameraPermission && (
+//             <QRScannerComponent
+//               onClose={() => setShowScanner(false)}
+//               onScanSuccess={handleScanSuccess}
+//               tripId={trip.trip_id || trip.id}
+//               token={token}
+//             />
+//           )}
+          
+//           {/* Cancel Trip Modal */}
+//           {showCancelModal && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContent}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={styles.modalIconCancel}><FiX style={{ color: '#FFFFFF', fontSize: '24px' }} /></div>
+//                   <h2 style={styles.modalTitle}>Cancel Trip</h2>
+//                   <button 
+//                     onClick={() => setShowCancelModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+//                 <textarea
+//                   style={styles.textarea}
+//                   rows={4}
+//                   placeholder="Enter reason for cancellation (minimum 100 characters)..."
+//                   value={cancelReason}
+//                   onChange={(e) => { setCancelReason(e.target.value); setCancelCharCount(e.target.value.length); }}
+//                 />
+//                 <div style={styles.charCounter}>
+//                   <span style={{ ...styles.charCountText, color: cancelCharCount >= 100 ? '#10B981' : cancelCharCount > 0 ? '#F59E0B' : '#EF4444' }}>
+//                     {cancelCharCount} / 100 characters
+//                   </span>
+//                   {cancelCharCount >= 100 && <FiCheckCircle style={{ color: '#10B981', fontSize: '14px' }} />}
+//                 </div>
+//                 <div style={styles.modalButtons}>
+//                   <button 
+//                     onClick={submitCancelTrip} 
+//                     disabled={!cancelReason || cancelCharCount < 100 || loading} 
+//                     style={{ 
+//                       ...styles.submitButton, 
+//                       opacity: (!cancelReason || cancelCharCount < 100 || loading) ? 0.5 : 1 
+//                     }}
+//                   >
+//                     {loading ? "Processing..." : "Submit"}
+//                   </button>
+//                   <button onClick={() => setShowCancelModal(false)} style={styles.cancelModalButton}>
+//                     Cancel
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
+          
+//           {/* Emergency Stop Modal - FIXED: Calls API on submit */}
+//           {showEmergencyModal && (
+//             <div style={styles.modalOverlay}>
+//               <div style={styles.modalContent}>
+//                 <div style={styles.modalHeader}>
+//                   <div style={styles.modalIconEmergency}>
+//                     <FiAlertCircle style={{ color: '#FFFFFF', fontSize: '24px' }} />
+//                   </div>
+//                   <h2 style={styles.modalTitle}>Emergency Stop</h2>
+//                   <button 
+//                     onClick={() => setShowEmergencyModal(false)}
+//                     style={styles.modalCloseButton}
+//                   >
+//                     <FiX size={20} />
+//                   </button>
+//                 </div>
+//                 <p style={{
+//                   fontSize: '14px',
+//                   color: isDarkMode ? '#FCA5A5' : '#991B1B',
+//                   marginBottom: '16px',
+//                   padding: '12px',
+//                   background: isDarkMode ? '#7F1D1D40' : '#FEE2E2',
+//                   borderRadius: '12px',
+//                   textAlign: 'center' as const,
+//                 }}>
+//                   ⚠️ This will immediately end the trip. 
+//                 </p>
+//                 <textarea
+//                   style={styles.textarea}
+//                   rows={4}
+//                   placeholder="Enter reason for emergency stop (minimum 5 characters)..."
+//                   value={emergencyReason}
+//                   onChange={(e) => { setEmergencyReason(e.target.value); setEmergencyCharCount(e.target.value.length); }}
+//                 />
+//                 <div style={styles.charCounter}>
+//                   <span style={{ ...styles.charCountText, color: emergencyCharCount >= 5 ? '#10B981' : emergencyCharCount > 0 ? '#F59E0B' : '#EF4444' }}>
+//                     {emergencyCharCount} / 5 characters
+//                   </span>
+//                   {emergencyCharCount >= 5 && <FiCheckCircle style={{ color: '#10B981', fontSize: '14px' }} />}
+//                 </div>
+//                 <div style={styles.modalButtons}>
+//                   <button 
+//                     onClick={submitEmergencyStop} 
+//                     disabled={!emergencyReason || emergencyCharCount < 5 || loading} 
+//                     style={{ 
+//                       ...styles.emergencySubmitButton, 
+//                       opacity: (!emergencyReason || emergencyCharCount < 5 || loading) ? 0.5 : 1 
+//                     }}
+//                   >
+//                     {loading ? "Processing..." : "Submit Emergency Stop"}
+//                   </button>
+//                   <button onClick={() => setShowEmergencyModal(false)} style={styles.cancelModalButton}>
+//                     Cancel
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//           )}
           
 //         </div>
 //       </IonContent>
@@ -16441,7 +16896,7 @@
 // };
 
 // // ============================================================
-// // Styles - Same as before, included for completeness
+// // Styles
 // // ============================================================
 
 // const getStyles = (isDark: boolean, trip: any, nearStopInfo: NearStopInfo) => ({
@@ -17335,7 +17790,6 @@
 
 // export default CurrentTrip;
 
-
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { IonPage, IonContent, IonLoading, IonToast } from "@ionic/react";
 import { Preferences } from '@capacitor/preferences';
@@ -17359,7 +17813,6 @@ import {
   FiCompass,
   FiTarget,
   FiBell,
-  FiInfo,
   FiKey,
   FiUserPlus,
   FiUsers,
@@ -17932,13 +18385,7 @@ const CurrentTrip: React.FC = () => {
   const [wsState, setWsState] = useState<ConnectionState>("disconnected");
   const [actionState, setActionState] = useState<DriverActionState>(initialDriverActionState);
   const wsRef = useRef<ReturnType<typeof createDriverRefreshSocket> | null>(null);
-  const isInitialSyncRef = useRef(false);
-  
-  // Countdown State
-  const [timeRemaining, setTimeRemaining] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
-  const [canStartTrip, setCanStartTrip] = useState(false);
-  const [countdownActive, setCountdownActive] = useState(false);
-  const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tripRef = useRef<any>(null);
   
   // Permission States
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -17999,31 +18446,31 @@ const CurrentTrip: React.FC = () => {
   // ============================================================
   
   useEffect(() => {
-    const loadTokenAndInit = async () => {
-      const accessToken = await getToken();
-      setToken(accessToken);
-      
-      if (accessToken) {
-        initWebSocket(accessToken);
-      }
+    const loadToken = async () => {
+      setToken(await getToken());
     };
-    loadTokenAndInit();
-    
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.stop();
-        wsRef.current = null;
-      }
-    };
+    void loadToken();
   }, []);
+
+  useEffect(() => {
+    tripRef.current = trip;
+  }, [trip]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    initWebSocket(token);
+    return () => {
+      wsRef.current?.stop();
+      wsRef.current = null;
+    };
+  }, [token]);
 
   const initWebSocket = (accessToken: string) => {
     if (wsRef.current) {
       wsRef.current.stop();
       wsRef.current = null;
     }
-    
-    isInitialSyncRef.current = false;
     
     const ws = createDriverRefreshSocket({
       apiBaseUrl: API_BASE,
@@ -18032,27 +18479,35 @@ const CurrentTrip: React.FC = () => {
         setActionState((prev) => reduceDriverRefreshEvent(prev, event));
       },
       onRefreshBatch: (events) => {
-        const hasConnected = events.some((e) => e.event === "channel.connected");
-        if (hasConnected && !isInitialSyncRef.current) {
-          isInitialSyncRef.current = true;
-          setActionState((prev) => ({ ...prev, socketSynchronized: true }));
-          fetchTripDetails();
-        } else {
-          const hasTripEvent = events.some((e) => 
-            e.event === "trip.created" || 
-            e.event === "trip.started" || 
-            e.event === "trip.stop_arrived" ||
-            e.event === "trip.stop_departed" ||
-            e.event === "trip.completed" ||
-            e.event === "trip.cancelled" ||
-            e.event === "trip.premature_ended" ||
-            e.event === "booking.changed" ||
-            e.event === "passenger.scan_completed"
-          );
-          if (hasTripEvent) {
-            fetchTripDetails();
-            fetchCurrentTripPassengers();
-          }
+        const hasConnected = events.some(
+          (event) => event.event === "channel.connected"
+        );
+
+        // channel.connected is emitted on every initial connection/reconnect.
+        // Mark synchronization complete every time, not only on first mount.
+        if (hasConnected) {
+          setActionState((prev) => ({
+            ...prev,
+            socketSynchronized: true,
+          }));
+          void fetchTripDetails();
+        }
+
+        const hasTripEvent = events.some((event) =>
+          event.event === "trip.created" ||
+          event.event === "trip.started" ||
+          event.event === "trip.stop_arrived" ||
+          event.event === "trip.stop_departed" ||
+          event.event === "trip.completed" ||
+          event.event === "trip.cancelled" ||
+          event.event === "trip.premature_ended" ||
+          event.event === "booking.changed" ||
+          event.event === "passenger.scan_completed"
+        );
+
+        if (hasTripEvent) {
+          void fetchTripDetails();
+          void fetchCurrentTripPassengers();
         }
       },
       onConnectionState: (state) => {
@@ -18092,21 +18547,16 @@ const CurrentTrip: React.FC = () => {
     );
   }, [actionState.socketSynchronized, actionState.start, trip]);
 
-  const getCanDepart = useCallback(() => {
+  const getCanDepart = useCallback((stopId: string) => {
     const currentTripId = trip?.trip_id || trip?.id;
-    const activeStop = calculatedStops.find(
-      (s) => s.arrival_time && !s.departure_time
-    );
-    // For first stop, always allow departure after arrival
-    const isFirstStop = activeStop?.sequence === 1;
     return (
       actionState.socketSynchronized &&
       actionState.departure?.allowed === true &&
       actionState.departure?.tripId === currentTripId &&
-      actionState.departure?.stopId === activeStop?.stop_id &&
+      actionState.departure?.stopId === stopId &&
       trip?.status === "in_progress"
     );
-  }, [actionState.socketSynchronized, actionState.departure, trip, calculatedStops]);
+  }, [actionState.socketSynchronized, actionState.departure, trip]);
 
   // ============================================================
   // Effects
@@ -18130,97 +18580,28 @@ const CurrentTrip: React.FC = () => {
     }
   }, [refreshTrigger, token]);
 
-  // Countdown logic
-  const calculateTimeRemaining = useCallback((plannedStartTime: string) => {
-    const now = new Date();
-    const plannedStart = new Date(plannedStartTime);
-    const diffMs = plannedStart.getTime() - now.getTime();
-    
-    if (diffMs <= 0) {
-      setCanStartTrip(true);
-      setTimeRemaining(null);
-      setCountdownActive(false);
-      return null;
-    }
-    
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const hours = Math.floor(diffSeconds / 3600);
-    const minutes = Math.floor((diffSeconds % 3600) / 60);
-    const seconds = diffSeconds % 60;
-    
-    setCanStartTrip(false);
-    return { hours, minutes, seconds };
-  }, []);
-
-  const startCountdown = useCallback((plannedStartTime: string) => {
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-    }
-    
-    setCountdownActive(true);
-    
-    const updateCountdown = () => {
-      const remaining = calculateTimeRemaining(plannedStartTime);
-      if (remaining) {
-        setTimeRemaining(remaining);
-      } else {
-        setTimeRemaining(null);
-        setCountdownActive(false);
-        if (countdownIntervalRef.current) {
-          clearInterval(countdownIntervalRef.current);
-        }
-        fetchTripDetails();
-      }
-    };
-    
-    updateCountdown();
-    
-    countdownIntervalRef.current = setInterval(updateCountdown, 1000);
-  }, [calculateTimeRemaining]);
-
-  useEffect(() => {
-    return () => {
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    };
-  }, []);
-
   // Trip status effects
   useEffect(() => {
     if (trip?.status === "in_progress" && token) {
       startLocationTracking();
-      fetchCurrentTripPassengers();
-      setCountdownActive(false);
-      setCanStartTrip(false);
-      setTimeRemaining(null);
-      if (countdownIntervalRef.current) {
-        clearInterval(countdownIntervalRef.current);
-      }
-    } else if (trip?.status === "scheduled" && trip?.planned_start_at && token) {
-      startCountdown(trip.planned_start_at);
-      stopLocationTracking();
-      if (trip?.status !== "in_progress") {
-        setCurrentTripPassengers(null);
-      }
+      void fetchCurrentTripPassengers();
     } else {
       stopLocationTracking();
-      if (trip?.status !== "in_progress") {
-        setCurrentTripPassengers(null);
-      }
+      setCurrentTripPassengers(null);
     }
-    
+
     return () => {
       stopLocationTracking();
     };
-  }, [trip?.status, token, trip?.trip_id, trip?.id, trip?.planned_start_at, startCountdown]);
+  }, [trip?.status, token, trip?.trip_id, trip?.id]);
 
   // ============================================================
   // API Functions
   // ============================================================
   
   const fetchCurrentTripPassengers = async () => {
-    const tripId = trip?.trip_id || trip?.id;
+    const latestTrip = tripRef.current;
+    const tripId = latestTrip?.trip_id || latestTrip?.id;
     if (!tripId || !token) return;
     
     setLoadingPassengersManifest(true);
@@ -18832,14 +19213,14 @@ const CurrentTrip: React.FC = () => {
     fetchCurrentTripPassengers();
   };
 
-  // FIXED: handleStopAction - Now allows departure for first stop without time check
+  // Stop actions use backend WebSocket eligibility as the action authority.
   const handleStopAction = async (stop_id: string, mode: "arrive" | "depart") => {
     if (!trip || !token) return;
     
     // For depart, check WebSocket eligibility
     if (mode === "depart") {
-      if (!getCanDepart()) {
-        showToastNotification('Departure is not currently allowed. Please wait for passengers to complete drop-off.', "warning");
+      if (!getCanDepart(stop_id)) {
+        showToastNotification('Departure is not currently allowed.', "warning");
         return;
       }
       setIsDeparting(true);
@@ -18873,22 +19254,11 @@ const CurrentTrip: React.FC = () => {
       
       if (mode === "arrive") {
         lastNotifiedStopIdRef.current = null;
-        setNearStopInfo(prev => ({ ...prev, hasNotified: false }));
-        setActionState((prev) => {
-          const currentTripId = trip.trip_id || trip.id;
-          if (prev.departure && prev.departure.tripId === currentTripId) {
-            return {
-              ...prev,
-              departure: {
-                ...prev.departure,
-                allowed: false
-              }
-            };
-          }
-          return prev;
-        });
+        setNearStopInfo((prev) => ({ ...prev, hasNotified: false }));
+        // Do not write departure eligibility here. The backend emits
+        // trip.stop_arrived followed by trip.departure_allowed when eligible.
       }
-      
+
       if (mode === "depart") {
         setActionState((prev) => ({
           ...prev,
@@ -19076,14 +19446,6 @@ const CurrentTrip: React.FC = () => {
     stopLocationTracking();
     lastNotifiedStopIdRef.current = null;
     
-    if (countdownIntervalRef.current) {
-      clearInterval(countdownIntervalRef.current);
-      countdownIntervalRef.current = null;
-    }
-    setTimeRemaining(null);
-    setCanStartTrip(false);
-    setCountdownActive(false);
-    
     setActionState((prev) => ({
       ...prev,
       start: null,
@@ -19197,44 +19559,6 @@ const CurrentTrip: React.FC = () => {
                 </div>
               )}
               
-              {/* Scheduled Trip Countdown Section */}
-              {trip.status === "scheduled" && timeRemaining && (
-                <div style={styles.countdownCard}>
-                  <div style={styles.countdownHeader}>
-                    <FiClock style={styles.countdownIcon} />
-                    <span style={styles.countdownTitle}>Trip Starts In</span>
-                  </div>
-                  
-                  <div style={styles.countdownTimer}>
-                    <div style={styles.countdownUnit}>
-                      <span style={styles.countdownNumber}>
-                        {String(timeRemaining.hours).padStart(2, '0')}
-                      </span>
-                      <span style={styles.countdownLabel}>Hours</span>
-                    </div>
-                    <span style={styles.countdownSeparator}>:</span>
-                    <div style={styles.countdownUnit}>
-                      <span style={styles.countdownNumber}>
-                        {String(timeRemaining.minutes).padStart(2, '0')}
-                      </span>
-                      <span style={styles.countdownLabel}>Minutes</span>
-                    </div>
-                    <span style={styles.countdownSeparator}>:</span>
-                    <div style={styles.countdownUnit}>
-                      <span style={styles.countdownNumber}>
-                        {String(timeRemaining.seconds).padStart(2, '0')}
-                      </span>
-                      <span style={styles.countdownLabel}>Seconds</span>
-                    </div>
-                  </div>
-                  
-                  <div style={styles.countdownMessage}>
-                    <FiInfo size={14} />
-                    <span>The trip will be ready to start at the scheduled time</span>
-                  </div>
-                </div>
-              )}
-              
               {/* Ready to Start Card */}
               {trip.status === "scheduled" && getCanStart() && (
                 <div style={styles.readyToStartCard}>
@@ -19290,7 +19614,7 @@ const CurrentTrip: React.FC = () => {
               )}
               
               {/* Scheduled but not yet eligible */}
-              {trip.status === "scheduled" && !getCanStart() && !timeRemaining && (
+              {trip.status === "scheduled" && !getCanStart() && (
                 <div style={styles.waitingCard}>
                   <div style={styles.waitingContent}>
                     <FiClock size={24} color="#F59E0B" />
@@ -19428,7 +19752,7 @@ const CurrentTrip: React.FC = () => {
                   </div>
                 )}
                 
-                {trip.status === "scheduled" && !timeRemaining && !getCanStart() && (
+                {trip.status === "scheduled" && !getCanStart() && (
                   <div style={styles.scheduledMessage}>
                     <FiClock style={{ color: '#F59E0B', fontSize: '20px' }} />
                     <div>
@@ -19557,11 +19881,7 @@ const CurrentTrip: React.FC = () => {
                       const isNearThisStop = nearStopInfo.isNear && nearStopInfo.stop?.name === stop.name;
                       const hasArrivedAtStop = nearStopInfo.isNear && nearStopInfo.stop?.name === stop.name && nearStopInfo.distance_meters === 0;
                       
-                      const isDepartureStop = actionState.departure?.stopId === stop.stop_id;
-                      const canDepartThisStop = isDepartureStop && actionState.departure?.allowed;
-                      
-                      // For first stop, departure is always allowed after arrival
-                      const isFirstStopDeparture = isFirstStop && isArrived && !isDeparted;
+                      const canDepartThisStop = getCanDepart(stop.stop_id);
                       
                       return (
                         <div 
@@ -19570,7 +19890,7 @@ const CurrentTrip: React.FC = () => {
                             ...styles.stopCard,
                             ...(isNearThisStop ? styles.stopCardNear : {}),
                             ...(hasArrivedAtStop ? styles.stopCardArrived : {}),
-                            ...(canDepartThisStop || isFirstStopDeparture ? styles.stopCardDepartReady : {}),
+                            ...(canDepartThisStop ? styles.stopCardDepartReady : {}),
                           }}
                         >
                           <div style={styles.stopCardInner}>
@@ -19597,7 +19917,7 @@ const CurrentTrip: React.FC = () => {
                                     ARRIVED
                                   </span>
                                 )}
-                                {(canDepartThisStop || isFirstStopDeparture) && (
+                                {canDepartThisStop && (
                                   <span style={styles.departReadyBadge}>
                                     <FiArrowRightCircle size={10} />
                                     DEPART READY
@@ -19655,7 +19975,7 @@ const CurrentTrip: React.FC = () => {
                                 {stop.deboarding_allowed && <span style={styles.deboardingBadge}>✓ Deboarding</span>}
                                 {isArrived && !isDeparted && <span style={styles.arrivedBadge}>📍 Arrived</span>}
                                 {isDeparted && <span style={styles.completedBadge}>✓ Completed</span>}
-                                {(canDepartThisStop || isFirstStopDeparture) && (
+                                {canDepartThisStop && (
                                   <span style={styles.departAllowedBadge}>
                                     <FiArrowRightCircle size={10} />
                                     Depart Allowed
@@ -19687,17 +20007,17 @@ const CurrentTrip: React.FC = () => {
                                       </button>
                                     )}
                                     
-                                    {/* Depart button - For first stop, always enabled after arrival */}
+                                    {/* Departure is enabled only by the matching WS event. */}
                                     {!isLastStop && isArrived && !isDeparted && (
                                       <button 
                                         onClick={() => handleStopAction(stop.stop_id, "depart")} 
                                         style={{
                                           ...styles.departStopButton,
-                                          opacity: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 0.5 : 1,
-                                          cursor: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 'not-allowed' : 'pointer',
-                                          background: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? '#6B7280' : '#3B82F6',
+                                          opacity: (!canDepartThisStop || isDeparting) ? 0.5 : 1,
+                                          cursor: (!canDepartThisStop || isDeparting) ? 'not-allowed' : 'pointer',
+                                          background: (!canDepartThisStop || isDeparting) ? '#6B7280' : '#3B82F6',
                                         }}
-                                        disabled={!(canDepartThisStop || isFirstStopDeparture) || isDeparting}
+                                        disabled={!canDepartThisStop || isDeparting}
                                       >
                                         <FiArrowRightCircle />
                                         {isDeparting ? 'Departing...' : 'Mark Departure'}
@@ -19717,11 +20037,11 @@ const CurrentTrip: React.FC = () => {
                                         onClick={() => handleStopAction(stop.stop_id, "depart")} 
                                         style={{
                                           ...styles.completeTripButton,
-                                          opacity: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 0.5 : 1,
-                                          cursor: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? 'not-allowed' : 'pointer',
-                                          background: (!(canDepartThisStop || isFirstStopDeparture) || isDeparting) ? '#6B7280' : '#8B5CF6',
+                                          opacity: (!canDepartThisStop || isDeparting) ? 0.5 : 1,
+                                          cursor: (!canDepartThisStop || isDeparting) ? 'not-allowed' : 'pointer',
+                                          background: (!canDepartThisStop || isDeparting) ? '#6B7280' : '#8B5CF6',
                                         }}
-                                        disabled={!(canDepartThisStop || isFirstStopDeparture) || isDeparting}
+                                        disabled={!canDepartThisStop || isDeparting}
                                       >
                                         <FiFlag />
                                         {isDeparting ? 'Completing...' : 'Complete Trip'}
@@ -20197,7 +20517,7 @@ const CurrentTrip: React.FC = () => {
                   borderRadius: '12px',
                   textAlign: 'center' as const,
                 }}>
-                  ⚠️ This will immediately end the trip. All passengers will need to be re-booked.
+                  ⚠️ This will immediately end the trip. 
                 </p>
                 <textarea
                   style={styles.textarea}
@@ -20365,80 +20685,6 @@ const getStyles = (isDark: boolean, trip: any, nearStopInfo: NearStopInfo) => ({
     fontSize: '10px',
     fontWeight: '500',
     border: `1px solid #8B5CF640`,
-  },
-  
-  countdownCard: {
-    background: isDark 
-      ? 'linear-gradient(135deg, #1E3A5F 0%, #0F172A 100%)'
-      : 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
-    borderRadius: '24px',
-    padding: '24px',
-    marginBottom: '20px',
-    border: `1px solid ${isDark ? '#3B82F6' : '#BFDBFE'}`,
-    textAlign: 'center' as const,
-    boxShadow: '0 8px 32px rgba(59, 130, 246, 0.15)',
-  },
-  countdownHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    marginBottom: '20px',
-  },
-  countdownIcon: {
-    fontSize: '24px',
-    color: '#3B82F6',
-  },
-  countdownTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '1px',
-    color: isDark ? '#93C5FD' : '#2563EB',
-  },
-  countdownTimer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    marginBottom: '20px',
-    flexWrap: 'wrap' as const,
-  },
-  countdownUnit: {
-    textAlign: 'center' as const,
-    minWidth: '80px',
-  },
-  countdownNumber: {
-    display: 'block',
-    fontSize: '48px',
-    fontWeight: 'bold',
-    fontFamily: 'monospace',
-    color: isDark ? '#FFFFFF' : '#1E293B',
-    lineHeight: 1.2,
-  },
-  countdownLabel: {
-    fontSize: '12px',
-    fontWeight: '500',
-    color: isDark ? '#94A3B8' : '#64748B',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  countdownSeparator: {
-    fontSize: '48px',
-    fontWeight: 'bold',
-    color: '#3B82F6',
-    fontFamily: 'monospace',
-  },
-  countdownMessage: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    padding: '12px',
-    background: isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
-    borderRadius: '12px',
-    fontSize: '12px',
-    color: isDark ? '#94A3B8' : '#64748B',
   },
   
   readyToStartCard: {
