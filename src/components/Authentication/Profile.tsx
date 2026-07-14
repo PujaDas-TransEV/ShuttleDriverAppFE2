@@ -274,18 +274,50 @@
 //       return;
 //     }
 
+//     // Make Street Address Line 2 mandatory
+//     if (!profile.residential_street_line_2.trim()) {
+//       setToastMsg("Please enter your street address line 2 (Apartment, suite, unit, etc.)");
+//       return;
+//     }
+
+//     // Validate all residential address fields
+//     if (!profile.residential_street_line_1.trim()) {
+//       setToastMsg("Please enter your street address line 1");
+//       return;
+//     }
+
+//     if (!profile.residential_city.trim()) {
+//       setToastMsg("Please enter your city");
+//       return;
+//     }
+
+//     if (!profile.residential_state.trim()) {
+//       setToastMsg("Please enter your state/province");
+//       return;
+//     }
+
+//     if (!profile.residential_postal_code.trim()) {
+//       setToastMsg("Please enter your postal code");
+//       return;
+//     }
+
+//     if (!profile.residential_country.trim()) {
+//       setToastMsg("Please select your country");
+//       return;
+//     }
+
 //     setLoading(true);
 //     const formData = new FormData();
 //     formData.append("full_name", profile.name);
 //     formData.append("phone", profile.phone);
     
-//     // Append residential address fields
-//     if (profile.residential_street_line_1) formData.append("residential_street_line_1", profile.residential_street_line_1);
-//     if (profile.residential_street_line_2) formData.append("residential_street_line_2", profile.residential_street_line_2);
-//     if (profile.residential_city) formData.append("residential_city", profile.residential_city);
-//     if (profile.residential_state) formData.append("residential_state", profile.residential_state);
-//     if (profile.residential_postal_code) formData.append("residential_postal_code", profile.residential_postal_code);
-//     if (profile.residential_country) formData.append("residential_country", profile.residential_country);
+//     // Append residential address fields - ALL MANDATORY
+//     formData.append("residential_street_line_1", profile.residential_street_line_1);
+//     formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+//     formData.append("residential_city", profile.residential_city);
+//     formData.append("residential_state", profile.residential_state);
+//     formData.append("residential_postal_code", profile.residential_postal_code);
+//     formData.append("residential_country", profile.residential_country); // Sends country code
     
 //     if (imageFile) {
 //       formData.append("profile_pic", imageFile);
@@ -294,6 +326,15 @@
 //     try {
 //       const url = `${API_BASE}/driver-profile`;
 //       console.log("Creating profile at:", url);
+//       console.log("Sending payload with fields:");
+//       console.log("- full_name:", profile.name);
+//       console.log("- phone:", profile.phone);
+//       console.log("- residential_street_line_1:", profile.residential_street_line_1);
+//       console.log("- residential_street_line_2:", profile.residential_street_line_2);
+//       console.log("- residential_city:", profile.residential_city);
+//       console.log("- residential_state:", profile.residential_state);
+//       console.log("- residential_postal_code:", profile.residential_postal_code);
+//       console.log("- residential_country (code):", profile.residential_country);
       
 //       const res = await fetch(url, {
 //         method: "POST",
@@ -343,18 +384,50 @@
 //       return;
 //     }
 
+//     // Make Street Address Line 2 mandatory for update as well
+//     if (!profile.residential_street_line_2.trim()) {
+//       setToastMsg("Please enter your street address line 2 (Apartment, suite, unit, etc.)");
+//       return;
+//     }
+
+//     // Validate all residential address fields
+//     if (!profile.residential_street_line_1.trim()) {
+//       setToastMsg("Please enter your street address line 1");
+//       return;
+//     }
+
+//     if (!profile.residential_city.trim()) {
+//       setToastMsg("Please enter your city");
+//       return;
+//     }
+
+//     if (!profile.residential_state.trim()) {
+//       setToastMsg("Please enter your state/province");
+//       return;
+//     }
+
+//     if (!profile.residential_postal_code.trim()) {
+//       setToastMsg("Please enter your postal code");
+//       return;
+//     }
+
+//     if (!profile.residential_country.trim()) {
+//       setToastMsg("Please select your country");
+//       return;
+//     }
+
 //     setLoading(true);
 //     const formData = new FormData();
 //     formData.append("full_name", profile.name);
 //     formData.append("phone", profile.phone);
     
-//     // Append residential address fields
-//     if (profile.residential_street_line_1) formData.append("residential_street_line_1", profile.residential_street_line_1);
-//     if (profile.residential_street_line_2) formData.append("residential_street_line_2", profile.residential_street_line_2);
-//     if (profile.residential_city) formData.append("residential_city", profile.residential_city);
-//     if (profile.residential_state) formData.append("residential_state", profile.residential_state);
-//     if (profile.residential_postal_code) formData.append("residential_postal_code", profile.residential_postal_code);
-//     if (profile.residential_country) formData.append("residential_country", profile.residential_country);
+//     // Append residential address fields - ALL MANDATORY
+//     formData.append("residential_street_line_1", profile.residential_street_line_1);
+//     formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+//     formData.append("residential_city", profile.residential_city);
+//     formData.append("residential_state", profile.residential_state);
+//     formData.append("residential_postal_code", profile.residential_postal_code);
+//     formData.append("residential_country", profile.residential_country); // Sends country code
 
 //     if (imageFile) {
 //       formData.append("profile_pic", imageFile);
@@ -363,6 +436,15 @@
 //     try {
 //       const url = `${API_BASE}/driver-profile/update`;
 //       console.log("Updating profile at:", url);
+//       console.log("Updating payload with fields:");
+//       console.log("- full_name:", profile.name);
+//       console.log("- phone:", profile.phone);
+//       console.log("- residential_street_line_1:", profile.residential_street_line_1);
+//       console.log("- residential_street_line_2:", profile.residential_street_line_2);
+//       console.log("- residential_city:", profile.residential_city);
+//       console.log("- residential_state:", profile.residential_state);
+//       console.log("- residential_postal_code:", profile.residential_postal_code);
+//       console.log("- residential_country (code):", profile.residential_country);
       
 //       const res = await fetch(url, {
 //         method: "PATCH",
@@ -541,10 +623,12 @@
 //       </IonPage>
 //     );
 //   }
-// const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-//   const { name, value } = e.target;
-//   setProfile(prev => ({ ...prev, [name]: value }));
-// };
+
+//   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+//     const { name, value } = e.target;
+//     setProfile(prev => ({ ...prev, [name]: value }));
+//   };
+
 //   return (
 //     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
 //       <NavbarSidebar />
@@ -764,20 +848,20 @@
 
 //                   {/* Residential Address Section */}
 //                   <div className="pt-4">
-//                    <div>
-//   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-//     Residential Address
-//   </h3>
-//   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-//     This address must match the address linked to your bank account.
-//   </p>
-// </div>
+//                     <div>
+//                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+//                         Residential Address <span className="text-red-500">*</span>
+//                       </h3>
+//                       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+//                         This address must match the address linked to your bank account.
+//                       </p>
+//                     </div>
                     
-//                     <div className="space-y-4">
+//                     <div className="space-y-4 mt-4">
 //                       {/* Street Line 1 */}
 //                       <div>
 //                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                           Street Address Line 1
+//                           Street Address Line 1 <span className="text-red-500">*</span>
 //                         </label>
 //                         <div className="relative">
 //                           <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -800,10 +884,10 @@
 //                         </div>
 //                       </div>
 
-//                       {/* Street Line 2 */}
+//                       {/* Street Line 2 - NOW MANDATORY */}
 //                       <div>
 //                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                           Street Address Line 2 <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+//                           Street Address Line 2 <span className="text-red-500">*</span>
 //                         </label>
 //                         <div className="relative">
 //                           <BuildingOfficeIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -812,7 +896,7 @@
 //                             name="residential_street_line_2"
 //                             value={profile.residential_street_line_2}
 //                             onChange={handleChange}
-//                             placeholder="Apartment, suite, unit, etc."
+//                             placeholder="Apartment, suite, unit, etc. (Required)"
 //                             className="w-full pl-11 pr-4 py-3 rounded-xl 
 //                                        border border-gray-300 dark:border-gray-600 
 //                                        bg-white dark:bg-gray-700 
@@ -824,13 +908,16 @@
 //                                        transition-all duration-200"
 //                           />
 //                         </div>
+//                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                           Apartment number, suite, floor, or building name
+//                         </p>
 //                       </div>
 
 //                       {/* City and State Row */}
 //                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //                         <div>
 //                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                             City
+//                             City <span className="text-red-500">*</span>
 //                           </label>
 //                           <div className="relative">
 //                             <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -854,7 +941,7 @@
 //                         </div>
 //                         <div>
 //                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                             State / Province
+//                             State / Province <span className="text-red-500">*</span>
 //                           </label>
 //                           <div className="relative">
 //                             <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -882,7 +969,7 @@
 //                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //                         <div>
 //                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                             Postal Code
+//                             Postal Code <span className="text-red-500">*</span>
 //                           </label>
 //                           <div className="relative">
 //                             <CurrencyDollarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
@@ -904,62 +991,72 @@
 //                             />
 //                           </div>
 //                         </div>
-//                         {/* <div>
+//                         <div>
 //                           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//                             Country
+//                             Country <span className="text-red-500">*</span>
 //                           </label>
 //                           <div className="relative">
 //                             <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-//                             <input
-//                               type="text"
+//                             <select
 //                               name="residential_country"
 //                               value={profile.residential_country}
 //                               onChange={handleChange}
-//                               placeholder="Country name"
 //                               className="w-full pl-11 pr-4 py-3 rounded-xl 
 //                                          border border-gray-300 dark:border-gray-600 
 //                                          bg-white dark:bg-gray-700 
 //                                          text-gray-900 dark:text-gray-100 
-//                                          placeholder-gray-400 dark:placeholder-gray-500
 //                                          focus:outline-none
 //                                          focus:border-gray-500 dark:focus:border-gray-400
 //                                          focus:ring-2 focus:ring-gray-500/20 dark:focus:ring-gray-400/20
-//                                          transition-all duration-200"
-//                             />
+//                                          transition-all duration-200
+//                                          appearance-none"
+//                             >
+//                               <option value="">Select Country</option>
+//                               <option value="IN">India (IN)</option>
+//                               <option value="US">United States (US)</option>
+//                               <option value="GB">United Kingdom (GB)</option>
+//                               <option value="CA">Canada (CA)</option>
+//                               <option value="AU">Australia (AU)</option>
+//                               <option value="DE">Germany (DE)</option>
+//                               <option value="FR">France (FR)</option>
+//                               <option value="JP">Japan (JP)</option>
+//                               <option value="BR">Brazil (BR)</option>
+//                               <option value="MX">Mexico (MX)</option>
+//                               <option value="ES">Spain (ES)</option>
+//                               <option value="IT">Italy (IT)</option>
+//                               <option value="KR">South Korea (KR)</option>
+//                               <option value="NL">Netherlands (NL)</option>
+//                               <option value="SE">Sweden (SE)</option>
+//                               <option value="NO">Norway (NO)</option>
+//                               <option value="DK">Denmark (DK)</option>
+//                               <option value="FI">Finland (FI)</option>
+//                               <option value="SG">Singapore (SG)</option>
+//                               <option value="MY">Malaysia (MY)</option>
+//                               <option value="TH">Thailand (TH)</option>
+//                               <option value="VN">Vietnam (VN)</option>
+//                               <option value="PH">Philippines (PH)</option>
+//                               <option value="ID">Indonesia (ID)</option>
+//                               <option value="PK">Pakistan (PK)</option>
+//                               <option value="BD">Bangladesh (BD)</option>
+//                               <option value="LK">Sri Lanka (LK)</option>
+//                               <option value="NP">Nepal (NP)</option>
+//                               <option value="AE">United Arab Emirates (AE)</option>
+//                               <option value="SA">Saudi Arabia (SA)</option>
+//                               <option value="QA">Qatar (QA)</option>
+//                               <option value="KW">Kuwait (KW)</option>
+//                               <option value="OM">Oman (OM)</option>
+//                               <option value="BH">Bahrain (BH)</option>
+//                               <option value="ZA">South Africa (ZA)</option>
+//                               <option value="NG">Nigeria (NG)</option>
+//                               <option value="KE">Kenya (KE)</option>
+//                               <option value="EG">Egypt (EG)</option>
+//                               <option value="MA">Morocco (MA)</option>
+//                             </select>
 //                           </div>
-//                         </div> */}
-//                         <div>
-//   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
-//     Country
-//   </label>
-//   <div className="relative">
-//     <GlobeAltIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-//     <select
-//       name="residential_country"
-//       value={profile.residential_country}   // expects country code like "IN"
-//       onChange={handleChange}
-//       className="w-full pl-11 pr-4 py-3 rounded-xl 
-//                  border border-gray-300 dark:border-gray-600 
-//                  bg-white dark:bg-gray-700 
-//                  text-gray-900 dark:text-gray-100 
-//                  focus:outline-none
-//                  focus:border-gray-500 dark:focus:border-gray-400
-//                  focus:ring-2 focus:ring-gray-500/20 dark:focus:ring-gray-400/20
-//                  transition-all duration-200
-//                  appearance-none"   // removes default arrow if you want a custom one (optional)
-//     >
-//       <option value="IN">India (IN)</option>
-//       <option value="US">United States (US)</option>
-//       <option value="GB">United Kingdom (GB)</option>
-//       <option value="CA">Canada (CA)</option>
-//       <option value="AU">Australia (AU)</option>
-//       <option value="DE">Germany (DE)</option>
-//       <option value="FR">France (FR)</option>
-//       <option value="JP">Japan (JP)</option>
-//       {/* add more countries as needed */}
-//     </select>
-//   </div>
-// </div>
+//                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+//                             Select your country (2-letter country code will be sent)
+//                           </p>
+//                         </div>
 //                       </div>
 //                     </div>
 //                   </div>
@@ -998,7 +1095,17 @@
 //                           </p>
 //                         )}
 //                         {profile.residential_country && (
-//                           <p className="text-sm text-gray-700 dark:text-gray-300">{profile.residential_country}</p>
+//                           <p className="text-sm text-gray-700 dark:text-gray-300">
+//                             {profile.residential_country === "IN" && "India"}
+//                             {profile.residential_country === "US" && "United States"}
+//                             {profile.residential_country === "GB" && "United Kingdom"}
+//                             {profile.residential_country === "CA" && "Canada"}
+//                             {profile.residential_country === "AU" && "Australia"}
+//                             {profile.residential_country === "DE" && "Germany"}
+//                             {profile.residential_country === "FR" && "France"}
+//                             {profile.residential_country === "JP" && "Japan"}
+//                             {!["IN","US","GB","CA","AU","DE","FR","JP"].includes(profile.residential_country) && profile.residential_country}
+//                           </p>
 //                         )}
 //                       </div>
 //                     </div>
@@ -1251,26 +1358,27 @@ interface ResidentialAddress {
   residential_country: string;
 }
 
-const ProfileSetup: React.FC = () => {
-  const [profile, setProfile] = useState({
-    id: '',
-    user_id: '',
-    name: '',
-    phone: '',
-    email: '',
-    profile_picture_path: '',
-    verification_status: '',
-    average_rating: null as number | null,
-    total_reviews: 0,
-    // Residential Address Fields
-    residential_street_line_1: '',
-    residential_street_line_2: '',
-    residential_city: '',
-    residential_state: '',
-    residential_postal_code: '',
-    residential_country: ''
-  });
+// Initial profile state - all fields empty
+const initialProfileState = {
+  id: '',
+  user_id: '',
+  name: '',
+  phone: '',
+  email: '',
+  profile_picture_path: '',
+  verification_status: '',
+  average_rating: null as number | null,
+  total_reviews: 0,
+  residential_street_line_1: '',
+  residential_street_line_2: '',
+  residential_city: '',
+  residential_state: '',
+  residential_postal_code: '',
+  residential_country: ''
+};
 
+const ProfileSetup: React.FC = () => {
+  const [profile, setProfile] = useState(initialProfileState);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isCreated, setIsCreated] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -1307,7 +1415,24 @@ const ProfileSetup: React.FC = () => {
       fetchProfile();
       fetchVehicleInspection();
     }
+    
+    // Cleanup function - reset all form data when component unmounts
+    return () => {
+      resetForm();
+    };
   }, [token]);
+
+  // ======================
+  // Reset form to initial state
+  // ======================
+  const resetForm = () => {
+    setProfile(initialProfileState);
+    setImageFile(null);
+    setImagePreview('');
+    setProfileImageUrl('');
+    setIsCreated(false);
+    setIsEditing(false);
+  };
 
   // ======================
   // Get full profile image URL
@@ -1334,7 +1459,9 @@ const ProfileSetup: React.FC = () => {
       });
       
       if (res.status === 404) {
+        // Profile not found - reset form to initial state
         setIsCreated(false);
+        resetForm();
         setLoading(false);
         return;
       }
@@ -1354,7 +1481,6 @@ const ProfileSetup: React.FC = () => {
         verification_status: data.verification_status || 'pending',
         average_rating: data.average_rating || null,
         total_reviews: data.total_reviews || 0,
-        // Residential Address Fields
         residential_street_line_1: data.residential_street_line_1 || '',
         residential_street_line_2: data.residential_street_line_2 || '',
         residential_city: data.residential_city || '',
@@ -1415,7 +1541,6 @@ const ProfileSetup: React.FC = () => {
       
     } catch (error) {
       console.error("Error fetching vehicle inspection:", error);
-      // Don't show toast for this as it's not critical
     } finally {
       setLoadingInspection(false);
     }
@@ -1424,7 +1549,11 @@ const ProfileSetup: React.FC = () => {
   // ======================
   // Handle form changes
   // ======================
- 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setProfile(prev => ({ ...prev, [name]: value }));
+  };
+
   // ======================
   // Handle image upload
   // ======================
@@ -1505,11 +1634,11 @@ const ProfileSetup: React.FC = () => {
     
     // Append residential address fields - ALL MANDATORY
     formData.append("residential_street_line_1", profile.residential_street_line_1);
-    formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+    formData.append("residential_street_line_2", profile.residential_street_line_2);
     formData.append("residential_city", profile.residential_city);
     formData.append("residential_state", profile.residential_state);
     formData.append("residential_postal_code", profile.residential_postal_code);
-    formData.append("residential_country", profile.residential_country); // Sends country code
+    formData.append("residential_country", profile.residential_country);
     
     if (imageFile) {
       formData.append("profile_pic", imageFile);
@@ -1518,15 +1647,6 @@ const ProfileSetup: React.FC = () => {
     try {
       const url = `${API_BASE}/driver-profile`;
       console.log("Creating profile at:", url);
-      console.log("Sending payload with fields:");
-      console.log("- full_name:", profile.name);
-      console.log("- phone:", profile.phone);
-      console.log("- residential_street_line_1:", profile.residential_street_line_1);
-      console.log("- residential_street_line_2:", profile.residential_street_line_2);
-      console.log("- residential_city:", profile.residential_city);
-      console.log("- residential_state:", profile.residential_state);
-      console.log("- residential_postal_code:", profile.residential_postal_code);
-      console.log("- residential_country (code):", profile.residential_country);
       
       const res = await fetch(url, {
         method: "POST",
@@ -1542,6 +1662,7 @@ const ProfileSetup: React.FC = () => {
         setImageFile(null);
         setImagePreview('');
         setIsEditing(false);
+        // Reset form after successful creation
         setTimeout(() => {
           fetchProfile();
           fetchVehicleInspection();
@@ -1615,11 +1736,11 @@ const ProfileSetup: React.FC = () => {
     
     // Append residential address fields - ALL MANDATORY
     formData.append("residential_street_line_1", profile.residential_street_line_1);
-    formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+    formData.append("residential_street_line_2", profile.residential_street_line_2);
     formData.append("residential_city", profile.residential_city);
     formData.append("residential_state", profile.residential_state);
     formData.append("residential_postal_code", profile.residential_postal_code);
-    formData.append("residential_country", profile.residential_country); // Sends country code
+    formData.append("residential_country", profile.residential_country);
 
     if (imageFile) {
       formData.append("profile_pic", imageFile);
@@ -1628,15 +1749,6 @@ const ProfileSetup: React.FC = () => {
     try {
       const url = `${API_BASE}/driver-profile/update`;
       console.log("Updating profile at:", url);
-      console.log("Updating payload with fields:");
-      console.log("- full_name:", profile.name);
-      console.log("- phone:", profile.phone);
-      console.log("- residential_street_line_1:", profile.residential_street_line_1);
-      console.log("- residential_street_line_2:", profile.residential_street_line_2);
-      console.log("- residential_city:", profile.residential_city);
-      console.log("- residential_state:", profile.residential_state);
-      console.log("- residential_postal_code:", profile.residential_postal_code);
-      console.log("- residential_country (code):", profile.residential_country);
       
       const res = await fetch(url, {
         method: "PATCH",
@@ -1700,7 +1812,6 @@ const ProfileSetup: React.FC = () => {
     
     const dueDate = new Date(nextDueDateStr);
     const today = new Date();
-    // Reset time part for accurate day calculation
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
     
@@ -1815,11 +1926,6 @@ const ProfileSetup: React.FC = () => {
       </IonPage>
     );
   }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
-  };
 
   return (
     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
