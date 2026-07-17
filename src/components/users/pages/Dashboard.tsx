@@ -637,7 +637,7 @@ const Dashboard: React.FC = () => {
                   Complete Your Profile
                 </p>
                 <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Complete profile, vehicle & KYC to start earning
+                  Complete profile, vehicle & Identity Check to start earning
                 </p>
               </div>
             </div>
