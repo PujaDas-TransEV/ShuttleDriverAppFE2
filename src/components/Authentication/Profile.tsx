@@ -59,26 +59,27 @@
 //   residential_country: string;
 // }
 
-// const ProfileSetup: React.FC = () => {
-//   const [profile, setProfile] = useState({
-//     id: '',
-//     user_id: '',
-//     name: '',
-//     phone: '',
-//     email: '',
-//     profile_picture_path: '',
-//     verification_status: '',
-//     average_rating: null as number | null,
-//     total_reviews: 0,
-//     // Residential Address Fields
-//     residential_street_line_1: '',
-//     residential_street_line_2: '',
-//     residential_city: '',
-//     residential_state: '',
-//     residential_postal_code: '',
-//     residential_country: ''
-//   });
+// // Initial profile state - all fields empty
+// const initialProfileState = {
+//   id: '',
+//   user_id: '',
+//   name: '',
+//   phone: '',
+//   email: '',
+//   profile_picture_path: '',
+//   verification_status: '',
+//   average_rating: null as number | null,
+//   total_reviews: 0,
+//   residential_street_line_1: '',
+//   residential_street_line_2: '',
+//   residential_city: '',
+//   residential_state: '',
+//   residential_postal_code: '',
+//   residential_country: ''
+// };
 
+// const ProfileSetup: React.FC = () => {
+//   const [profile, setProfile] = useState(initialProfileState);
 //   const [imageFile, setImageFile] = useState<File | null>(null);
 //   const [isCreated, setIsCreated] = useState(false);
 //   const [loading, setLoading] = useState(false);
@@ -115,7 +116,24 @@
 //       fetchProfile();
 //       fetchVehicleInspection();
 //     }
+    
+//     // Cleanup function - reset all form data when component unmounts
+//     return () => {
+//       resetForm();
+//     };
 //   }, [token]);
+
+//   // ======================
+//   // Reset form to initial state
+//   // ======================
+//   const resetForm = () => {
+//     setProfile(initialProfileState);
+//     setImageFile(null);
+//     setImagePreview('');
+//     setProfileImageUrl('');
+//     setIsCreated(false);
+//     setIsEditing(false);
+//   };
 
 //   // ======================
 //   // Get full profile image URL
@@ -142,7 +160,9 @@
 //       });
       
 //       if (res.status === 404) {
+//         // Profile not found - reset form to initial state
 //         setIsCreated(false);
+//         resetForm();
 //         setLoading(false);
 //         return;
 //       }
@@ -162,7 +182,6 @@
 //         verification_status: data.verification_status || 'pending',
 //         average_rating: data.average_rating || null,
 //         total_reviews: data.total_reviews || 0,
-//         // Residential Address Fields
 //         residential_street_line_1: data.residential_street_line_1 || '',
 //         residential_street_line_2: data.residential_street_line_2 || '',
 //         residential_city: data.residential_city || '',
@@ -223,7 +242,6 @@
       
 //     } catch (error) {
 //       console.error("Error fetching vehicle inspection:", error);
-//       // Don't show toast for this as it's not critical
 //     } finally {
 //       setLoadingInspection(false);
 //     }
@@ -232,7 +250,11 @@
 //   // ======================
 //   // Handle form changes
 //   // ======================
- 
+//   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+//     const { name, value } = e.target;
+//     setProfile(prev => ({ ...prev, [name]: value }));
+//   };
+
 //   // ======================
 //   // Handle image upload
 //   // ======================
@@ -313,11 +335,11 @@
     
 //     // Append residential address fields - ALL MANDATORY
 //     formData.append("residential_street_line_1", profile.residential_street_line_1);
-//     formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+//     formData.append("residential_street_line_2", profile.residential_street_line_2);
 //     formData.append("residential_city", profile.residential_city);
 //     formData.append("residential_state", profile.residential_state);
 //     formData.append("residential_postal_code", profile.residential_postal_code);
-//     formData.append("residential_country", profile.residential_country); // Sends country code
+//     formData.append("residential_country", profile.residential_country);
     
 //     if (imageFile) {
 //       formData.append("profile_pic", imageFile);
@@ -326,15 +348,6 @@
 //     try {
 //       const url = `${API_BASE}/driver-profile`;
 //       console.log("Creating profile at:", url);
-//       console.log("Sending payload with fields:");
-//       console.log("- full_name:", profile.name);
-//       console.log("- phone:", profile.phone);
-//       console.log("- residential_street_line_1:", profile.residential_street_line_1);
-//       console.log("- residential_street_line_2:", profile.residential_street_line_2);
-//       console.log("- residential_city:", profile.residential_city);
-//       console.log("- residential_state:", profile.residential_state);
-//       console.log("- residential_postal_code:", profile.residential_postal_code);
-//       console.log("- residential_country (code):", profile.residential_country);
       
 //       const res = await fetch(url, {
 //         method: "POST",
@@ -350,6 +363,7 @@
 //         setImageFile(null);
 //         setImagePreview('');
 //         setIsEditing(false);
+//         // Reset form after successful creation
 //         setTimeout(() => {
 //           fetchProfile();
 //           fetchVehicleInspection();
@@ -423,11 +437,11 @@
     
 //     // Append residential address fields - ALL MANDATORY
 //     formData.append("residential_street_line_1", profile.residential_street_line_1);
-//     formData.append("residential_street_line_2", profile.residential_street_line_2); // Now mandatory
+//     formData.append("residential_street_line_2", profile.residential_street_line_2);
 //     formData.append("residential_city", profile.residential_city);
 //     formData.append("residential_state", profile.residential_state);
 //     formData.append("residential_postal_code", profile.residential_postal_code);
-//     formData.append("residential_country", profile.residential_country); // Sends country code
+//     formData.append("residential_country", profile.residential_country);
 
 //     if (imageFile) {
 //       formData.append("profile_pic", imageFile);
@@ -436,15 +450,6 @@
 //     try {
 //       const url = `${API_BASE}/driver-profile/update`;
 //       console.log("Updating profile at:", url);
-//       console.log("Updating payload with fields:");
-//       console.log("- full_name:", profile.name);
-//       console.log("- phone:", profile.phone);
-//       console.log("- residential_street_line_1:", profile.residential_street_line_1);
-//       console.log("- residential_street_line_2:", profile.residential_street_line_2);
-//       console.log("- residential_city:", profile.residential_city);
-//       console.log("- residential_state:", profile.residential_state);
-//       console.log("- residential_postal_code:", profile.residential_postal_code);
-//       console.log("- residential_country (code):", profile.residential_country);
       
 //       const res = await fetch(url, {
 //         method: "PATCH",
@@ -508,7 +513,6 @@
     
 //     const dueDate = new Date(nextDueDateStr);
 //     const today = new Date();
-//     // Reset time part for accurate day calculation
 //     today.setHours(0, 0, 0, 0);
 //     dueDate.setHours(0, 0, 0, 0);
     
@@ -623,11 +627,6 @@
 //       </IonPage>
 //     );
 //   }
-
-//   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-//     const { name, value } = e.target;
-//     setProfile(prev => ({ ...prev, [name]: value }));
-//   };
 
 //   return (
 //     <IonPage className="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
@@ -1322,7 +1321,9 @@ import {
   MapPinIcon,
   GlobeAltIcon,
   BuildingOfficeIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ArrowLeftIcon,
+  ArrowsPointingOutIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 
@@ -1387,6 +1388,9 @@ const ProfileSetup: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [profileImageUrl, setProfileImageUrl] = useState<string>('');
   const [token, setToken] = useState<string | null>(null);
+  
+  // New state for image viewer modal
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   
   // Vehicle Inspection State
   const [vehicleInspection, setVehicleInspection] = useState<VehicleInspection | null>(null);
@@ -1574,6 +1578,34 @@ const ProfileSetup: React.FC = () => {
     setImageFile(file);
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
+    // Close the viewer after selecting new image
+    setIsImageViewerOpen(false);
+  };
+
+  // ======================
+  // Handle image click - open full viewer
+  // ======================
+  const handleImageClick = () => {
+    // Only open viewer if there's an image to show
+    const currentImage = imagePreview || profileImageUrl;
+    if (currentImage) {
+      setIsImageViewerOpen(true);
+    }
+  };
+
+  // ======================
+  // Handle image remove
+  // ======================
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setProfileImageUrl('');
+    setIsImageViewerOpen(false);
+    // Clear the file input
+    const fileInput = document.getElementById('profileUpload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
   };
 
   // ======================
@@ -1959,44 +1991,59 @@ const ProfileSetup: React.FC = () => {
               {/* Profile Image */}
               <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 md:left-8 md:translate-x-0">
                 <div className="relative">
+                  {/* Image Click Area - Opens viewer */}
                   <div 
-                    className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl cursor-pointer group bg-white dark:bg-gray-700"
-                    onClick={() => document.getElementById('profileUpload')?.click()}
+                    className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl cursor-pointer group bg-white dark:bg-gray-700 relative"
+                    onClick={handleImageClick}
                   >
                     {displayImage ? (
-                      <img
-                        src={displayImage}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error("Image failed to load:", displayImage);
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            const existingIcon = parent.querySelector('.fallback-icon');
-                            if (!existingIcon) {
-                              const icon = document.createElement('div');
-                              icon.className = 'fallback-icon w-full h-full flex items-center justify-center';
-                              icon.innerHTML = '<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
-                              parent.appendChild(icon);
+                      <>
+                        <img
+                          src={displayImage}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error("Image failed to load:", displayImage);
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const existingIcon = parent.querySelector('.fallback-icon');
+                              if (!existingIcon) {
+                                const icon = document.createElement('div');
+                                icon.className = 'fallback-icon w-full h-full flex items-center justify-center';
+                                icon.innerHTML = '<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
+                                parent.appendChild(icon);
+                              }
                             }
-                          }
-                        }}
-                      />
+                          }}
+                        />
+                        {/* Hover overlay for viewer */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                          <ArrowsPointingOutIcon className="w-6 h-6 text-white" />
+                        </div>
+                      </>
                     ) : (
                       <UserCircleIcon className="w-full h-full text-gray-400 dark:text-gray-500" />
                     )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                      <CameraIcon className="w-6 h-6 text-white" />
-                    </div>
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="profileUpload"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
+
+                  {/* Camera button for upload - positioned next to the profile image */}
+                  <div className="absolute -bottom-1 -right-1">
+                    <label
+                      htmlFor="profileUpload"
+                      className="w-8 h-8 rounded-full bg-gray-900 dark:bg-white hover:bg-gray-700 dark:hover:bg-gray-200 cursor-pointer flex items-center justify-center shadow-lg border-2 border-white dark:border-gray-800 transition-all duration-200"
+                      title="Upload new profile picture"
+                    >
+                      <CameraIcon className="w-4 h-4 text-white dark:text-gray-900" />
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="profileUpload"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -2565,6 +2612,81 @@ const ProfileSetup: React.FC = () => {
           )}
         </div>
 
+        {/* ============================================ */}
+        {/* FULL IMAGE VIEWER MODAL */}
+        {/* ============================================ */}
+        {isImageViewerOpen && (
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fadeIn"
+            onClick={() => setIsImageViewerOpen(false)}
+          >
+            <div 
+              className="relative max-w-4xl max-h-[90vh] w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setIsImageViewerOpen(false)}
+                className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors p-2"
+              >
+                <XMarkIcon className="w-8 h-8" />
+              </button>
+
+              {/* Image Container */}
+              <div className="relative bg-black/50 rounded-2xl overflow-hidden">
+                <img
+                  src={displayImage}
+                  alt="Profile Full View"
+                  className="w-full h-auto max-h-[80vh] object-contain"
+                  onError={(e) => {
+                    console.error("Full image failed to load:", displayImage);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+
+                {/* Action Buttons Overlay at Bottom */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm rounded-full px-4 py-3 border border-white/10">
+                  {/* Upload New Image Button */}
+                  <label
+                    htmlFor="profileUploadViewer"
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full cursor-pointer transition-all duration-200 text-sm font-medium"
+                  >
+                    <CameraIcon className="w-5 h-5" />
+                    Change Photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="profileUploadViewer"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+
+                  {/* Remove Image Button - Only show when editing or creating */}
+                  {(isEditing || !isCreated) && displayImage && (
+                    <button
+                      onClick={handleRemoveImage}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-full transition-all duration-200 text-sm font-medium"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                      Remove
+                    </button>
+                  )}
+
+                  {/* Close Button */}
+                  <button
+                    onClick={() => setIsImageViewerOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all duration-200 text-sm font-medium"
+                  >
+                    <ArrowLeftIcon className="w-5 h-5" />
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <IonLoading isOpen={loading || loadingInspection} message="Loading..." />
         <IonToast
           isOpen={!!toastMsg}
@@ -2587,6 +2709,13 @@ const ProfileSetup: React.FC = () => {
         .dark .bg-grid-white\\/[0.02] {
           background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
                             linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out forwards;
         }
       `}</style>
     </IonPage>

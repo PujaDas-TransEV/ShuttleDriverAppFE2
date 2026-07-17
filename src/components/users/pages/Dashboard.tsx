@@ -620,7 +620,7 @@ const Dashboard: React.FC = () => {
           {/* Header */}
           <div className="mb-4 mt-17">
             <h1 className={`text-2xl md:text-3xl font-bold ${isDark ? 'text-pink-300' : 'text-gray-800'}`}>
-              Welcome, Driver! 👋
+              Welcome! 👋
             </h1>
             <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1`}>
               Track your trips, earnings, and performance
