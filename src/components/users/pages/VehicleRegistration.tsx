@@ -8160,7 +8160,7 @@ const VehicleRegistration: React.FC = () => {
           )}
           
           {fileName && (
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[150px] sm:max-w-[200px]">
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate max-w-37.5 sm:max-w-50">
               📎 {fileName}
             </p>
           )}
@@ -8475,7 +8475,7 @@ const VehicleRegistration: React.FC = () => {
           {serverError && (
             <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 animate-fadeIn">
               <div className="flex items-start gap-3">
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-semibold text-red-800 dark:text-red-300">Registration Error</p>
                   <p className="text-sm text-red-700 dark:text-red-400 mt-0.5">{serverError}</p>
@@ -8646,7 +8646,7 @@ const VehicleRegistration: React.FC = () => {
                         min="0"
                         className="w-full px-4 py-2.5 sm:py-3 pl-9 sm:pl-10 text-sm sm:text-base rounded-xl border-2 border-gray-200 dark:border-gray-700 
                                  bg-white dark:bg-gray-700 
-                                 text-gray-900 dark:text-white text-center text-base sm:text-lg font-semibold
+                                 text-gray-900 dark:text-white text-center font-semibold
                                  focus:border-black dark:focus:border-white focus:ring-2 focus:ring-black/20 dark:focus:ring-white/20
                                  transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
@@ -8765,7 +8765,7 @@ const VehicleRegistration: React.FC = () => {
                             max={vehicle.seat_count}
                             className="w-full px-4 py-2.5 sm:py-3 pl-9 sm:pl-10 text-sm sm:text-base rounded-xl border-2 border-purple-200 dark:border-purple-700 
                                      bg-white dark:bg-gray-700 
-                                     text-gray-900 dark:text-white text-center text-base sm:text-lg font-semibold
+                                     text-gray-900 dark:text-white text-center font-semibold
                                      focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20
                                      transition-all duration-200 [appearance:textfield]"
                           />
@@ -8881,7 +8881,7 @@ const VehicleRegistration: React.FC = () => {
                   />
                   {vehicle.color && (
                     <div 
-                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-inner flex-shrink-0"
+                      className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-inner shrink-0"
                       style={{ backgroundColor: vehicle.color.toLowerCase() }}
                     />
                   )}
